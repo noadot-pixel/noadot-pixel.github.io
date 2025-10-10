@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NoaDot</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-container">
+    <!-- 왼쪽 패널: 결과물 표시 -->
+    <div class="left-panel">
+        <header class="main-header">
+            <h1>NoaDot</h1>
+            <div class="external-links">
+                <a href="https://wplace.live" target="_blank" title="Wplace 바로가기"><img src="wplace-logo.png" alt="Wplace Logo"></a>
+                <a href="https://geopixels.net/" target="_blank" title="GeoPixels 바로가기"><img src="geopixels-logo.png" alt="GeoPixels Logo"></a>
+            </div>
+        </header>
+        <section class="main-controls">
+            <input type="file" id="imageUpload" accept="image/*">
+            <button id="downloadBtn" disabled>변환 이미지 다운로드</button>
+        </section>
+        <section id="result-area">
+            <div id="convertedCanvasContainer">
+                <div id="placeholder-ui">
+                    <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                    <p>창 클릭 혹은 이미지를 화면으로 드래그</p>
+                </div>
+                <span id="zoomLevelDisplay">100%</span>
+                <canvas id="convertedCanvas"></canvas>
+                <button id="centerBtn" title="가운데로">센터로</button>
+            </div>
+        </section>
+    </div>
+
+    <!-- 오른쪽 패널: 컨트롤러 -->
+    <div class="right-panel">
+        <section class="image-controls">
+            <h2>이미지 조정</h2>
+            <div class="control-group"><label for="saturationSlider">채도: <span id="saturationValue">100</span>%</label><input type="range" id="saturationSlider" min="0" max="200" value="100"></div>
+            <div class="control-group"><label for="brightnessSlider">명도: <span id="brightnessValue">0</span></label><input type="range" id="brightnessSlider" min="-100" max="100" value="0"></div>
+            <div class="control-group"><label for="contrastSlider">대비: <span id="contrastValue">0</span></label><input type="range" id="contrastSlider" min="-100" max="100" value="0"></div>
+            <div class="control-group"><label for="ditheringSlider">디더링: <span id="ditheringValue">0</span>%</label><input type="range" id="ditheringSlider" min="0" max="100" value="0"></div>
+        </section>
+
+        <section class="palette-collection">
+            <details class="palette-category" open>
+                <summary>
+                    <span class="palette-status-icon" data-target="geoPixelColors">✓</span>
+                    <h3>지오픽셀 팔레트</h3>
+                    <button class="toggle-all toggle-all-summary" data-target="geoPixelColors" title="전체 선택/해제">A</button>
+                </summary>
+                <div class="palette-section">
+                    <div class="palette-buttons" id="geoPixelColors"></div>
+                </div>
+            </details>
+            
+            <details class="palette-category">
+                <summary>
+                    <span class="palette-status-icon" data-target="wplaceFreeColors,wplacePaidColors">✓</span>
+                    <h3>Wplace 팔레트</h3>
+                    <button class="toggle-all toggle-all-summary" data-target="wplaceFreeColors,wplacePaidColors" title="전체 선택/해제">A</button>
+                </summary>
+                <div class="palette-section">
+                    <h4>무료 색상</h4>
+                    <div class="palette-buttons" id="wplaceFreeColors"></div>
+                </div>
+                <div class="palette-section">
+                    <h4>유료 색상</h4>
+                    <div class="palette-buttons" id="wplacePaidColors"></div>
+                </div>
+            </details>
+        </section>
+
+        <section class="palette-section user-palette">
+            <h2>추가한 색상</h2>
+            <div class="add-color-form"><input type="number" id="addR" placeholder="R" min="0" max="255"><input type="number" id="addG" placeholder="G" min="0" max="255"><input type="number" id="addB" placeholder="B" min="0" max="255"><button id="addColorBtn">추가</button></div>
+            <div class="color-code-section"><button id="exportColorsBtn">코드 추출</button><textarea id="colorCodeInput" placeholder="코드를 여기에 붙여넣으세요."></textarea><button id="importColorsBtn">코드 적용</button></div>
+            <div class="palette-buttons" id="addedColors"></div>
+        </section>
+    </div>
+</div>
+
+<script src="palette-data.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
