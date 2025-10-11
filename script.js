@@ -49,22 +49,38 @@ document.addEventListener('DOMContentLoaded', () => {
         return { color: closestColor, distance: minDistance };
     };
     
+    // ## 여기가 수정된 부분 ##
     const updateColorRecommendations = () => {
         elements.recommendedColorsContainer.innerHTML = '';
         if (state.colorAnalysis.totalPixels === 0) return;
+
         const activePalette = Array.from(document.querySelectorAll('.color-button[data-on="true"]')).map(b => JSON.parse(b.dataset.rgb));
+        
+        // 현재 페이지에 존재하는 모든 색상(on/off 무관)을 Set으로 만듦
+        const allExistingColors = new Set();
+        document.querySelectorAll('.color-button[data-rgb]').forEach(btn => {
+            allExistingColors.add(JSON.parse(btn.dataset.rgb).join(','));
+        });
+        
         if (activePalette.length === 0) return;
+        
         const candidates = [];
         const minCountThreshold = state.colorAnalysis.totalPixels * 0.01;
+
         for (const [rgbStr, count] of state.colorAnalysis.counts.entries()) {
+            // 이미 존재하는 색이면 추천 목록에서 제외
+            if (allExistingColors.has(rgbStr)) continue;
             if (count < minCountThreshold) continue;
+
             const originalRgb = JSON.parse(`[${rgbStr}]`);
             const { distance } = findClosestColor(originalRgb[0], originalRgb[1], originalRgb[2], activePalette);
+
             if (distance > 0) {
                 const score = distance * count;
                 candidates.push({ rgb: originalRgb, score, count });
             }
         }
+
         candidates.sort((a, b) => b.score - a.score);
         const finalRecommendations = candidates.slice(0, 10);
         finalRecommendations.forEach(rec => {
