@@ -4,19 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NoaDot</title>
-
-<!-- 아이콘 선언 최종 버전 -->
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
-
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="app-container">
-    <!-- 왼쪽 패널: 결과물 표시 -->
+    <!-- 왼쪽 패널 -->
     <div class="left-panel">
         <header class="main-header">
             <h1>NoaDot</h1>
@@ -42,7 +39,7 @@
         </section>
     </div>
 
-    <!-- 오른쪽 패널: 컨트롤러 -->
+    <!-- 오른쪽 패널 -->
     <div class="right-panel">
         <section class="image-controls">
             <h2>이미지 조정</h2>
@@ -50,13 +47,22 @@
             <div class="control-group"><label for="brightnessSlider">명도: <span id="brightnessValue">0</span></label><input type="range" id="brightnessSlider" min="-100" max="100" value="0"></div>
             <div class="control-group"><label for="contrastSlider">대비: <span id="contrastValue">0</span></label><input type="range" id="contrastSlider" min="-100" max="100" value="0"></div>
             <div class="control-group"><label for="ditheringSlider">디더링: <span id="ditheringValue">0</span>%</label><input type="range" id="ditheringSlider" min="0" max="100" value="0"></div>
-            <div class="control-group">
-                <label for="scaleSlider">스케일: 1:<span id="scaleValue">1</span></label>
-                <input type="range" id="scaleSlider" min="1" max="10" value="1">
+            <div class="control-group"><label for="scaleSlider">스케일: 1:<span id="scaleValue">1</span></label><input type="range" id="scaleSlider" min="1" max="10" value="1"></div>
+        </section>
+
+        <!-- ## 여기가 핵심 변경 ##: 모드 스위처 추가 -->
+        <section class="mode-switcher">
+            <h2>팔레트 모드</h2>
+            <div class="radio-toggle">
+                <input type="radio" id="geopixelsMode" name="paletteMode" value="geopixels" checked>
+                <label for="geopixelsMode">GeoPixels</label>
+                <input type="radio" id="wplaceMode" name="paletteMode" value="wplace">
+                <label for="wplaceMode">Wplace</label>
             </div>
         </section>
 
-        <section class="palette-collection">
+        <!-- 지오픽셀 모드 전용 섹션들 -->
+        <div id="geopixels-controls">
             <details class="palette-category" open>
                 <summary>
                     <span class="palette-status-icon" data-target="geoPixelColors">✓</span>
@@ -67,8 +73,21 @@
                     <div class="palette-buttons" id="geoPixelColors"></div>
                 </div>
             </details>
-            
-            <details class="palette-category">
+            <section id="recommendation-section">
+                <h2>색상 추천</h2>
+                <div class="palette-buttons" id="recommendedColors"></div>
+            </section>
+            <section class="palette-section user-palette" id="user-palette-section">
+                <h2>추가한 색상</h2>
+                <div class="add-color-form"><input type="number" id="addR" placeholder="R" min="0" max="255"><input type="number" id="addG" placeholder="G" min="0" max="255"><input type="number" id="addB" placeholder="B" min="0" max="255"><button id="addColorBtn">추가</button></div>
+                <div class="color-code-section"><button id="exportColorsBtn">코드 추출</button><textarea id="colorCodeInput" placeholder="코드를 여기에 붙여넣으세요."></textarea><button id="importColorsBtn">코드 적용</button></div>
+                <div class="palette-buttons" id="addedColors"></div>
+            </section>
+        </div>
+
+        <!-- Wplace 모드 전용 섹션 -->
+        <div id="wplace-controls" style="display: none;">
+             <details class="palette-category" open>
                 <summary>
                     <span class="palette-status-icon" data-target="wplaceFreeColors,wplacePaidColors">✓</span>
                     <h3>Wplace 팔레트</h3>
@@ -83,21 +102,7 @@
                     <div class="palette-buttons" id="wplacePaidColors"></div>
                 </div>
             </details>
-        </section>
-        
-        <section id="recommendation-section">
-            <h2>색상 추천</h2>
-            <div class="palette-buttons" id="recommendedColors">
-                <!-- 추천된 색상이 여기에 표시됩니다. -->
-            </div>
-        </section>
-
-        <section class="palette-section user-palette">
-            <h2>추가한 색상</h2>
-            <div class="add-color-form"><input type="number" id="addR" placeholder="R" min="0" max="255"><input type="number" id="addG" placeholder="G" min="0" max="255"><input type="number" id="addB" placeholder="B" min="0" max="255"><button id="addColorBtn">추가</button></div>
-            <div class="color-code-section"><button id="exportColorsBtn">코드 추출</button><textarea id="colorCodeInput" placeholder="코드를 여기에 붙여넣으세요."></textarea><button id="importColorsBtn">코드 적용</button></div>
-            <div class="palette-buttons" id="addedColors"></div>
-        </section>
+        </div>
     </div>
 </div>
 
