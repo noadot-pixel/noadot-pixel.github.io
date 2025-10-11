@@ -55,7 +55,7 @@ h3 { display: inline-block; padding: 0; margin: 0; }
     align-items: center;
     color: #888;
     text-align: center;
-    pointer-events: none; /* Placeholder 뒤의 컨테이너가 클릭되도록 함 */
+    pointer-events: none;
 }
 .upload-icon { width: 64px; height: 64px; fill: #aaa; margin-bottom: 10px; }
 #convertedCanvasContainer.has-image #placeholder-ui { display: none; }
@@ -102,6 +102,40 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
 .color-code-section { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
 .color-code-section textarea { width: 100%; min-height: 60px; resize: vertical; box-sizing: border-box; }
 .color-code-section button { width: fit-content; padding: 5px 10px; }
+
+#recommendation-section .palette-buttons {
+    min-height: 60px;
+    border: 1px dashed #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #f9f9f9;
+}
+.recommendation-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+    font-size: 12px;
+}
+.recommendation-swatch {
+    width: 24px;
+    height: 24px;
+    border: 1px solid #888;
+    flex-shrink: 0;
+}
+.recommendation-info {
+    display: flex;
+    flex-direction: column;
+}
+.recommendation-add-btn {
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+}
 
 @media (max-width: 1100px) {
   body { overflow: auto; }

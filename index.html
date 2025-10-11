@@ -50,6 +50,10 @@
             <div class="control-group"><label for="brightnessSlider">명도: <span id="brightnessValue">0</span></label><input type="range" id="brightnessSlider" min="-100" max="100" value="0"></div>
             <div class="control-group"><label for="contrastSlider">대비: <span id="contrastValue">0</span></label><input type="range" id="contrastSlider" min="-100" max="100" value="0"></div>
             <div class="control-group"><label for="ditheringSlider">디더링: <span id="ditheringValue">0</span>%</label><input type="range" id="ditheringSlider" min="0" max="100" value="0"></div>
+            <div class="control-group">
+                <label for="scaleSlider">스케일: 1:<span id="scaleValue">1</span></label>
+                <input type="range" id="scaleSlider" min="1" max="10" value="1">
+            </div>
         </section>
 
         <section class="palette-collection">
@@ -79,6 +83,13 @@
                     <div class="palette-buttons" id="wplacePaidColors"></div>
                 </div>
             </details>
+        </section>
+        
+        <section id="recommendation-section">
+            <h2>색상 추천</h2>
+            <div class="palette-buttons" id="recommendedColors">
+                <!-- 추천된 색상이 여기에 표시됩니다. -->
+            </div>
         </section>
 
         <section class="palette-section user-palette">
