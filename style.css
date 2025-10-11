@@ -174,3 +174,27 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
     color: white;
     font-weight: bold;
 }
+
+.option-section {
+    padding: var(--padding);
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    margin-bottom: var(--padding);
+}
+
+.checkbox-group {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+}
+
+.checkbox-group label {
+    margin: 0;
+    font-weight: normal;
+}

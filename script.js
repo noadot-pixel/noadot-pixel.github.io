@@ -13,7 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
         startDragX: 0, startDragY: 0,
         finalDownloadableData: null,
         colorAnalysis: { counts: new Map(), totalPixels: 0 },
-        currentMode: 'geopixels', // ## 핵심 변경 ##: 현재 모드 상태 추가
+        currentMode: 'geopixels',
+        useWplaceInGeoMode: false, // ## 핵심 변경 ##
     };
 
     const elements = {
@@ -42,6 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
         wplaceModeBtn: document.getElementById('wplaceMode'),
         geopixelsControls: document.getElementById('geopixels-controls'),
         wplaceControls: document.getElementById('wplace-controls'),
+        useWplaceInGeoMode: document.getElementById('useWplaceInGeoMode'), // ## 핵심 변경 ##
+        wplacePaletteInGeo: document.getElementById('wplace-palette-in-geo'), // ## 핵심 변경 ##
+        wplaceFreeColorsInGeo: document.getElementById('wplaceFreeColorsInGeo'), // ## 핵심 변경 ##
+        wplacePaidColorsInGeo: document.getElementById('wplacePaidColorsInGeo'), // ## 핵심 변경 ##
     };
     const cCtx = elements.convertedCanvas.getContext('2d');
 
@@ -54,16 +59,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return { color: closestColor, distance: minDistance };
     };
     
-    // ## 핵심 변경 ##: 추천 로직이 모드를 확인하도록 수정
     const updateColorRecommendations = () => {
         elements.recommendedColorsContainer.innerHTML = '';
         if (state.currentMode !== 'geopixels' || state.colorAnalysis.totalPixels === 0) return;
-
-        const activePalette = Array.from(document.querySelectorAll('#geoPixelColors .color-button[data-on="true"], #addedColors .color-button[data-on="true"]')).map(b => JSON.parse(b.dataset.rgb));
+        
+        const geoSelectors = ['#geoPixelColors .color-button[data-on="true"]', '#addedColors .color-button[data-on="true"]'];
+        const existingSelectors = ['#geoPixelColors .color-button', '#addedColors .color-button'];
+        
+        if (state.useWplaceInGeoMode) {
+            geoSelectors.push('#wplace-palette-in-geo .color-button[data-on="true"]');
+            existingSelectors.push('#wplace-palette-in-geo .color-button');
+        }
+        
+        const activePalette = Array.from(document.querySelectorAll(geoSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb));
         const allExistingColors = new Set();
-        document.querySelectorAll('#geoPixelColors .color-button, #addedColors .color-button').forEach(btn => {
-            allExistingColors.add(JSON.parse(btn.dataset.rgb).join(','));
-        });
+        document.querySelectorAll(existingSelectors.join(',')).forEach(btn => { allExistingColors.add(JSON.parse(btn.dataset.rgb).join(',')); });
         
         if (activePalette.length === 0) return;
         
@@ -102,34 +112,62 @@ document.addEventListener('DOMContentLoaded', () => {
     const preprocessImageData = (sourceImageData) => { const sat = parseFloat(elements.saturationSlider.value) / 100.0, bri = parseInt(elements.brightnessSlider.value), con = parseFloat(elements.contrastSlider.value); const factor = (259 * (con + 255)) / (255 * (259 - con)); const data = new Uint8ClampedArray(sourceImageData.data); for (let i = 0; i < data.length; i += 4) { let r = data[i], g = data[i + 1], b = data[i + 2]; r += bri; g += bri; b += bri; r = factor * (r - 128) + 128; g = factor * (g - 128) + 128; b = factor * (b - 128) + 128; if (sat !== 1.0) { const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = gray + sat * (r - gray); g = gray + sat * (g - gray); b = gray + sat * (b - gray); } data[i] = Math.max(0, Math.min(255, r)); data[i + 1] = Math.max(0, Math.min(255, g)); data[i + 2] = Math.max(0, Math.min(255, b)); } return new ImageData(data, sourceImageData.width, sourceImageData.height); };
     const applyConversion = async (imageDataToProcess, activePalette, options) => { if (!imageDataToProcess) return; state.isConverting = true; const preprocessed = preprocessImageData(imageDataToProcess); const { width, height } = preprocessed; let finalPixelData; if (activePalette.length === 0) { const tempCanvas = document.createElement('canvas'); tempCanvas.width = width; tempCanvas.height = height; const tempCtx = tempCanvas.getContext('2d'); tempCtx.fillStyle = 'black'; tempCtx.fillRect(0, 0, width, height); finalPixelData = tempCtx.getImageData(0, 0, width, height); } else { const newData = new ImageData(width, height); const ditherData = new Float32Array(preprocessed.data); for (let y = 0; y < height; y++) { if (y % 10 === 0) { await new Promise(r => setTimeout(r, 0)); if (!state.isConverting) return; } for (let x = 0; x < width; x++) { const i = (y * width + x) * 4; const oldA = ditherData[i + 3]; if (oldA === 0) { newData.data[i + 3] = 0; continue; } const [oldR, oldG, oldB] = [ditherData[i], ditherData[i + 1], ditherData[i + 2]]; const { color: newRgb } = findClosestColor(oldR, oldG, oldB, activePalette); newData.data[i] = newRgb[0]; newData.data[i + 1] = newRgb[1]; newData.data[i + 2] = newRgb[2]; newData.data[i + 3] = oldA; const ditherStr = options.dithering / 100.0; if (ditherStr > 0) { const errR = (oldR - newRgb[0]) * ditherStr, errG = (oldG - newRgb[1]) * ditherStr, errB = (oldB - newRgb[2]) * ditherStr; const p1 = i + 4, p2 = i + (width - 1) * 4, p3 = i + width * 4, p4 = i + (width + 1) * 4; if (x < width - 1) { ditherData[p1] += errR * 7 / 16; ditherData[p1 + 1] += errG * 7 / 16; ditherData[p1 + 2] += errB * 7 / 16; } if (y < height - 1) { if (x > 0) { ditherData[p2] += errR * 3 / 16; ditherData[p2 + 1] += errG * 3 / 16; ditherData[p2 + 2] += errB * 3 / 16; } ditherData[p3] += errR * 5 / 16; ditherData[p3 + 1] += errG * 5 / 16; ditherData[p3 + 2] += errB * 5 / 16; if (x < width - 1) { ditherData[p4] += errR * 1 / 16; ditherData[p4 + 1] += errG * 1 / 16; ditherData[p4 + 2] += errB * 1 / 16; } } } } } finalPixelData = newData; } state.finalDownloadableData = finalPixelData; const tempCanvas = document.createElement('canvas'); tempCanvas.width = finalPixelData.width; tempCanvas.height = finalPixelData.height; tempCanvas.getContext('2d').putImageData(finalPixelData, 0, 0); elements.convertedCanvas.width = state.originalImageObject.width; elements.convertedCanvas.height = state.originalImageObject.height; cCtx.imageSmoothingEnabled = false; cCtx.drawImage(tempCanvas, 0, 0, elements.convertedCanvas.width, elements.convertedCanvas.height); state.isConverting = false; elements.downloadBtn.disabled = false; updateTransform(); };
     const analyzeColors = (imageData) => { const counts = new Map(); let totalPixels = 0; for (let i = 0; i < imageData.data.length; i += 4) { if (imageData.data[i + 3] > 128) { const key = `${imageData.data[i]},${imageData.data[i+1]},${imageData.data[i+2]}`; counts.set(key, (counts.get(key) || 0) + 1); totalPixels++; } } state.colorAnalysis = { counts, totalPixels }; updateColorRecommendations(); };
-    const processImage = () => { if (!state.originalImageObject) return; const scaleFactor = parseInt(elements.scaleSlider.value, 10); const newWidth = Math.max(1, Math.round(state.originalImageObject.width / scaleFactor)); const newHeight = Math.max(1, Math.round(state.originalImageObject.height / scaleFactor)); const tempCanvas = document.createElement('canvas'); tempCanvas.width = newWidth; tempCanvas.height = newHeight; const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true }); tempCtx.drawImage(state.originalImageObject, 0, 0, newWidth, newHeight); state.originalImageData = tempCtx.getImageData(0, 0, newWidth, newHeight); analyzeColors(state.originalImageData); const palette = Array.from(document.querySelectorAll('.color-button[data-on="true"]')).map(b => JSON.parse(b.dataset.rgb)); const opts = { dithering: parseFloat(elements.ditheringSlider.value) }; applyConversion(state.originalImageData, palette, opts); };
+    
+    const processImage = () => {
+        if (!state.originalImageObject) return;
+        const scaleFactor = parseInt(elements.scaleSlider.value, 10);
+        const newWidth = Math.max(1, Math.round(state.originalImageObject.width / scaleFactor));
+        const newHeight = Math.max(1, Math.round(state.originalImageObject.height / scaleFactor));
+        const tempCanvas = document.createElement('canvas'); tempCanvas.width = newWidth; tempCanvas.height = newHeight;
+        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+        tempCtx.drawImage(state.originalImageObject, 0, 0, newWidth, newHeight);
+        state.originalImageData = tempCtx.getImageData(0, 0, newWidth, newHeight);
+        
+        analyzeColors(state.originalImageData);
+        
+        // ## 핵심 변경 ##: 체크박스 상태에 따라 팔레트 선택자 동적 결합
+        let paletteSelectors = [];
+        if (state.currentMode === 'geopixels') {
+            paletteSelectors.push('#geopixels-controls #geoPixelColors .color-button[data-on="true"]', '#geopixels-controls #addedColors .color-button[data-on="true"]');
+            if (state.useWplaceInGeoMode) {
+                paletteSelectors.push('#geopixels-controls #wplace-palette-in-geo .color-button[data-on="true"]');
+            }
+        } else { // 'wplace'
+            paletteSelectors.push('#wplace-controls .color-button[data-on="true"]');
+        }
+        
+        const palette = Array.from(document.querySelectorAll(paletteSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb));
+        const opts = { dithering: parseFloat(elements.ditheringSlider.value) };
+        applyConversion(state.originalImageData, palette, opts);
+    };
+
     const triggerConversion = () => { if (state.isConverting) { state.isConverting = false; } clearTimeout(state.processId); state.processId = setTimeout(processImage, 150); };
     const handleFile = (file) => { if (!file || !file.type.startsWith('image/')) return; state.originalFileName = file.name; const img = new Image(); img.onload = () => { state.originalImageObject = img; elements.convertedCanvasContainer.classList.add('has-image'); state.panX = 0; state.panY = 0; updateZoom(100); triggerConversion(); }; img.src = URL.createObjectURL(file); };
     
-    // ## 핵심 변경 ##: 모드 전환 로직
     const setPaletteMode = (mode) => {
         state.currentMode = mode;
         if (mode === 'geopixels') {
             elements.geopixelsControls.style.display = 'block';
             elements.wplaceControls.style.display = 'none';
-            // 지오픽셀 팔레트는 켜고, Wplace 팔레트는 끈다
-            document.querySelectorAll('#geoPixelColors .color-button.off').forEach(btn => btn.click());
-            document.querySelectorAll('#wplaceFreeColors .color-button[data-on="true"], #wplacePaidColors .color-button[data-on="true"]').forEach(btn => btn.click());
         } else { // wplace
             elements.geopixelsControls.style.display = 'none';
             elements.wplaceControls.style.display = 'block';
-            // Wplace 팔레트는 켜고, 지오픽셀 및 추가된 색상은 끈다
-            document.querySelectorAll('#wplaceFreeColors .color-button.off, #wplacePaidColors .color-button.off').forEach(btn => btn.click());
-            document.querySelectorAll('#geoPixelColors .color-button[data-on="true"], #addedColors .color-button[data-on="true"]').forEach(btn => btn.click());
         }
         updatePaletteStatus();
         triggerConversion();
     };
 
     const setupEventListeners = () => {
-        // 모드 전환 이벤트
         elements.geopixelsModeBtn.addEventListener('change', () => setPaletteMode('geopixels'));
         elements.wplaceModeBtn.addEventListener('change', () => setPaletteMode('wplace'));
+        
+        // ## 핵심 변경 ##
+        elements.useWplaceInGeoMode.addEventListener('change', (e) => {
+            state.useWplaceInGeoMode = e.target.checked;
+            elements.wplacePaletteInGeo.style.display = e.target.checked ? 'block' : 'none';
+            updatePaletteStatus();
+            triggerConversion();
+        });
 
         const cont = elements.convertedCanvasContainer;
         cont.addEventListener('wheel', e => { e.preventDefault(); const step = 25; if (e.deltaY < 0) { updateZoom(state.currentZoom + step); } else { updateZoom(state.currentZoom - step); } });
@@ -154,13 +192,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const initialize = () => {
         geoPixelHexCodes.map(hex => ({ rgb: hexToRgb(hex) })).forEach(c => createColorButton(c, elements.geoPixelColorsContainer, true));
-        wplaceFreeColorsData.forEach(c => createColorButton(c, elements.wplaceFreeColorsContainer, true)); // Wplace도 기본적으로 켜두자
-        wplacePaidColorsData.forEach(c => createColorButton(c, elements.wplacePaidColorsContainer, true)); // Wplace도 기본적으로 켜두자
+        wplaceFreeColorsData.forEach(c => createColorButton(c, elements.wplaceFreeColorsContainer, false));
+        wplacePaidColorsData.forEach(c => createColorButton(c, elements.wplacePaidColorsContainer, false));
+        // Geo 모드용 Wplace 팔레트 복제본 생성
+        wplaceFreeColorsData.forEach(c => createColorButton(c, elements.wplaceFreeColorsInGeo, false));
+        wplacePaidColorsData.forEach(c => createColorButton(c, elements.wplacePaidColorsInGeo, false));
+        
         createMasterToggleButton('geoPixelColors', elements.geoPixelColorsContainer);
-        createMasterToggleButton('wplaceFreeColors', elements.wplaceFreeColorsContainer);
-        createMasterToggleButton('wplacePaidColors', elements.wplacePaidColorsContainer);
+        createMasterToggleButton('wplaceFreeColors,wplacePaidColors', elements.wplaceControls.querySelector('.palette-category'));
+        createMasterToggleButton('wplaceFreeColorsInGeo,wplacePaidColorsInGeo', elements.wplacePaletteInGeo.querySelector('.palette-category'));
         setupEventListeners();
-        setPaletteMode('geopixels'); // 초기 모드 설정
+        setPaletteMode('geopixels'); 
     };
     initialize();
 });
