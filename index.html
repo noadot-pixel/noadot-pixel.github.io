@@ -46,7 +46,19 @@
             <div class="control-group"><label for="saturationSlider">채도: <span id="saturationValue">100</span>%</label><input type="range" id="saturationSlider" min="0" max="200" value="100"></div>
             <div class="control-group"><label for="brightnessSlider">명도: <span id="brightnessValue">0</span></label><input type="range" id="brightnessSlider" min="-100" max="100" value="0"></div>
             <div class="control-group"><label for="contrastSlider">대비: <span id="contrastValue">0</span></label><input type="range" id="contrastSlider" min="-100" max="100" value="0"></div>
-            <div class="control-group"><label for="ditheringSlider">디더링: <span id="ditheringValue">0</span>%</label><input type="range" id="ditheringSlider" min="0" max="100" value="0"></div>
+            
+            <!-- ## 여기가 핵심 변경 ## -->
+            <div class="control-group">
+                <label for="ditheringAlgorithmSelect">디더링 알고리즘:</label>
+                <select id="ditheringAlgorithmSelect">
+                    <option value="floyd">Floyd-Steinberg (기본)</option>
+                    <option value="sierra">Sierra-2-4A</option>
+                    <option value="atkinson">Atkinson</option>
+                    <option value="none">디더링 없음</option>
+                </select>
+            </div>
+            <div class="control-group"><label for="ditheringSlider">디더링 강도: <span id="ditheringValue">25</span>%</label><input type="range" id="ditheringSlider" min="0" max="100" value="25"></div>
+
             <div class="control-group"><label for="scaleSlider">스케일: 1:<span id="scaleValue">1</span></label><input type="range" id="scaleSlider" min="1" max="10" value="1"></div>
         </section>
 
@@ -60,20 +72,16 @@
             </div>
         </section>
 
-        <!-- 지오픽셀 모드 전용 섹션들 -->
         <div id="geopixels-controls">
             <details class="palette-category" open>
                 <summary>
                     <span class="palette-status-icon" data-target="geoPixelColors">✓</span>
                     <h3>지오픽셀 팔레트</h3>
-                    <button class="toggle-all toggle-all-summary" data-target="geoPixelColors" title="전체 선택/해제">A</button>
                 </summary>
                 <div class="palette-section">
                     <div class="palette-buttons" id="geoPixelColors"></div>
                 </div>
             </details>
-            
-            <!-- ## 여기가 핵심 변경 ##: 체크박스 및 Wplace 팔레트 복제본 추가 -->
             <section class="option-section">
                 <div class="control-group checkbox-group">
                     <input type="checkbox" id="useWplaceInGeoMode">
@@ -85,7 +93,6 @@
                     <summary>
                         <span class="palette-status-icon" data-target="wplaceFreeColorsInGeo,wplacePaidColorsInGeo">✓</span>
                         <h3>Wplace 팔레트</h3>
-                        <button class="toggle-all toggle-all-summary" data-target="wplaceFreeColorsInGeo,wplacePaidColorsInGeo" title="전체 선택/해제">A</button>
                     </summary>
                     <div class="palette-section">
                         <h4>무료 색상</h4>
@@ -97,7 +104,6 @@
                     </div>
                 </details>
             </div>
-
             <section id="recommendation-section">
                 <h2>색상 추천</h2>
                 <div class="palette-buttons" id="recommendedColors"></div>
@@ -110,13 +116,11 @@
             </section>
         </div>
 
-        <!-- Wplace 모드 전용 섹션 -->
         <div id="wplace-controls" style="display: none;">
              <details class="palette-category" open>
                 <summary>
                     <span class="palette-status-icon" data-target="wplaceFreeColors,wplacePaidColors">✓</span>
                     <h3>Wplace 팔레트</h3>
-                    <button class="toggle-all toggle-all-summary" data-target="wplaceFreeColors,wplacePaidColors" title="전체 선택/해제">A</button>
                 </summary>
                 <div class="palette-section">
                     <h4>무료 색상</h4>
