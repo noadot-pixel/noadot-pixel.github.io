@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const elements = {
         appContainer: document.querySelector('.app-container'),
-        imageUpload: document.getElementById('imageUpload'),
+        imageUpload: document.getElementById('imageUpload'), // ## 핵심 변경 ##: 여전히 필요함 (숨겨져 있음)
         downloadBtn: document.getElementById('downloadBtn'),
         convertedCanvas: document.getElementById('convertedCanvas'),
         convertedCanvasContainer: document.getElementById('convertedCanvasContainer'),
@@ -231,7 +231,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) { alert('유효하지 않은 코드입니다. 다시 확인해주세요.'); }
         });
 
-        // ## 핵심 변경 ##: 'A' 버튼이 새로운 UI도 인식하도록 수정
         document.querySelectorAll('.toggle-all').forEach(btn => {
             btn.addEventListener('click', e => {
                 const targetIds = e.currentTarget.dataset.target.split(',');
@@ -250,7 +249,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 allItems.forEach(item => {
                     const isOn = item.dataset.on === 'true';
                     if ((turnOn && !isOn) || (!turnOn && isOn)) {
-                        // 아이템 종류에 따라 올바른 클릭 대상을 찾음
                         const clickable = item.classList.contains('added-color-item') ? item.querySelector('.added-color-swatch') : item;
                         clickable.click();
                     }

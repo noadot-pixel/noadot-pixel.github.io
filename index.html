@@ -12,7 +12,7 @@
 </head>
 <body>
 
-<div class="app-container"> <!-- ## 핵심 변경 ##: id="appContainer" 제거하고 class만 남김 -->
+<div class="app-container">
     <!-- 왼쪽 패널 -->
     <div class="left-panel">
         <header class="main-header">
@@ -22,12 +22,11 @@
                 <a href="https://geopixels.net/" target="_blank" title="GeoPixels 바로가기"><img src="geopixels-logo.png" alt="GeoPixels Logo"></a>
             </div>
         </header>
-        <section class="main-controls">
-            <input type="file" id="imageUpload" accept="image/*">
-            <button id="downloadBtn" disabled>변환 이미지 다운로드</button>
-        </section>
+        <!-- ## 핵심 변경 ##: main-controls 섹션 삭제 -->
         <section id="result-area">
             <div id="convertedCanvasContainer">
+                <!-- ## 핵심 변경 ##: 숨겨진 파일 인풋 추가 -->
+                <input type="file" id="imageUpload" accept="image/*" style="display: none;">
                 <div id="placeholder-ui">
                     <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
                     <p>창 클릭 혹은 이미지를 화면으로 드래그</p>
@@ -43,11 +42,6 @@
     <div class="right-panel">
         <section class="image-controls">
             <h2>이미지 조정</h2>
-            <!-- ## 여기가 핵심 변경 ## -->
-            <div id="imageDimensionsDisplay" class="image-info">
-                원본 크기: <span id="originalDimensions">-</span><br>
-                변환 크기: <span id="convertedDimensions">-</span>
-            </div>
             <div class="control-group">
                 <label for="saturationSlider">채도: <span id="saturationValue">100</span>%
                     <button class="reset-btn" data-target="saturationSlider" title="채도 초기화"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"></path></svg></button>
@@ -96,6 +90,16 @@
                 <label for="geopixelsMode">GeoPixels</label>
                 <input type="radio" id="wplaceMode" name="paletteMode" value="wplace">
                 <label for="wplaceMode">Wplace</label>
+            </div>
+        </section>
+
+        <!-- ## 핵심 변경 ##: 다운로드 섹션 신설 및 이동 -->
+        <section class="download-section">
+            <h2>변환 이미지 다운로드</h2>
+            <button id="downloadBtn" disabled>다운로드</button>
+            <div id="imageDimensionsDisplay" class="image-info">
+                원본 크기: <span id="originalDimensions">-</span><br>
+                변환 크기: <span id="convertedDimensions">-</span>
             </div>
         </section>
 
