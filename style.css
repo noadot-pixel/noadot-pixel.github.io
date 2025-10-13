@@ -198,3 +198,89 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
     margin: 0;
     font-weight: normal;
 }
+
+.control-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.reset-btn {
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    fill: #888;
+    transition: transform 0.2s, fill 0.2s;
+}
+
+.reset-btn:hover {
+    fill: #333;
+    transform: rotate(-90deg);
+}
+
+#addedColors {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.added-color-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+    font-size: 12px;
+}
+
+.added-color-item.off {
+    background-color: #f0f0f0;
+    opacity: 0.6;
+}
+
+.added-color-swatch {
+    width: 48px;
+    height: 24px;
+    border: 1px solid #888;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.added-color-info {
+    flex-grow: 1;
+}
+
+.delete-color-btn {
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    border: 1px solid #ccc;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    line-height: 1;
+}
+.delete-color-btn:hover {
+    background-color: #e0e0e0;
+    border-color: #bbb;
+}
+
+.image-info {
+    display: none; /* 이미지가 없을 땐 숨김 */
+    background-color: #e9ecef;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 15px;
+    color: #555;
+    line-height: 1.5;
+}
+
+/* 이미지가 로드되면 이 클래스가 app-container에 추가됨 */
+.app-container.image-loaded .image-info {
+    display: block;
+}

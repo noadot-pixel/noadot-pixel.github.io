@@ -12,7 +12,7 @@
 </head>
 <body>
 
-<div class="app-container">
+<div class="app-container"> <!-- ## 핵심 변경 ##: id="appContainer" 제거하고 class만 남김 -->
     <!-- 왼쪽 패널 -->
     <div class="left-panel">
         <header class="main-header">
@@ -43,11 +43,29 @@
     <div class="right-panel">
         <section class="image-controls">
             <h2>이미지 조정</h2>
-            <div class="control-group"><label for="saturationSlider">채도: <span id="saturationValue">100</span>%</label><input type="range" id="saturationSlider" min="0" max="200" value="100"></div>
-            <div class="control-group"><label for="brightnessSlider">명도: <span id="brightnessValue">0</span></label><input type="range" id="brightnessSlider" min="-100" max="100" value="0"></div>
-            <div class="control-group"><label for="contrastSlider">대비: <span id="contrastValue">0</span></label><input type="range" id="contrastSlider" min="-100" max="100" value="0"></div>
-            
             <!-- ## 여기가 핵심 변경 ## -->
+            <div id="imageDimensionsDisplay" class="image-info">
+                원본 크기: <span id="originalDimensions">-</span><br>
+                변환 크기: <span id="convertedDimensions">-</span>
+            </div>
+            <div class="control-group">
+                <label for="saturationSlider">채도: <span id="saturationValue">100</span>%
+                    <button class="reset-btn" data-target="saturationSlider" title="채도 초기화"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"></path></svg></button>
+                </label>
+                <input type="range" id="saturationSlider" min="0" max="200" value="100">
+            </div>
+            <div class="control-group">
+                <label for="brightnessSlider">명도: <span id="brightnessValue">0</span>
+                    <button class="reset-btn" data-target="brightnessSlider" title="명도 초기화"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"></path></svg></button>
+                </label>
+                <input type="range" id="brightnessSlider" min="-100" max="100" value="0">
+            </div>
+            <div class="control-group">
+                <label for="contrastSlider">대비: <span id="contrastValue">0</span>
+                    <button class="reset-btn" data-target="contrastSlider" title="대비 초기화"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"></path></svg></button>
+                </label>
+                <input type="range" id="contrastSlider" min="-100" max="100" value="0">
+            </div>
             <div class="control-group">
                 <label for="ditheringAlgorithmSelect">디더링 알고리즘:</label>
                 <select id="ditheringAlgorithmSelect">
@@ -57,11 +75,20 @@
                     <option value="none">디더링 없음</option>
                 </select>
             </div>
-            <div class="control-group"><label for="ditheringSlider">디더링 강도: <span id="ditheringValue">25</span>%</label><input type="range" id="ditheringSlider" min="0" max="100" value="25"></div>
-
-            <div class="control-group"><label for="scaleSlider">스케일: 1:<span id="scaleValue">1</span></label><input type="range" id="scaleSlider" min="1" max="10" value="1"></div>
+            <div class="control-group">
+                <label for="ditheringSlider">디더링 강도: <span id="ditheringValue">0</span>%
+                    <button class="reset-btn" data-target="ditheringSlider" title="디더링 강도 초기화"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"></path></svg></button>
+                </label>
+                <input type="range" id="ditheringSlider" min="0" max="100" value="0">
+            </div>
+            <div class="control-group">
+                <label for="scaleSlider">스케일: 1:<span id="scaleValue">1.00</span>
+                    <button class="reset-btn" data-target="scaleSlider" title="스케일 초기화"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"></path></svg></button>
+                </label>
+                <input type="range" id="scaleSlider" min="4" max="40" value="4">
+            </div>
         </section>
-
+        
         <section class="mode-switcher">
             <h2>팔레트 모드</h2>
             <div class="radio-toggle">
@@ -115,7 +142,6 @@
                 <div class="palette-buttons" id="addedColors"></div>
             </section>
         </div>
-
         <div id="wplace-controls" style="display: none;">
              <details class="palette-category" open>
                 <summary>
