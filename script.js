@@ -1,12 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     const state = {
+        appMode: 'image',
         isConverting: false, processId: null, originalImageData: null, 
         originalImageObject: null, originalFileName: 'image', currentZoom: 100,
         isDragging: false, panX: 0, panY: 0, startPanX: 0, startPanY: 0,
         startDragX: 0, startDragY: 0, finalDownloadableData: null,
         colorAnalysis: { counts: new Map(), totalPixels: 0 },
         currentMode: 'geopixels', useWplaceInGeoMode: false,
+
+        textState: {
+            content: '', fontFamily: 'Malgun Gothic', fontSize: 15,
+            isBold: false, isItalic: false, isUnderline: false,
+            isStrike: false, isShadow: false, letterSpacing: 0,
+            padding: 10, bgColor: 'white'
+        }
     };
 
     const DEFAULTS = { 
@@ -16,21 +24,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const elements = {
         appContainer: document.querySelector('.app-container'),
-        imageUpload: document.getElementById('imageUpload'), // ## 핵심 변경 ##: 여전히 필요함 (숨겨져 있음)
+        imageModeBtn: document.getElementById('imageMode'), textModeBtn: document.getElementById('textMode'),
+        imageControls: document.getElementById('image-controls'), textControls: document.getElementById('text-controls'),
+        textEditorPanel: document.getElementById('text-editor-panel'),
+        imageUpload: document.getElementById('imageUpload'),
         downloadBtn: document.getElementById('downloadBtn'),
         convertedCanvas: document.getElementById('convertedCanvas'),
         convertedCanvasContainer: document.getElementById('convertedCanvasContainer'),
-        centerBtn: document.getElementById('centerBtn'),
-        zoomLevelDisplay: document.getElementById('zoomLevelDisplay'),
+        centerBtn: document.getElementById('centerBtn'), zoomLevelDisplay: document.getElementById('zoomLevelDisplay'),
         imageDimensionsDisplay: document.getElementById('imageDimensionsDisplay'),
         originalDimensions: document.getElementById('originalDimensions'),
         convertedDimensions: document.getElementById('convertedDimensions'),
+        convertedDimensionsLabel: document.getElementById('convertedDimensionsLabel'),
         saturationSlider: document.getElementById('saturationSlider'), saturationValue: document.getElementById('saturationValue'),
         brightnessSlider: document.getElementById('brightnessSlider'), brightnessValue: document.getElementById('brightnessValue'),
         contrastSlider: document.getElementById('contrastSlider'), contrastValue: document.getElementById('contrastValue'),
         ditheringAlgorithmSelect: document.getElementById('ditheringAlgorithmSelect'),
         ditheringSlider: document.getElementById('ditheringSlider'), ditheringValue: document.getElementById('ditheringValue'),
         scaleSlider: document.getElementById('scaleSlider'), scaleValue: document.getElementById('scaleValue'),
+        recommendationSection: document.getElementById('recommendation-section'),
         recommendedColorsContainer: document.getElementById('recommendedColors'),
         wplaceFreeColorsContainer: document.getElementById('wplaceFreeColors'),
         wplacePaidColorsContainer: document.getElementById('wplacePaidColors'),
@@ -49,6 +61,12 @@ document.addEventListener('DOMContentLoaded', () => {
         wplacePaletteInGeo: document.getElementById('wplace-palette-in-geo'),
         wplaceFreeColorsInGeo: document.getElementById('wplaceFreeColorsInGeo'),
         wplacePaidColorsInGeo: document.getElementById('wplacePaidColorsInGeo'),
+        placeholderUi: document.getElementById('placeholder-ui'),
+        editorTextarea: document.getElementById('editor-textarea'),
+        fontSelect: document.getElementById('fontSelect'),
+        fontSizeSlider: document.getElementById('fontSizeSlider'), fontSizeValue: document.getElementById('fontSizeValue'),
+        letterSpacingSlider: document.getElementById('letterSpacingSlider'), letterSpacingValue: document.getElementById('letterSpacingValue'),
+        paddingSlider: document.getElementById('paddingSlider'), paddingValue: document.getElementById('paddingValue'),
     };
     const cCtx = elements.convertedCanvas.getContext('2d');
 
@@ -57,202 +75,106 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateZoom = (newZoom) => { state.currentZoom = Math.max(25, Math.min(500, newZoom)); updateTransform(); };
     const findClosestColor = (r1, g1, b1, palette) => { let minDistance = Number.MAX_SAFE_INTEGER; let closestColor = palette[0]; for (const pColor of palette) { const r2 = pColor[0]; const g2 = pColor[1]; const b2 = pColor[2]; const rMean = (r1 + r2) / 2; const r = r1 - r2; const g = g1 - g2; const b = b1 - b2; const distance = Math.floor(((512 + rMean) * r * r) / 256) + 4 * g * g + Math.floor(((767 - rMean) * b * b) / 256); if (distance < minDistance) { minDistance = distance; closestColor = pColor; } if (minDistance === 0) break; } return { color: closestColor, distance: minDistance }; };
     
-    const updateColorRecommendations = () => {
-        elements.recommendedColorsContainer.innerHTML = '';
-        if (state.currentMode !== 'geopixels' || state.colorAnalysis.totalPixels === 0) return;
-        const activeSelectors = ['#geoPixelColors .color-button[data-on="true"]', '#addedColors .added-color-item[data-on="true"]'];
-        if (state.useWplaceInGeoMode) { activeSelectors.push('#wplace-palette-in-geo .color-button[data-on="true"]'); }
-        const activePalette = Array.from(document.querySelectorAll(activeSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb));
-        if (activePalette.length === 0) return;
-        const allExistingSelectors = ['#geoPixelColors .color-button', '#addedColors .added-color-item', '#wplace-palette-in-geo .color-button'];
-        const allExistingColors = new Set();
-        document.querySelectorAll(allExistingSelectors.join(',')).forEach(btn => { allExistingColors.add(JSON.parse(btn.dataset.rgb).join(',')); });
-        const candidates = [];
-        const minCountThreshold = state.colorAnalysis.totalPixels * 0.01;
-        for (const [rgbStr, count] of state.colorAnalysis.counts.entries()) {
-            if (allExistingColors.has(rgbStr)) continue;
-            if (count < minCountThreshold) continue;
-            const originalRgb = JSON.parse(`[${rgbStr}]`);
-            const { distance } = findClosestColor(originalRgb[0], originalRgb[1], originalRgb[2], activePalette);
-            if (distance > 0) { const score = distance * count; candidates.push({ rgb: originalRgb, score, count }); }
-        }
-        candidates.sort((a, b) => b.score - a.score);
-        const finalRecommendations = candidates.slice(0, 10);
-        finalRecommendations.forEach(rec => {
-            const item = document.createElement('div'); item.className = 'recommendation-item';
-            const swatch = document.createElement('div'); swatch.className = 'recommendation-swatch'; swatch.style.backgroundColor = `rgb(${rec.rgb.join(',')})`;
-            const info = document.createElement('div'); info.className = 'recommendation-info';
-            const rgbLabel = document.createElement('span'); rgbLabel.textContent = `(${rec.rgb.join(',')})`;
-            const percentLabel = document.createElement('span'); percentLabel.textContent = `(${(rec.count / state.colorAnalysis.totalPixels * 100).toFixed(1)}%)`;
-            info.appendChild(rgbLabel); info.appendChild(percentLabel);
-            const addBtn = document.createElement('button'); addBtn.className = 'recommendation-add-btn'; addBtn.textContent = '+'; addBtn.title = '이 색상 추가하기';
-            addBtn.onclick = () => { createAddedColorItem({ rgb: rec.rgb }); updatePaletteStatus(); triggerConversion(); };
-            item.appendChild(swatch); item.appendChild(info); item.appendChild(addBtn);
-            elements.recommendedColorsContainer.appendChild(item);
-        });
-    };
+    const updateColorRecommendations = () => { elements.recommendedColorsContainer.innerHTML = ''; if (state.appMode !== 'image' || state.currentMode !== 'geopixels' || state.colorAnalysis.totalPixels === 0) return; const activeSelectors = ['#geoPixelColors .color-button[data-on="true"]', '#addedColors .added-color-item[data-on="true"]']; if (state.useWplaceInGeoMode) { activeSelectors.push('#wplace-palette-in-geo .color-button[data-on="true"]'); } const activePalette = Array.from(document.querySelectorAll(activeSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb)); if (activePalette.length === 0) return; const allExistingSelectors = ['#geoPixelColors .color-button', '#addedColors .added-color-item', '#wplace-palette-in-geo .color-button']; const allExistingColors = new Set(); document.querySelectorAll(allExistingSelectors.join(',')).forEach(btn => { allExistingColors.add(JSON.parse(btn.dataset.rgb).join(',')); }); const candidates = []; const minCountThreshold = state.colorAnalysis.totalPixels * 0.01; for (const [rgbStr, count] of state.colorAnalysis.counts.entries()) { if (allExistingColors.has(rgbStr)) continue; if (count < minCountThreshold) continue; const originalRgb = JSON.parse(`[${rgbStr}]`); const { distance } = findClosestColor(originalRgb[0], originalRgb[1], originalRgb[2], activePalette); if (distance > 0) { const score = distance * count; candidates.push({ rgb: originalRgb, score, count }); } } candidates.sort((a, b) => b.score - a.score); const finalRecommendations = candidates.slice(0, 10); finalRecommendations.forEach(rec => { const item = document.createElement('div'); item.className = 'recommendation-item'; const swatch = document.createElement('div'); swatch.className = 'recommendation-swatch'; swatch.style.backgroundColor = `rgb(${rec.rgb.join(',')})`; const info = document.createElement('div'); info.className = 'recommendation-info'; const rgbLabel = document.createElement('span'); rgbLabel.textContent = `(${rec.rgb.join(',')})`; const percentLabel = document.createElement('span'); percentLabel.textContent = `(${(rec.count / state.colorAnalysis.totalPixels * 100).toFixed(1)}%)`; info.appendChild(rgbLabel); info.appendChild(percentLabel); const addBtn = document.createElement('button'); addBtn.className = 'recommendation-add-btn'; addBtn.textContent = '+'; addBtn.title = '이 색상 추가하기'; addBtn.onclick = () => { createAddedColorItem({ rgb: rec.rgb }); updatePaletteStatus(); triggerConversion(); }; item.appendChild(swatch); item.appendChild(info); item.appendChild(addBtn); elements.recommendedColorsContainer.appendChild(item); }); };
     
     const updatePaletteStatus = () => { document.querySelectorAll('.palette-status-icon').forEach(icon => { const targetIds = icon.dataset.target.split(','); let isActive = false; for (const id of targetIds) { const container = document.getElementById(id); if (container && (container.querySelector('.color-button[data-on="true"]') || container.querySelector('.added-color-item[data-on="true"]'))) { isActive = true; break; } } icon.classList.toggle('active', isActive); }); updateColorRecommendations(); };
     const createColorButton = (colorData, container, startOn = true) => { const ctn = document.createElement('div'); ctn.className = 'color-container'; const btn = document.createElement('div'); btn.className = 'color-button'; btn.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`; btn.dataset.rgb = JSON.stringify(colorData.rgb); btn.dataset.on = startOn.toString(); if (!startOn) { btn.classList.add('off'); } btn.title = colorData.name || `rgb(${colorData.rgb.join(',')})`; btn.addEventListener('click', () => { btn.classList.toggle('off'); btn.dataset.on = btn.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); }); ctn.appendChild(btn); if (colorData.name) { const lbl = document.createElement('div'); lbl.className = 'color-name'; lbl.textContent = colorData.name; ctn.appendChild(lbl); } container.appendChild(ctn); };
     const createAddedColorItem = (colorData, startOn = true) => { if (isColorAlreadyAdded(colorData.rgb)) return; const item = document.createElement('div'); item.className = 'added-color-item'; item.dataset.rgb = JSON.stringify(colorData.rgb); item.dataset.on = startOn.toString(); if (!startOn) item.classList.add('off'); const swatch = document.createElement('div'); swatch.className = 'added-color-swatch'; swatch.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`; swatch.addEventListener('click', () => { item.classList.toggle('off'); item.dataset.on = item.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); }); const info = document.createElement('div'); info.className = 'added-color-info'; info.textContent = colorData.name || `(${colorData.rgb.join(',')})`; const deleteBtn = document.createElement('button'); deleteBtn.className = 'delete-color-btn'; deleteBtn.textContent = '−'; deleteBtn.title = '이 색상 삭제'; deleteBtn.onclick = () => { item.remove(); updatePaletteStatus(); triggerConversion(); }; item.appendChild(swatch); item.appendChild(info); item.appendChild(deleteBtn); elements.addedColorsContainer.appendChild(item); };
     const createMasterToggleButton = (targetId, container) => { const btn = document.createElement('button'); btn.className = 'toggle-all toggle-all-palette'; btn.dataset.target = targetId; btn.title = '전체 선택/해제'; btn.textContent = 'A'; container.prepend(btn); };
     const preprocessImageData = (sourceImageData) => { const sat = parseFloat(elements.saturationSlider.value) / 100.0, bri = parseInt(elements.brightnessSlider.value), con = parseFloat(elements.contrastSlider.value); const factor = (259 * (con + 255)) / (255 * (259 - con)); const data = new Uint8ClampedArray(sourceImageData.data); for (let i = 0; i < data.length; i += 4) { let r = data[i], g = data[i + 1], b = data[i + 2]; r += bri; g += bri; b += bri; r = factor * (r - 128) + 128; g = factor * (g - 128) + 128; b = factor * (b - 128) + 128; if (sat !== 1.0) { const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = gray + sat * (r - gray); g = gray + sat * (g - gray); b = gray + sat * (b - gray); } data[i] = Math.max(0, Math.min(255, r)); data[i + 1] = Math.max(0, Math.min(255, g)); data[i + 2] = Math.max(0, Math.min(255, b)); } return new ImageData(data, sourceImageData.width, sourceImageData.height); };
-    const applyConversion = async (imageDataToProcess, activePalette, options) => { if (!imageDataToProcess) return; state.isConverting = true; const preprocessed = preprocessImageData(imageDataToProcess); const { width, height } = preprocessed; let finalPixelData; if (activePalette.length === 0) { const tempCanvas = document.createElement('canvas'); tempCanvas.width = width; tempCanvas.height = height; const tempCtx = tempCanvas.getContext('2d'); tempCtx.fillStyle = 'black'; tempCtx.fillRect(0, 0, width, height); finalPixelData = tempCtx.getImageData(0, 0, width, height); } else { const newData = new ImageData(width, height); const ditherData = new Float32Array(preprocessed.data); const ditherStr = options.dithering / 100.0; const algorithm = options.algorithm; for (let y = 0; y < height; y++) { if (y % 10 === 0) { await new Promise(r => setTimeout(r, 0)); if (!state.isConverting) return; } for (let x = 0; x < width; x++) { const i = (y * width + x) * 4; if (ditherData[i + 3] === 0) { newData.data[i + 3] = 0; continue; } const [oldR, oldG, oldB] = [ditherData[i], ditherData[i + 1], ditherData[i + 2]]; const { color: newRgb } = findClosestColor(oldR, oldG, oldB, activePalette); [newData.data[i], newData.data[i+1], newData.data[i+2], newData.data[i+3]] = [...newRgb, ditherData[i+3]]; if (ditherStr > 0 && algorithm !== 'none') { const errR = (oldR - newRgb[0]) * ditherStr; const errG = (oldG - newRgb[1]) * ditherStr; const errB = (oldB - newRgb[2]) * ditherStr; switch(algorithm) { case 'floyd': if (x < width - 1) { ditherData[i + 4] += errR * 7/16; ditherData[i + 5] += errG * 7/16; ditherData[i + 6] += errB * 7/16; } if (y < height - 1) { if (x > 0) { ditherData[i + width*4 - 4] += errR * 3/16; ditherData[i + width*4 - 3] += errG * 3/16; ditherData[i + width*4 - 2] += errB * 3/16; } ditherData[i + width*4] += errR * 5/16; ditherData[i + width*4 + 1] += errG * 5/16; ditherData[i + width*4 + 2] += errB * 5/16; if (x < width - 1) { ditherData[i + width*4 + 4] += errR * 1/16; ditherData[i + width*4 + 5] += errG * 1/16; ditherData[i + width*4 + 6] += errB * 1/16; } } break; case 'sierra': if (x < width - 1) { ditherData[i + 4] += errR * 2/4; ditherData[i + 5] += errG * 2/4; ditherData[i + 6] += errB * 2/4; } if (y < height - 1) { if (x > 0) { ditherData[i + width*4 - 4] += errR * 1/4; ditherData[i + width*4 - 3] += errG * 1/4; ditherData[i + width*4 - 2] += errB * 1/4; } ditherData[i + width*4] += errR * 1/4; ditherData[i + width*4 + 1] += errG * 1/4; ditherData[i + width*4 + 2] += errB * 1/4; } break; case 'atkinson': const factor = 1/8; if (x < width - 1) { ditherData[i + 4] += errR * factor; ditherData[i + 5] += errG * factor; ditherData[i + 6] += errB * factor; } if (x < width - 2) { ditherData[i + 8] += errR * factor; ditherData[i + 9] += errG * factor; ditherData[i + 10] += errB * factor; } if (y < height - 1) { if (x > 0) { ditherData[i + width*4 - 4] += errR * factor; ditherData[i + width*4 - 3] += errG * factor; ditherData[i + width*4 - 2] += errB * factor; } ditherData[i + width*4] += errR * factor; ditherData[i + width*4 + 1] += errG * factor; ditherData[i + width*4 + 2] += errB * factor; if (x < width - 1) { ditherData[i + width*4 + 4] += errR * factor; ditherData[i + width*4 + 5] += errG * factor; ditherData[i + width*4 + 6] += errB * factor; } } if (y < height - 2) { ditherData[i + width*8] += errR * factor; ditherData[i + width*8 + 1] += errG * factor; ditherData[i + width*8 + 2] += errB * factor; } break; } } } } finalPixelData = newData; } state.finalDownloadableData = finalPixelData; const tempCanvas = document.createElement('canvas'); tempCanvas.width = finalPixelData.width; tempCanvas.height = finalPixelData.height; tempCanvas.getContext('2d').putImageData(finalPixelData, 0, 0); elements.convertedCanvas.width = state.originalImageObject.width; elements.convertedCanvas.height = state.originalImageObject.height; cCtx.imageSmoothingEnabled = false; cCtx.drawImage(tempCanvas, 0, 0, elements.convertedCanvas.width, elements.convertedCanvas.height); state.isConverting = false; elements.downloadBtn.disabled = false; updateTransform(); };
+    const applyConversion = async (imageDataToProcess, activePalette, options) => { if (!imageDataToProcess) return; state.isConverting = true; const preprocessed = preprocessImageData(imageDataToProcess); const { width, height } = preprocessed; let finalPixelData; if (activePalette.length === 0) { const tempCanvas = document.createElement('canvas'); tempCanvas.width = width; tempCanvas.height = height; const tempCtx = tempCanvas.getContext('2d'); tempCtx.fillStyle = 'black'; tempCtx.fillRect(0, 0, width, height); finalPixelData = tempCtx.getImageData(0, 0, width, height); } else { const newData = new ImageData(width, height); const ditherData = new Float32Array(preprocessed.data); const ditherStr = options.dithering / 100.0; const algorithm = options.algorithm; for (let y = 0; y < height; y++) { if (y % 10 === 0) { await new Promise(r => setTimeout(r, 0)); if (!state.isConverting) return; } for (let x = 0; x < width; x++) { const i = (y * width + x) * 4; if (ditherData[i + 3] === 0) { newData.data[i + 3] = 0; continue; } const [oldR, oldG, oldB] = [ditherData[i], ditherData[i + 1], ditherData[i + 2]]; const { color: newRgb } = findClosestColor(oldR, oldG, oldB, activePalette); [newData.data[i], newData.data[i+1], newData.data[i+2], newData.data[i+3]] = [...newRgb, ditherData[i+3]]; if (ditherStr > 0 && algorithm !== 'none') { const errR = (oldR - newRgb[0]) * ditherStr; const errG = (oldG - newRgb[1]) * ditherStr; const errB = (oldB - newRgb[2]) * ditherStr; switch(algorithm) { case 'floyd': if (x < width - 1) { ditherData[i + 4] += errR * 7/16; ditherData[i + 5] += errG * 7/16; ditherData[i + 6] += errB * 7/16; } if (y < height - 1) { if (x > 0) { ditherData[i + width*4 - 4] += errR * 3/16; ditherData[i + width*4 - 3] += errG * 3/16; ditherData[i + width*4 - 2] += errB * 3/16; } ditherData[i + width*4] += errR * 5/16; ditherData[i + width*4 + 1] += errG * 5/16; ditherData[i + width*4 + 2] += errB * 5/16; if (x < width - 1) { ditherData[i + width*4 + 4] += errR * 1/16; ditherData[i + width*4 + 5] += errG * 1/16; ditherData[i + width*4 + 6] += errB * 1/16; } } break; case 'sierra': if (x < width - 1) { ditherData[i + 4] += errR * 2/4; ditherData[i + 5] += errG * 2/4; ditherData[i + 6] += errB * 2/4; } if (y < height - 1) { if (x > 0) { ditherData[i + width*4 - 4] += errR * 1/4; ditherData[i + width*4 - 3] += errG * 1/4; ditherData[i + width*4 - 2] += errB * 1/4; } ditherData[i + width*4] += errR * 1/4; ditherData[i + width*4 + 1] += errG * 1/4; ditherData[i + width*4 + 2] += errB * 1/4; } break; case 'atkinson': const factor = 1/8; if (x < width - 1) { ditherData[i + 4] += errR * factor; ditherData[i + 5] += errG * factor; ditherData[i + 6] += errB * factor; } if (x < width - 2) { ditherData[i + 8] += errR * factor; ditherData[i + 9] += errG * factor; ditherData[i + 10] += errB * factor; } if (y < height - 1) { if (x > 0) { ditherData[i + width*4 - 4] += errR * factor; ditherData[i + width*4 - 3] += errG * factor; ditherData[i + width*4 - 2] += errB * factor; } ditherData[i + width*4] += errR * factor; ditherData[i + width*4 + 1] += errG * factor; ditherData[i + width*4 + 2] += errB * factor; if (x < width - 1) { ditherData[i + width*4 + 4] += errR * factor; ditherData[i + width*4 + 5] += errG * factor; ditherData[i + width*4 + 6] += errB * factor; } } if (y < height - 2) { ditherData[i + width*8] += errR * factor; ditherData[i + width*8 + 1] += errG * factor; ditherData[i + width*8 + 2] += errB * factor; } break; } } } } finalPixelData = newData; } state.finalDownloadableData = finalPixelData; const tempCanvas = document.createElement('canvas'); tempCanvas.width = finalPixelData.width; tempCanvas.height = finalPixelData.height; tempCanvas.getContext('2d').putImageData(finalPixelData, 0, 0); elements.convertedCanvas.width = state.originalImageObject ? state.originalImageObject.width : (state.textState.canvasWidth || 1); elements.convertedCanvas.height = state.originalImageObject ? state.originalImageObject.height : (state.textState.canvasHeight || 1); cCtx.imageSmoothingEnabled = false; cCtx.drawImage(tempCanvas, 0, 0, elements.convertedCanvas.width, elements.convertedCanvas.height); state.isConverting = false; elements.downloadBtn.disabled = false; updateTransform(); };
     const analyzeColors = (imageData) => { const counts = new Map(); let totalPixels = 0; for (let i = 0; i < imageData.data.length; i += 4) { if (imageData.data[i + 3] > 128) { const key = `${imageData.data[i]},${imageData.data[i+1]},${imageData.data[i+2]}`; counts.set(key, (counts.get(key) || 0) + 1); totalPixels++; } } state.colorAnalysis = { counts, totalPixels }; updateColorRecommendations(); };
     
-    const processImage = () => {
-        if (!state.originalImageObject) return;
-        const scaleFactor = parseFloat(elements.scaleSlider.value) / 4.0;
-        const newWidth = Math.max(1, Math.round(state.originalImageObject.width / scaleFactor));
-        const newHeight = Math.max(1, Math.round(state.originalImageObject.height / scaleFactor));
-        elements.convertedDimensions.textContent = `${newWidth} x ${newHeight} px`;
-        const tempCanvas = document.createElement('canvas'); tempCanvas.width = newWidth; tempCanvas.height = newHeight;
-        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
-        tempCtx.drawImage(state.originalImageObject, 0, 0, newWidth, newHeight);
-        state.originalImageData = tempCtx.getImageData(0, 0, newWidth, newHeight);
-        analyzeColors(state.originalImageData);
-        let paletteSelectors = [];
-        if (state.currentMode === 'geopixels') {
-            paletteSelectors.push('#geopixels-controls #geoPixelColors .color-button[data-on="true"]', '#geopixels-controls .added-color-item[data-on="true"]');
-            if (state.useWplaceInGeoMode) {
-                paletteSelectors.push('#geopixels-controls #wplace-palette-in-geo .color-button[data-on="true"]');
-            }
-        } else { 
-            paletteSelectors.push('#wplace-controls .color-button[data-on="true"]');
-        }
-        const palette = Array.from(document.querySelectorAll(paletteSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb));
-        const opts = { dithering: parseFloat(elements.ditheringSlider.value), algorithm: elements.ditheringAlgorithmSelect.value };
-        applyConversion(state.originalImageData, palette, opts);
-    };
+    const processImage = () => { if (!state.originalImageObject) return; const scaleFactor = parseFloat(elements.scaleSlider.value) / 4.0; const newWidth = Math.max(1, Math.round(state.originalImageObject.width / scaleFactor)); const newHeight = Math.max(1, Math.round(state.originalImageObject.height / scaleFactor)); elements.convertedDimensions.textContent = `${newWidth} x ${newHeight} px`; const tempCanvas = document.createElement('canvas'); tempCanvas.width = newWidth; tempCanvas.height = newHeight; const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true }); tempCtx.drawImage(state.originalImageObject, 0, 0, newWidth, newHeight); state.originalImageData = tempCtx.getImageData(0, 0, newWidth, newHeight); analyzeColors(state.originalImageData); let paletteSelectors = []; if (state.currentMode === 'geopixels') { paletteSelectors.push('#geopixels-controls #geoPixelColors .color-button[data-on="true"]', '#geopixels-controls .added-color-item[data-on="true"]'); if (state.useWplaceInGeoMode) { paletteSelectors.push('#geopixels-controls #wplace-palette-in-geo .color-button[data-on="true"]'); } } else { paletteSelectors.push('#wplace-controls .color-button[data-on="true"]'); } const palette = Array.from(document.querySelectorAll(paletteSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb)); const opts = { dithering: parseFloat(elements.ditheringSlider.value), algorithm: elements.ditheringAlgorithmSelect.value }; applyConversion(state.originalImageData, palette, opts); };
+    const processText = () => { const { content, fontFamily, fontSize, isBold, isItalic, bgColor, letterSpacing, padding } = state.textState; if (!content) { elements.convertedCanvasContainer.classList.remove('has-image'); return; } const tempCtx = document.createElement('canvas').getContext('2d'); let fontStyle = ''; if (isItalic) fontStyle += 'italic '; if (isBold) fontStyle += 'bold '; tempCtx.font = `${fontStyle} ${fontSize * 2}px "${fontFamily}"`; tempCtx.letterSpacing = `${letterSpacing}px`; const lines = content.split('\n'); let maxWidth = 0; let totalHeight = 0; const lineMetrics = lines.map(line => { const metrics = tempCtx.measureText(line || ' '); maxWidth = Math.max(maxWidth, metrics.width); totalHeight += (metrics.actualBoundingBoxAscent || fontSize * 2) + (metrics.actualBoundingBoxDescent || 0); return metrics; }); const canvasWidth = Math.ceil(maxWidth + padding * 2); const canvasHeight = Math.ceil(totalHeight + padding * 2); elements.convertedDimensions.textContent = `${canvasWidth} x ${canvasHeight} px`; const textCanvas = document.createElement('canvas'); textCanvas.width = canvasWidth; textCanvas.height = canvasHeight; const ctx = textCanvas.getContext('2d', { willReadFrequently: true }); const bgColors = { "white": "#FFFFFF", "black": "#000000", "sea-blue": "rgb(158, 189, 255)" }; ctx.fillStyle = bgColors[bgColor] || "#FFFFFF"; ctx.fillRect(0, 0, canvasWidth, canvasHeight); ctx.font = tempCtx.font; ctx.letterSpacing = tempCtx.letterSpacing; ctx.fillStyle = '#000000'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; let currentY = padding; lines.forEach((line, index) => { ctx.fillText(line, padding, currentY); currentY += (lineMetrics[index].actualBoundingBoxAscent || fontSize*2) + (lineMetrics[index].actualBoundingBoxDescent || 0); }); const textImageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight); state.originalImageData = textImageData; state.originalImageObject = textCanvas; let paletteSelectors = []; if (state.currentMode === 'geopixels') { paletteSelectors.push('#geopixels-controls #geoPixelColors .color-button[data-on="true"]', '#geopixels-controls .added-color-item[data-on="true"]'); if (state.useWplaceInGeoMode) { paletteSelectors.push('#geopixels-controls #wplace-palette-in-geo .color-button[data-on="true"]'); } } else { paletteSelectors.push('#wplace-controls .color-button[data-on="true"]'); } const palette = Array.from(document.querySelectorAll(paletteSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb)); const opts = { dithering: 0, algorithm: 'none' }; elements.convertedCanvasContainer.classList.add('has-image'); applyConversion(state.originalImageData, palette, opts); };
 
-    const triggerConversion = () => { if (state.isConverting) { state.isConverting = false; } clearTimeout(state.processId); state.processId = setTimeout(processImage, 150); };
-    const handleFile = (file) => {
-        if (!file || !file.type.startsWith('image/')) return;
-        state.originalFileName = file.name;
-        const img = new Image();
-        img.onload = () => {
-            state.originalImageObject = img;
-            elements.appContainer.classList.add('image-loaded');
-            elements.originalDimensions.textContent = `${img.width} x ${img.height} px`;
-            elements.convertedCanvasContainer.classList.add('has-image');
-            state.panX = 0; state.panY = 0;
-            updateZoom(100);
-            triggerConversion();
-        };
-        img.src = URL.createObjectURL(file);
+    const triggerConversion = () => { if (state.isConverting) { state.isConverting = false; } clearTimeout(state.processId); state.processId = setTimeout(() => { if (state.appMode === 'image') { if (state.originalImageObject) processImage(); } else { processText(); } }, 150); };
+    const handleFile = (file) => { if (!file || !file.type.startsWith('image/')) return; state.originalFileName = file.name; const img = new Image(); img.onload = () => { state.originalImageObject = img; elements.appContainer.classList.add('image-loaded'); elements.originalDimensions.textContent = `${img.width} x ${img.height} px`; elements.convertedCanvasContainer.classList.add('has-image'); state.panX = 0; state.panY = 0; updateZoom(100); triggerConversion(); }; img.src = URL.createObjectURL(file); };
+    
+    const resetAll = () => {
+        state.originalImageObject = null;
+        state.originalImageData = null;
+        state.textState.content = '';
+        elements.editorTextarea.value = '';
+        
+        elements.appContainer.classList.remove('image-loaded');
+        elements.convertedCanvasContainer.classList.remove('has-image');
+        cCtx.clearRect(0,0, elements.convertedCanvas.width, elements.convertedCanvas.height);
+        
+        document.querySelectorAll('.reset-btn').forEach(btn => btn.click());
     };
     
-    const setPaletteMode = (mode) => {
-        state.currentMode = mode;
-        if (mode === 'geopixels') {
-            elements.geopixelsControls.style.display = 'block';
-            elements.wplaceControls.style.display = 'none';
-        } else { 
-            elements.geopixelsControls.style.display = 'none';
-            elements.wplaceControls.style.display = 'block';
-            document.querySelectorAll('#wplaceFreeColors .color-button.off').forEach(btn => btn.click());
-            document.querySelectorAll('#wplacePaidColors .color-button[data-on="true"]').forEach(btn => btn.click());
+    const setAppMode = (mode) => { 
+        if (state.appMode === 'image' && state.originalImageObject && mode === 'text') {
+            if (!confirm("모드를 전환하시면 업로드한 이미지 내용은 초기화됩니다. 계속하시겠습니까?")) {
+                elements.imageModeBtn.checked = true;
+                return;
+            }
         }
-        updatePaletteStatus();
-        triggerConversion();
+        resetAll();
+        state.appMode = mode; 
+        elements.appContainer.classList.toggle('text-mode', mode === 'text'); 
+        elements.imageControls.style.display = mode === 'image' ? 'grid' : 'none'; 
+        elements.textControls.style.display = mode === 'text' ? 'block' : 'none'; 
+        elements.recommendationSection.style.display = mode === 'image' ? 'block' : 'none'; 
+        const placeholderText = elements.placeholderUi.querySelector('p'); 
+        if (mode === 'image') { 
+            placeholderText.textContent = "창 클릭 혹은 이미지를 화면으로 드래그"; 
+            elements.convertedDimensionsLabel.textContent = '변환 크기: '; 
+        } else { 
+            placeholderText.textContent = "왼쪽에서 텍스트를 입력하면 여기에 미리보기가 표시됩니다."; 
+            elements.convertedDimensionsLabel.textContent = '생성 크기: '; 
+            triggerConversion(); 
+        } 
     };
-
-    const isColorAlreadyAdded = (rgbArray) => {
-        const rgbStr = JSON.stringify(rgbArray);
-        const existingItems = elements.addedColorsContainer.querySelectorAll('.added-color-item');
-        for (const item of existingItems) { if (item.dataset.rgb === rgbStr) return true; }
-        return false;
-    };
+    const setPaletteMode = (mode) => { state.currentMode = mode; if (mode === 'geopixels') { elements.geopixelsControls.style.display = 'block'; elements.wplaceControls.style.display = 'none'; } else { elements.geopixelsControls.style.display = 'none'; elements.wplaceControls.style.display = 'block'; document.querySelectorAll('#wplaceFreeColors .color-button.off').forEach(btn => btn.click()); document.querySelectorAll('#wplacePaidColors .color-button[data-on="true"]').forEach(btn => btn.click()); } updatePaletteStatus(); triggerConversion(); };
+    const isColorAlreadyAdded = (rgbArray) => { const rgbStr = JSON.stringify(rgbArray); const existingItems = elements.addedColorsContainer.querySelectorAll('.added-color-item'); for (const item of existingItems) { if (item.dataset.rgb === rgbStr) return true; } return false; };
 
     const setupEventListeners = () => {
-        elements.geopixelsModeBtn.addEventListener('change', () => setPaletteMode('geopixels'));
-        elements.wplaceModeBtn.addEventListener('change', () => setPaletteMode('wplace'));
+        elements.imageModeBtn.addEventListener('change', () => setAppMode('image')); elements.textModeBtn.addEventListener('change', () => setAppMode('text'));
+        elements.geopixelsModeBtn.addEventListener('change', () => setPaletteMode('geopixels')); elements.wplaceModeBtn.addEventListener('change', () => setPaletteMode('wplace'));
         elements.useWplaceInGeoMode.addEventListener('change', (e) => { state.useWplaceInGeoMode = e.target.checked; elements.wplacePaletteInGeo.style.display = e.target.checked ? 'block' : 'none'; updatePaletteStatus(); triggerConversion(); });
         elements.ditheringAlgorithmSelect.addEventListener('change', () => { elements.ditheringSlider.disabled = elements.ditheringAlgorithmSelect.value === 'none'; triggerConversion(); });
         const cont = elements.convertedCanvasContainer;
         cont.addEventListener('wheel', e => { e.preventDefault(); const step = 25; if (e.deltaY < 0) { updateZoom(state.currentZoom + step); } else { updateZoom(state.currentZoom - step); } });
-        cont.addEventListener('mousedown', e => { if (!state.originalImageObject) return; state.isDragging = true; state.startDragX = e.pageX; state.startDragY = e.pageY; state.startPanX = state.panX; state.startPanY = state.panY; });
+        cont.addEventListener('mousedown', e => { if ((state.appMode === 'image' && !state.originalImageObject) || (state.appMode === 'text' && !state.textState.content)) return; state.isDragging = true; state.startDragX = e.pageX; state.startDragY = e.pageY; state.startPanX = state.panX; state.startPanY = state.panY; });
         cont.addEventListener('mouseleave', () => { state.isDragging = false; }); cont.addEventListener('mouseup', () => { state.isDragging = false; });
         cont.addEventListener('mousemove', e => { if (!state.isDragging) return; e.preventDefault(); const dx = e.pageX - state.startDragX; const dy = e.pageY - state.startDragY; state.panX = state.startPanX + dx; state.panY = state.startPanY + dy; updateTransform(); });
         elements.centerBtn.addEventListener('click', () => { state.panX = 0; state.panY = 0; updateZoom(100); });
-        cont.addEventListener('click', () => { if (!state.originalImageObject) elements.imageUpload.click(); });
-        cont.addEventListener('dragover', e => { e.preventDefault(); cont.classList.add('drag-over'); });
+        cont.addEventListener('click', () => { if (state.appMode === 'image' && !state.originalImageObject) elements.imageUpload.click(); });
+        cont.addEventListener('dragover', e => { e.preventDefault(); if (state.appMode === 'image') cont.classList.add('drag-over'); });
         cont.addEventListener('dragleave', () => { cont.classList.remove('drag-over'); });
-        cont.addEventListener('drop', e => { e.preventDefault(); cont.classList.remove('drag-over'); if (e.dataTransfer.files.length > 0) { handleFile(e.dataTransfer.files[0]); } });
+        cont.addEventListener('drop', e => { e.preventDefault(); cont.classList.remove('drag-over'); if (state.appMode === 'image' && e.dataTransfer.files.length > 0) { handleFile(e.dataTransfer.files[0]); } });
         elements.imageUpload.addEventListener('change', e => { if (e.target.files.length > 0) handleFile(e.target.files[0]); });
         
-        ['saturation', 'brightness', 'contrast', 'dithering', 'scale'].forEach(t => { 
-            const s = elements[`${t}Slider`], v = elements[`${t}Value`]; 
-            if(s && v) {
-                s.addEventListener('input', () => { 
-                    if (t === 'scale') { v.textContent = (s.value / 4.0).toFixed(2); } 
-                    else { v.textContent = s.value; }
-                    triggerConversion(); 
-                });
-            }
-        });
+        ['saturation', 'brightness', 'contrast', 'dithering', 'scale'].forEach(t => { const s = elements[`${t}Slider`], v = elements[`${t}Value`]; if(s && v) { s.addEventListener('input', () => { if (t === 'scale') { v.textContent = (s.value / 4.0).toFixed(2); } else { v.textContent = s.value; } triggerConversion(); }); } });
         
-        document.querySelectorAll('.reset-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const targetId = btn.dataset.target;
-                const slider = elements[targetId];
-                const valueDisplay = elements[`${targetId.replace('Slider', '')}Value`];
-                const defaultValue = DEFAULTS[targetId];
-                slider.value = defaultValue;
-                if (targetId === 'scaleSlider') { valueDisplay.textContent = (defaultValue / 4.0).toFixed(2); } 
-                else { valueDisplay.textContent = defaultValue; }
-                triggerConversion();
-            });
-        });
-
+        document.querySelectorAll('.reset-btn').forEach(btn => { btn.addEventListener('click', () => { const targetId = btn.dataset.target; const slider = elements[targetId]; const valueDisplay = elements[`${targetId.replace('Slider', '')}Value`]; const defaultValue = DEFAULTS[targetId]; slider.value = defaultValue; if (targetId === 'scaleSlider') { valueDisplay.textContent = (defaultValue / 4.0).toFixed(2); } else { valueDisplay.textContent = defaultValue; } triggerConversion(); }); });
+        
+        elements.editorTextarea.addEventListener('input', e => { state.textState.content = e.target.value; triggerConversion(); });
+        elements.fontSelect.addEventListener('change', e => { state.textState.fontFamily = e.target.value; triggerConversion(); });
+        elements.fontSizeSlider.addEventListener('input', e => { state.textState.fontSize = parseInt(e.target.value, 10); elements.fontSizeValue.textContent = e.target.value; triggerConversion(); });
+        elements.letterSpacingSlider.addEventListener('input', e => { state.textState.letterSpacing = parseInt(e.target.value, 10); elements.letterSpacingValue.textContent = e.target.value; triggerConversion(); });
+        elements.paddingSlider.addEventListener('input', e => { state.textState.padding = parseInt(e.target.value, 10); elements.paddingValue.textContent = e.target.value; triggerConversion(); });
+        document.querySelectorAll('.style-btn').forEach(btn => btn.addEventListener('click', e => { const style = e.currentTarget.dataset.style; state.textState[`is${style.charAt(0).toUpperCase() + style.slice(1)}`] = !state.textState[`is${style.charAt(0).toUpperCase() + style.slice(1)}`]; e.currentTarget.classList.toggle('active'); triggerConversion(); }));
+        document.querySelectorAll('.bg-color-btn').forEach(btn => btn.addEventListener('click', e => { document.querySelector('.bg-color-btn.active').classList.remove('active'); e.currentTarget.classList.add('active'); state.textState.bgColor = e.currentTarget.dataset.bg; triggerConversion(); }));
+        
         const handlePaste = (e) => { e.preventDefault(); const pastedText = e.clipboardData.getData('text'); let rgb = []; const numbers = pastedText.match(/\d+/g); if (numbers && numbers.length === 3) { rgb = numbers.map(numStr => parseInt(numStr, 10)); } else { const cleanText = pastedText.replace(/\D/g, ''); if (cleanText.length === 9) { rgb = [ parseInt(cleanText.substring(0, 3), 10), parseInt(cleanText.substring(3, 6), 10), parseInt(cleanText.substring(6, 9), 10) ]; } } if (rgb.length === 3 && rgb.every(num => num >= 0 && num <= 255)) { elements.addR.value = rgb[0]; elements.addG.value = rgb[1]; elements.addB.value = rgb[2]; elements.addColorBtn.click(); } };
         [elements.addR, elements.addG, elements.addB].forEach(input => { input.addEventListener('paste', handlePaste); });
         
-        elements.addColorBtn.addEventListener('click', () => {
-            const r = parseInt(elements.addR.value), g = parseInt(elements.addG.value), b = parseInt(elements.addB.value);
-            if (isNaN(r) || r < 0 || r > 255 || isNaN(g) || g < 0 || g > 255 || isNaN(b) || b < 0 || b > 255) { alert("0~255 사이의 올바른 RGB 값을 입력해주세요."); return; }
-            const rgb = [r, g, b];
-            if (isColorAlreadyAdded(rgb)) { alert("이미 추가된 색상입니다."); return; }
-            createAddedColorItem({ rgb });
-            updatePaletteStatus();
-            triggerConversion();
-        });
+        elements.addColorBtn.addEventListener('click', () => { const r = parseInt(elements.addR.value), g = parseInt(elements.addG.value), b = parseInt(elements.addB.value); if (isNaN(r) || r < 0 || r > 255 || isNaN(g) || g < 0 || g > 255 || isNaN(b) || b < 0 || b > 255) { alert("0~255 사이의 올바른 RGB 값을 입력해주세요."); return; } const rgb = [r, g, b]; if (isColorAlreadyAdded(rgb)) { alert("이미 추가된 색상입니다."); return; } createAddedColorItem({ rgb }); updatePaletteStatus(); triggerConversion(); });
         
-        elements.importColorsBtn.addEventListener('click', () => {
-            const code = elements.colorCodeInput.value.trim();
-            if (code === '') { alert('적용할 코드를 입력해주세요.'); return; }
-            try {
-                const colors = JSON.parse(atob(code));
-                if (!Array.isArray(colors)) throw new Error();
-                let addedCount = 0;
-                colors.forEach(rgb => { if (Array.isArray(rgb) && rgb.length === 3 && !isColorAlreadyAdded(rgb)) { createAddedColorItem({ rgb }); addedCount++; } });
-                if (addedCount > 0) { elements.colorCodeInput.value = ''; updatePaletteStatus(); triggerConversion(); } 
-                else { alert("새롭게 추가된 색상이 없습니다. (중복 제외)"); }
-            } catch (err) { alert('유효하지 않은 코드입니다. 다시 확인해주세요.'); }
-        });
+        elements.importColorsBtn.addEventListener('click', () => { const code = elements.colorCodeInput.value.trim(); if (code === '') { alert('적용할 코드를 입력해주세요.'); return; } try { const colors = JSON.parse(atob(code)); if (!Array.isArray(colors)) throw new Error(); let addedCount = 0; colors.forEach(rgb => { if (Array.isArray(rgb) && rgb.length === 3 && !isColorAlreadyAdded(rgb)) { createAddedColorItem({ rgb }); addedCount++; } }); if (addedCount > 0) { elements.colorCodeInput.value = ''; updatePaletteStatus(); triggerConversion(); } else { alert("새롭게 추가된 색상이 없습니다. (중복 제외)"); } } catch (err) { alert('유효하지 않은 코드입니다. 다시 확인해주세요.'); } });
 
         document.querySelectorAll('.toggle-all').forEach(btn => {
             btn.addEventListener('click', e => {
                 const targetIds = e.currentTarget.dataset.target.split(',');
                 let allItems = [];
-                targetIds.forEach(id => {
-                    const container = document.getElementById(id);
-                    if (container) {
-                        allItems.push(...container.querySelectorAll('.color-button, .added-color-item'));
-                    }
-                });
+                targetIds.forEach(id => { const container = document.getElementById(id); if (container) { allItems.push(...container.querySelectorAll('.color-button, .added-color-item')); } });
                 if (allItems.length === 0) return;
-        
                 const onItemsCount = allItems.filter(b => b.dataset.on === 'true').length;
                 const turnOn = onItemsCount < allItems.length;
-        
-                allItems.forEach(item => {
-                    const isOn = item.dataset.on === 'true';
-                    if ((turnOn && !isOn) || (!turnOn && isOn)) {
-                        const clickable = item.classList.contains('added-color-item') ? item.querySelector('.added-color-swatch') : item;
-                        clickable.click();
-                    }
-                });
+                allItems.forEach(item => { const isOn = item.dataset.on === 'true'; if ((turnOn && !isOn) || (!turnOn && isOn)) { const clickable = item.classList.contains('added-color-item') ? item.querySelector('.added-color-swatch') : item; clickable.click(); } });
             });
         });
         
@@ -273,6 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
         createMasterToggleButton('wplacePaidColorsInGeo', elements.wplacePaidColorsInGeo);
 
         setupEventListeners();
+        setAppMode('image');
         setPaletteMode('geopixels'); 
     };
     initialize();
