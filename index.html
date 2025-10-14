@@ -22,7 +22,6 @@
                     <input type="file" id="imageUpload" accept="image/*" style="display: none;">
                     <div id="placeholder-ui"><svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg><p>창 클릭 혹은 이미지를 화면으로 드래그</p></div>
                     <span id="zoomLevelDisplay">100%</span>
-                    <!-- ## 여기가 핵심 변경 ## -->
                     <div id="loading-indicator" class="loading-spinner"></div> 
                     <canvas id="convertedCanvas"></canvas>
                     <button id="centerBtn" title="가운데로">센터로</button>
@@ -38,7 +37,20 @@
             <div class="control-group"><label for="saturationSlider">채도: <span id="saturationValue">100</span>% <button class="reset-btn" data-target="saturationSlider" title="채도 초기화"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"></path></svg></button></label><input type="range" id="saturationSlider" min="0" max="200" value="100"></div>
             <div class="control-group"><label for="brightnessSlider">명도: <span id="brightnessValue">0</span> <button class="reset-btn" data-target="brightnessSlider" title="명도 초기화"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"></path></svg></button></label><input type="range" id="brightnessSlider" min="-100" max="100" value="0"></div>
             <div class="control-group"><label for="contrastSlider">대비: <span id="contrastValue">0</span> <button class="reset-btn" data-target="contrastSlider" title="대비 초기화"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"></path></svg></button></label><input type="range" id="contrastSlider" min="-100" max="100" value="0"></div>
-            <div class="control-group"><label for="ditheringAlgorithmSelect">디더링 알고리즘:</label><select id="ditheringAlgorithmSelect"><option value="floyd">Floyd-Steinberg (기본)</option><option value="sierra">Sierra-2-4A</option><option value="atkinson">Atkinson</option><option value="none">디더링 없음</option></select></div>
+            
+            <!-- ▼▼▼▼▼ 수정된 부분 ▼▼▼▼▼ -->
+            <div class="control-group checkbox-group">
+                <input type="checkbox" id="highQualityMode">
+                <label for="highQualityMode" title="색상의 이미지를 개선합니다. 변환 속도가 느려질 수 있습니다.">고품질 색상 모드</label>
+            </div>
+            <!-- ▲▲▲▲▲ 수정된 부분 ▲▲▲▲▲ -->
+            
+            <div class="control-group"><label for="ditheringAlgorithmSelect">디더링 알고리즘:</label><select id="ditheringAlgorithmSelect">
+                <option value="floyd" title="가장 표준적인 디더링 방식입니다. 색상 오차를 주변 4개의 픽셀에 규칙적으로 분배하여 안정적인 결과를 만듭니다.">Floyd-Steinberg (기본)</option>
+                <option value="sierra" title="Floyd-Steinberg보다 부드러운 결과를 만듭니다. 색상 오차를 더 넓은 주변 픽셀에 분배하여 패턴이 덜 눈에 띄게 합니다.">Sierra-2-4A</option>
+                <option value="atkinson" title="대비(콘트라스트)가 강한 독특한 결과물을 만듭니다. 색상 오차의 일부를 의도적으로 버려, 밝고 어두운 영역의 차이를 극대화합니다.">Atkinson</option>
+                <option value="none" title="픽셀을 주변과 섞지 않고, 각 픽셀에 가장 가까운 색상을 그대로 사용합니다. 색상 경계가 명확해집니다.">디더링 없음</option>
+            </select></div>
             <div class="control-group"><label for="ditheringSlider">디더링 강도: <span id="ditheringValue">0</span>% <button class="reset-btn" data-target="ditheringSlider" title="디더링 강도 초기화"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"></path></svg></button></label><input type="range" id="ditheringSlider" min="0" max="100" value="0"></div>
             <div class="control-group"><label for="scaleSlider">스케일: 1:<span id="scaleValue">1.00</span> <button class="reset-btn" data-target="scaleSlider" title="스케일 초기화"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"></path></svg></button></label><input type="range" id="scaleSlider" min="4" max="40" value="4"></div>
         </section>
@@ -72,7 +84,16 @@
             <section class="palette-section user-palette" id="user-palette-section">
                 <h2>추가한 색상</h2>
                 <div class="add-color-form"><input type="number" id="addR" placeholder="R" min="0" max="255"><input type="number" id="addG" placeholder="G" min="0" max="255"><input type="number" id="addB" placeholder="B" min="0" max="255"><button id="addColorBtn">추가</button></div>
-                <div class="color-code-section"><button id="exportColorsBtn">코드 추출</button><textarea id="colorCodeInput" placeholder="코드를 여기에 붙여넣으세요."></textarea><button id="importColorsBtn">코드 적용</button></div>
+                <div class="color-code-section">
+                    <!-- 버튼들을 그룹으로 묶어 옆으로 배치 -->
+                    <div class="button-group-horizontal">
+                        <button id="exportColorsBtn">코드 추출</button>
+                        <button id="importColorsBtn">코드 적용</button>
+                    </div>
+                    <textarea id="colorCodeInput" placeholder="코드를 여기에 붙여넣으세요."></textarea>
+                </div>
+                <!-- "추가한 색상 초기화" 버튼 새로 추가 -->
+                <button id="resetAddedColorsBtn" class="reset-all-colors-btn">추가한 색상 초기화</button>
                 <div class="palette-buttons" id="addedColors"></div>
             </section>
         </div>
