@@ -113,6 +113,7 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
 .checkbox-group input[type="checkbox"] { width: 16px; height: 16px; margin: 0; }
 .checkbox-group label { margin: 0; font-weight: normal; }
 
+.main-mode-switcher, .mode-switcher { padding-bottom: 0; }
 .main-mode-switcher h2, .mode-switcher h2 { margin-bottom: 10px; }
 
 .radio-toggle { display: flex; gap: 2px; padding: 2px; background-color: white; border: 1px solid #ccc; border-radius: 8px; }
@@ -140,43 +141,31 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
 #text-controls .color-picker-group { flex-direction: row; justify-content: space-between; align-items: center; }
 #text-controls select { -webkit-appearance: none; -moz-appearance: none; appearance: none; padding: 8px; padding-right: 30px; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7em top 50%; background-size: .65em auto; }
 
+/* ## 여기가 핵심 변경 ## */
+#loading-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top: 3px solid #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    display: none; /* 기본 숨김 */
+    z-index: 11;
+}
+#loading-indicator.visible {
+    display: block;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 @media (max-width: 1100px) {
   body { overflow: auto; }
   .app-container { flex-direction: column; height: auto; }
   .right-panel { width: 100%; height: auto; overflow-y: visible; }
   .app-container.text-mode .left-panel-content { flex-direction: column; }
-}
-
-#loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: none; /* 기본 숨김 */
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    color: white;
-    z-index: 1000;
-}
-
-#loading-overlay.visible {
-    display: flex;
-}
-
-.loading-spinner {
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #3498db;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-    margin-bottom: 10px;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
 }
