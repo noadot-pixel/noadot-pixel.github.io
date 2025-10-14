@@ -52,7 +52,13 @@
         <section class="download-section">
             <h2>변환 이미지 다운로드</h2><button id="downloadBtn" disabled>다운로드</button><div id="imageDimensionsDisplay" class="image-info"><span class="image-only-info">원본 크기: <span id="originalDimensions">-</span><br></span><span id="convertedDimensionsLabel">변환 크기: </span><span id="convertedDimensions">-</span></div>
         </section>
-        <section class="mode-switcher"><div class="radio-toggle"><input type="radio" id="geopixelsMode" name="paletteMode" value="geopixels" checked><label for="geopixelsMode">GeoPixels</label><input type="radio" id="wplaceMode" name="paletteMode" value="wplace"><label for="wplaceMode">Wplace</label></div></section>
+        
+        <!-- ## 여기가 핵심 변경 ## -->
+        <section class="mode-switcher">
+            <h2>팔레트 모드</h2>
+            <div class="radio-toggle"><input type="radio" id="geopixelsMode" name="paletteMode" value="geopixels" checked><label for="geopixelsMode">GeoPixels</label><input type="radio" id="wplaceMode" name="paletteMode" value="wplace"><label for="wplaceMode">Wplace</label></div>
+        </section>
+        
         <div id="geopixels-controls">
             <details class="palette-category" open><summary><span class="palette-status-icon" data-target="geoPixelColors">✓</span><h3>지오픽셀 팔레트</h3></summary><div class="palette-section"><div class="palette-buttons" id="geoPixelColors"></div></div></details>
             <section class="option-section"><div class="control-group checkbox-group"><input type="checkbox" id="useWplaceInGeoMode"><label for="useWplaceInGeoMode">Wplace 팔레트 색상도 같이 사용하기</label></div></section>
