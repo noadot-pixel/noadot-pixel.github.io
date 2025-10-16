@@ -186,9 +186,44 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
     background-color: #f1b0b7;
 }
 
+.hidden {
+    display: none !important;
+}
+
+/* 픽셀 조정 UI 그룹 내부의 여백 조절 */
+#pixel-scale-controls.scale-control-group {
+    gap: 12px;
+}
+#pixel-scale-controls .control-group {
+    margin-bottom: -5px; /* 슬라이더와 위쪽 요소 간격 줄임 */
+}
+
+fieldset:disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
 @media (max-width: 1100px) {
   body { overflow: auto; }
   .app-container { flex-direction: column; height: auto; }
   .right-panel { width: 100%; height: auto; overflow-y: visible; }
   .app-container.text-mode .left-panel-content { flex-direction: column; }
 }
+
+.scale-control-group { gap: 8px; }
+.scale-input-wrapper { display: flex; align-items: center; gap: 8px; }
+.scale-label { width: 30px; font-size: 14px; }
+.scale-input-wrapper input[type="number"] { flex-grow: 1; text-align: center; }
+.scale-buttons { display: flex; }
+.scale-mod-btn {
+    padding: 4px 6px;
+    font-size: 12px;
+    line-height: 1;
+    min-width: 30px;
+    border: 1px solid #ccc;
+    background-color: #f0f0f0;
+}
+.scale-mod-btn:hover { background-color: #e0e0e0; }
+.scale-mod-btn:first-child { border-radius: 4px 0 0 4px; }
+.scale-mod-btn:last-child { border-radius: 0 4px 4px 0; }
+.scale-mod-btn:not(:last-child) { border-right: none; }
