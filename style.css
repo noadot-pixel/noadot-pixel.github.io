@@ -227,3 +227,38 @@ fieldset:disabled {
 .scale-mod-btn:first-child { border-radius: 4px 0 0 4px; }
 .scale-mod-btn:last-child { border-radius: 0 4px 4px 0; }
 .scale-mod-btn:not(:last-child) { border-right: none; }
+
+/* [v2.6 수정] 파일 하단에 추가 */
+#metadata-info-display {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(255, 221, 87, 0.85); /* 눈에 띄는 노란색 배경 */
+    color: #333;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: bold;
+    z-index: 10;
+    pointer-events: none;
+    display: none; /* 평소에는 숨김 */
+    border: 1px solid rgba(0,0,0,0.2);
+}
+
+#metadata-info-display.visible {
+    display: block; /* visible 클래스가 붙으면 보이게 함 */
+}
+
+/* 줌 레벨 표시가 겹치지 않도록 조정 */
+#zoomLevelDisplay {
+    position: absolute;
+    bottom: 10px; /* 기존 top에서 bottom으로 변경 */
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-size: 14px;
+    z-index: 10;
+    pointer-events: none;
+}
