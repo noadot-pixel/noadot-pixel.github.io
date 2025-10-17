@@ -245,20 +245,64 @@ fieldset:disabled {
     border: 1px solid rgba(0,0,0,0.2);
 }
 
-#metadata-info-display.visible {
-    display: block; /* visible 클래스가 붙으면 보이게 함 */
+/* [v2.9 수정] 파일 최하단부의 UI 관련 스타일을 아래 코드로 전부 교체 */
+
+/* 새로운 UI 레이아웃 컨테이너 */
+#top-ui-container {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between; /* 왼쪽과 오른쪽 아이템을 양 끝으로 보냄 */
+    align-items: center;
+    z-index: 11;
+    pointer-events: none; /* 컨테이너 자체는 클릭 방해 안함 */
 }
 
-/* 줌 레벨 표시가 겹치지 않도록 조정 */
+/* 우측 상단 UI 그룹 */
+.top-right-ui {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* 로딩 스피너와 확대율 표시 사이 간격 */
+}
+
+/* 메타데이터 정보 표시 */
+#metadata-info-display {
+    background-color: rgba(255, 221, 87, 0.85);
+    color: #333;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: bold;
+    border: 1px solid rgba(0,0,0,0.2);
+    display: none; /* 평소에는 숨김 */
+    pointer-events: auto; /* 필요 시 클릭 가능하도록 */
+}
+
+#metadata-info-display.visible {
+    display: block;
+}
+
+/* 확대율 표시 */
 #zoomLevelDisplay {
-    position: absolute;
-    bottom: 10px; /* 기존 top에서 bottom으로 변경 */
-    left: 10px;
     background-color: rgba(0, 0, 0, 0.5);
     color: white;
     padding: 2px 8px;
     border-radius: 5px;
     font-size: 14px;
-    z-index: 10;
-    pointer-events: none;
+    pointer-events: auto;
+}
+
+/* 로딩 스피너 (위치 속성만 제거) */
+#loading-indicator {
+    /* position, top, right 속성이 제거되어 Flexbox 레이아웃에 포함됨 */
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top: 3px solid #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    display: none;
+    z-index: 11;
 }
