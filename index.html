@@ -22,7 +22,6 @@
                     <input type="file" id="imageUpload" accept="image/*" style="display: none;">
                     <div id="placeholder-ui"><svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg><p>창 클릭 혹은 이미지를 화면으로 드래그</p></div>
                     
-                    <!-- [v2.9 수정] UI 요소들을 그룹으로 묶음 -->
                     <div id="top-ui-container">
                         <div id="metadata-info-display"></div>
                         <div class="top-right-ui">
@@ -30,7 +29,7 @@
                             <span id="zoomLevelDisplay">100%</span>
                         </div>
                     </div>
-
+            
                     <canvas id="convertedCanvas"></canvas>
                     <button id="centerBtn" title="가운데로">센터로</button>
                 </div>
@@ -56,6 +55,12 @@
                 <label for="edgeCleanup" title="이미지의 자글자글한 외곽선을 정리하여 깔끔하게 만듭니다. (픽셀 아트에 권장)">경계선 정리</label>
             </div>
             
+            <!-- [v2.10 수정] Hue 우선 적용 임계값 슬라이더 추가 -->
+            <div class="control-group">
+                <label for="hueThresholdSlider">색상 우선 적용 임계값: <span id="hueThresholdValue">30</span> <button class="reset-btn" data-target="hueThresholdSlider" title="임계값 초기화"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"></path></svg></button></label>
+                <input type="range" id="hueThresholdSlider" min="0" max="100" value="30" title="값이 낮을수록 채도가 매우 낮은(회색에 가까운) 색에만 적용됩니다. 값이 높을수록 더 많은 색에 대해 '색상 계열'을 우선으로 고려합니다.">
+            </div>
+
             <div class="control-group"><label for="ditheringAlgorithmSelect">디더링 알고리즘:</label><select id="ditheringAlgorithmSelect">
                 <option value="floyd" title="가장 표준적인 디더링 방식입니다. 색상 오차를 주변 4개의 픽셀에 규칙적으로 분배하여 안정적인 결과를 만듭니다.">Floyd-Steinberg (기본)</option>
                 <option value="sierra" title="Floyd-Steinberg보다 부드러운 결과를 만듭니다. 색상 오차를 더 넓은 주변 픽셀에 분배하여 패턴이 덜 눈에 띄게 합니다.">Sierra-2-4A</option>
@@ -112,12 +117,7 @@
             <div class="control-group"><label for="strokeWidthSlider">윤곽선 두께: <span id="strokeWidthValue">0</span>px</label><input type="range" id="strokeWidthSlider" min="0" max="10" value="0"></div>
         </section>
         <section class="download-section">
-            <h2>변환 이미지 다운로드</h2>
-            <button id="downloadBtn" disabled>다운로드</button>
-            <div id="imageDimensionsDisplay" class="image-info">
-                <span class="image-only-info">원본 크기: <span id="originalDimensions">-</span><br></span>
-                <span id="convertedDimensionsLabel">변환 크기: </span><span id="convertedDimensions">-</span>
-            </div>
+            <h2>변환 이미지 다운로드</h2><button id="downloadBtn" disabled>다운로드</button><div id="imageDimensionsDisplay" class="image-info"><span class="image-only-info">원본 크기: <span id="originalDimensions">-</span><br></span><span id="convertedDimensionsLabel">변환 크기: </span><span id="convertedDimensions">-</span></div>
         </section>
         <section class="mode-switcher">
             <h2>팔레트 모드</h2><div class="radio-toggle"><input type="radio" id="geopixelsMode" name="paletteMode" value="geopixels" checked><label for="geopixelsMode">GeoPixels</label><input type="radio" id="wplaceMode" name="paletteMode" value="wplace"><label for="wplaceMode">Wplace</label></div>

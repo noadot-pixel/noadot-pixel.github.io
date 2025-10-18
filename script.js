@@ -1,4 +1,4 @@
-// [v2.6 수정] PNG 메타데이터 처리를 위한 헬퍼 객체 (변경 없음)
+// PNG 메타데이터 처리 헬퍼 (변경 없음)
 const PNGMetadata = {
     encode(keyword, content) { const keywordBytes = new TextEncoder().encode(keyword); const contentBytes = new TextEncoder().encode(content); const chunkType = new Uint8Array([116, 69, 88, 116]); const chunkData = new Uint8Array(keywordBytes.length + 1 + contentBytes.length); chunkData.set(keywordBytes); chunkData.set([0], keywordBytes.length); chunkData.set(contentBytes, keywordBytes.length + 1); const length = new Uint8Array(4); new DataView(length.buffer).setUint32(0, chunkData.length, false); const crcData = new Uint8Array(chunkType.length + chunkData.length); crcData.set(chunkType); crcData.set(chunkData, chunkType.length); const crc = new Uint8Array(4); new DataView(crc.buffer).setUint32(0, this.crc32(crcData), false); const chunk = new Uint8Array(length.length + chunkType.length + chunkData.length + crc.length); chunk.set(length); chunk.set(chunkType, 4); chunk.set(chunkData, 8); chunk.set(crc, 8 + chunkData.length); return chunk; },
     embed(pngArrayBuffer, metadata) { const pngBytes = new Uint8Array(pngArrayBuffer); const keyword = 'NoaDotSettings'; const content = JSON.stringify(metadata); const metadataChunk = this.encode(keyword, content); const iendIndex = pngBytes.length - 12; const newPngBytes = new Uint8Array(pngBytes.length + metadataChunk.length); newPngBytes.set(pngBytes.subarray(0, iendIndex)); newPngBytes.set(metadataChunk, iendIndex); newPngBytes.set(pngBytes.subarray(iendIndex), iendIndex + metadataChunk.length); return newPngBytes.buffer; },
@@ -10,15 +10,42 @@ const PNGMetadata = {
 const ColorConverter = {
     srgbToLinear(c) { return (c > 0.04045) ? Math.pow((c + 0.055) / 1.055, 2.4) : c / 12.92; },
     rgbToOklab(rgb) { const r = this.srgbToLinear(rgb[0] / 255); const g = this.srgbToLinear(rgb[1] / 255); const b = this.srgbToLinear(rgb[2] / 255); const l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b; const m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b; const s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b; const l_ = Math.cbrt(l); const m_ = Math.cbrt(m); const s_ = Math.cbrt(s); return [ 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_, 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_, 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_ ]; },
-    deltaE2000(lab1, lab2) { const L1 = lab1[0], a1 = lab1[1], b1 = lab1[2]; const L2 = lab2[0], a2 = lab2[1], b2 = lab2[2]; const kL = 1, kC = 1, kH = 1; const C1 = Math.sqrt(a1 * a1 + b1 * b1); const C2 = Math.sqrt(a2 * a2 + b2 * b2); const C_bar = (C1 + C2) / 2; const G = 0.5 * (1 - Math.sqrt(Math.pow(C_bar, 7) / (Math.pow(C_bar, 7) + Math.pow(25, 7)))); const a1_prime = a1 * (1 + G); const a2_prime = a2 * (1 + G); const C1_prime = Math.sqrt(a1_prime * a1_prime + b1 * b1); const C2_prime = Math.sqrt(a2_prime * a2_prime + b2 * b2); const h1_prime = (Math.atan2(b1, a1_prime) * 180 / Math.PI + 360) % 360; const h2_prime = (Math.atan2(b2, a2_prime) * 180 / Math.PI + 360) % 360; const delta_L_prime = L2 - L1; const delta_C_prime = C2_prime - C1_prime; let delta_h_prime; if (C1_prime * C2_prime === 0) { delta_h_prime = 0; } else if (Math.abs(h2_prime - h1_prime) <= 180) { delta_h_prime = h2_prime - h1_prime; } else if (h2_prime - h1_prime > 180) { delta_h_prime = h2_prime - h1_prime - 360; } else { delta_h_prime = h2_prime - h1_prime + 360; } const delta_H_prime = 2 * Math.sqrt(C1_prime * C2_prime) * Math.sin((delta_h_prime * Math.PI / 180) / 2); const L_bar_prime = (L1 + L2) / 2; const C_bar_prime = (C1_prime + C2_prime) / 2; let h_bar_prime; if (C1_prime * C2_prime === 0) { h_bar_prime = h1_prime + h2_prime; } else if (Math.abs(h1_prime - h2_prime) <= 180) { h_bar_prime = (h1_prime + h2_prime) / 2; } else if (h1_prime + h2_prime < 360) { h_bar_prime = (h1_prime + h2_prime + 360) / 2; } else { h_bar_prime = (h1_prime + h2_prime - 360) / 2; } const T = 1 - 0.17 * Math.cos((h_bar_prime - 30) * Math.PI / 180) + 0.24 * Math.cos(2 * h_bar_prime * Math.PI / 180) + 0.32 * Math.cos(3 * h_bar_prime * Math.PI / 180 + 6 * Math.PI / 180) - 0.20 * Math.cos(4 * h_bar_prime * Math.PI / 180 - 63 * Math.PI / 180); const S_L = 1 + (0.015 * Math.pow(L_bar_prime - 50, 2)) / Math.sqrt(20 + Math.pow(L_bar_prime - 50, 2)); const S_C = 1 + 0.045 * C_bar_prime; const S_H = 1 + 0.015 * C_bar_prime * T; const R_T = -2 * Math.sqrt(Math.pow(C_bar_prime, 7) / (Math.pow(C_bar_prime, 7) + Math.pow(25, 7))) * Math.sin(60 * Math.exp(-Math.pow((h_bar_prime - 275) / 25, 2)) * Math.PI / 180); const L_term = delta_L_prime / (kL * S_L); const C_term = delta_C_prime / (kC * S_C); const H_term = delta_H_prime / (kH * S_H); return Math.sqrt(L_term * L_term + C_term * C_term + H_term * H_term + R_T * (C_term * H_term)); }
+    deltaE2000(lab1, lab2) { const L1 = lab1[0], a1 = lab1[1], b1 = lab1[2]; const L2 = lab2[0], a2 = lab2[1], b2 = lab2[2]; const kL = 1, kC = 1, kH = 1; const C1 = Math.sqrt(a1 * a1 + b1 * b1); const C2 = Math.sqrt(a2 * a2 + b2 * b2); const C_bar = (C1 + C2) / 2; const G = 0.5 * (1 - Math.sqrt(Math.pow(C_bar, 7) / (Math.pow(C_bar, 7) + Math.pow(25, 7)))); const a1_prime = a1 * (1 + G); const a2_prime = a2 * (1 + G); const C1_prime = Math.sqrt(a1_prime * a1_prime + b1 * b1); const C2_prime = Math.sqrt(a2_prime * a2_prime + b2 * b2); const h1_prime = (Math.atan2(b1, a1_prime) * 180 / Math.PI + 360) % 360; const h2_prime = (Math.atan2(b2, a2_prime) * 180 / Math.PI + 360) % 360; const delta_L_prime = L2 - L1; const delta_C_prime = C2_prime - C1_prime; let delta_h_prime; if (C1_prime * C2_prime === 0) { delta_h_prime = 0; } else if (Math.abs(h2_prime - h1_prime) <= 180) { delta_h_prime = h2_prime - h1_prime; } else if (h2_prime - h1_prime > 180) { delta_h_prime = h2_prime - h1_prime - 360; } else { delta_h_prime = h2_prime - h1_prime + 360; } const delta_H_prime = 2 * Math.sqrt(C1_prime * C2_prime) * Math.sin((delta_h_prime * Math.PI / 180) / 2); const L_bar_prime = (L1 + L2) / 2; const C_bar_prime = (C1_prime + C2_prime) / 2; let h_bar_prime; if (C1_prime * C2_prime === 0) { h_bar_prime = h1_prime + h2_prime; } else if (Math.abs(h1_prime - h2_prime) <= 180) { h_bar_prime = (h1_prime + h2_prime) / 2; } else if (h1_prime + h2_prime < 360) { h_bar_prime = (h1_prime + h2_prime + 360) / 2; } else { h_bar_prime = (h1_prime + h2_prime - 360) / 2; } const T = 1 - 0.17 * Math.cos((h_bar_prime - 30) * Math.PI / 180) + 0.24 * Math.cos(2 * h_bar_prime * Math.PI / 180) + 0.32 * Math.cos(3 * h_bar_prime * Math.PI / 180 + 6 * Math.PI / 180) - 0.20 * Math.cos(4 * h_bar_prime * Math.PI / 180 - 63 * Math.PI / 180); const S_L = 1 + (0.015 * Math.pow(L_bar_prime - 50, 2)) / Math.sqrt(20 + Math.pow(L_bar_prime - 50, 2)); const S_C = 1 + 0.045 * C_bar_prime; const S_H = 1 + 0.015 * C_bar_prime * T; const R_T = -2 * Math.sqrt(Math.pow(C_bar_prime, 7) / (Math.pow(C_bar_prime, 7) + Math.pow(25, 7))) * Math.sin(60 * Math.exp(-Math.pow((h_bar_prime - 275) / 25, 2)) * Math.PI / 180); const L_term = delta_L_prime / (kL * S_L); const C_term = delta_C_prime / (kC * S_C); const H_term = delta_H_prime / (kH * S_H); return Math.sqrt(L_term * L_term + C_term * C_term + H_term * H_term + R_T * (C_term * H_term)); },
+    
+    // [v2.10 추가] RGB to HSL 변환 함수
+    rgbToHsl(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h = 0, s = 0, l = (max + min) / 2;
+        if (max !== min) {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+        return [h, s, l];
+    }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    const CONFIG = { DEBOUNCE_DELAY: 150, SCALE_FACTOR: 4.0, DEFAULTS: { saturationSlider: 100, brightnessSlider: 0, contrastSlider: 0, ditheringSlider: 0 } };
+    const CONFIG = {
+        DEBOUNCE_DELAY: 150,
+        SCALE_FACTOR: 4.0,
+        DEFAULTS: { 
+            saturationSlider: 100, brightnessSlider: 0, contrastSlider: 0, ditheringSlider: 0,
+            hueThresholdSlider: 30 // [v2.10 수정] 기본값 추가
+        }
+    };
 
     const state = {
-        appMode: 'image', isConverting: false, processId: null, originalImageData: null, originalImageObject: null, originalFileName: 'image', currentZoom: 100, isDragging: false, panX: 0, panY: 0, startPanX: 0, startPanY: 0, startDragX: 0, startDragY: 0, finalDownloadableData: null, colorAnalysis: { counts: new Map(), totalPixels: 0 }, currentMode: 'geopixels', useWplaceInGeoMode: false, highQualityMode: false, edgeCleanup: false, scaleMode: 'pixel', aspectRatio: 1,
+        appMode: 'image', isConverting: false, processId: null, originalImageData: null, originalImageObject: null, originalFileName: 'image', currentZoom: 100, isDragging: false, panX: 0, panY: 0, startPanX: 0, startPanY: 0, startDragX: 0, startDragY: 0, finalDownloadableData: null, colorAnalysis: { counts: new Map(), totalPixels: 0 }, currentMode: 'geopixels', useWplaceInGeoMode: false, highQualityMode: false, edgeCleanup: false,
+        hueThreshold: 30, // [v2.10 수정] 상태값 추가
+        scaleMode: 'pixel', aspectRatio: 1,
         textState: { content: '', fontFamily: 'Malgun Gothic', fontSize: 15, isBold: false, isItalic: false, isUnderline: false, isStrike: false, isShadow: false, letterSpacing: 0, padding: 10, textColor: '0,0,0', bgColor: '255,255,255', strokeColor: '0,0,0', strokeWidth: 0, }
     };
 
@@ -44,6 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
         edgeCleanup: document.getElementById('edgeCleanup'),
         ditheringAlgorithmSelect: document.getElementById('ditheringAlgorithmSelect'),
         ditheringSlider: document.getElementById('ditheringSlider'), ditheringValue: document.getElementById('ditheringValue'),
+        // [v2.10 수정] 슬라이더 요소 추가
+        hueThresholdSlider: document.getElementById('hueThresholdSlider'), hueThresholdValue: document.getElementById('hueThresholdValue'),
         scaleControlsFieldset: document.getElementById('scaleControlsFieldset'),
         scaleModeSelect: document.getElementById('scaleModeSelect'),
         ratioScaleControls: document.getElementById('ratio-scale-controls'),
@@ -80,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
         uploadFontBtn: document.getElementById('uploadFontBtn'), fontUpload: document.getElementById('fontUpload'),
         textColorSelect: document.getElementById('textColorSelect'), bgColorSelect: document.getElementById('bgColorSelect'), strokeColorSelect: document.getElementById('strokeColorSelect'),
         strokeWidthSlider: document.getElementById('strokeWidthSlider'), strokeWidthValue: document.getElementById('strokeWidthValue'),
-        metadataInfoDisplay: document.getElementById('metadata-info-display'), // [v2.6 수정] 요소 추가
+        metadataInfoDisplay: document.getElementById('metadata-info-display'),
     };
     const cCtx = elements.convertedCanvas.getContext('2d');
     
@@ -89,101 +118,117 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateTransform = () => { const scale = state.currentZoom / 100; elements.convertedCanvas.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${scale})`; elements.zoomLevelDisplay.textContent = `${state.currentZoom}%`; };
     const updateZoom = (newZoom) => { state.currentZoom = Math.max(25, Math.min(500, newZoom)); updateTransform(); };
     
-    const findClosestColor = (r1, g1, b1, palette, paletteOklab) => {
-        let minDistance = Number.MAX_SAFE_INTEGER; let closestColor = palette[0]; let closestIndex = 0;
-        if (state.highQualityMode && paletteOklab) { const targetOklab = ColorConverter.rgbToOklab([r1, g1, b1]); for (let i = 0; i < paletteOklab.length; i++) { const distance = ColorConverter.deltaE2000(targetOklab, paletteOklab[i]); if (distance < minDistance) { minDistance = distance; closestIndex = i; } if (minDistance === 0) break; } closestColor = palette[closestIndex]; } else { for (let i = 0; i < palette.length; i++) { const pColor = palette[i]; const [r2, g2, b2] = pColor; const rMean = (r1 + r2) / 2; const r = r1 - r2; const g = g1 - g2; const b = b1 - b2; const distance = Math.floor(((512 + rMean) * r * r) / 256) + 4 * g * g + Math.floor(((767 - rMean) * b * b) / 256); if (distance < minDistance) { minDistance = distance; closestIndex = i; } if (minDistance === 0) break; } closestColor = palette[closestIndex]; }
-        return { color: closestColor, distance: minDistance };
+    // [v2.10 수정] 기존 findClosestColor 로직을 별도 함수로 분리
+    const findClosestColorOKLab = (r1, g1, b1, palette, paletteOklab) => {
+        let minDistance = Number.MAX_SAFE_INTEGER;
+        let closestIndex = 0;
+
+        if (state.highQualityMode && paletteOklab) {
+            const targetOklab = ColorConverter.rgbToOklab([r1, g1, b1]);
+            for (let i = 0; i < paletteOklab.length; i++) {
+                const distance = ColorConverter.deltaE2000(targetOklab, paletteOklab[i]);
+                if (distance < minDistance) { minDistance = distance; closestIndex = i; }
+                if (minDistance === 0) break;
+            }
+        } else {
+            for (let i = 0; i < palette.length; i++) {
+                const pColor = palette[i];
+                const [r2, g2, b2] = pColor;
+                const rMean = (r1 + r2) / 2;
+                const r = r1 - r2; const g = g1 - g2; const b = b1 - b2;
+                const distance = Math.floor(((512 + rMean) * r * r) / 256) + 4 * g * g + Math.floor(((767 - rMean) * b * b) / 256);
+                if (distance < minDistance) { minDistance = distance; closestIndex = i; }
+                if (minDistance === 0) break;
+            }
+        }
+        return { color: palette[closestIndex], distance: minDistance };
     };
 
-    // [v2.6 수정] 메타데이터 수집 로직 변경
-    const gatherSettingsData = () => {
-        if (state.currentMode === 'geopixels') {
-            return {
-                version: '2.6',
-                type: 'colors',
-                data: Array.from(elements.addedColorsContainer.querySelectorAll('.added-color-item')).map(item => JSON.parse(item.dataset.rgb))
-            };
-        } else { // wplace 모드
-            return {
-                version: '2.6',
-                type: 'marker'
-            };
+    // [v2.10 수정] Hue 우선 탐색 로직 함수
+    const findClosestColorByHue = (r1, g1, b1, palette, paletteOklab) => {
+        const [h1] = ColorConverter.rgbToHsl(r1, g1, b1);
+        const HUE_SIMILARITY_THRESHOLD = 18 / 360; // 18도 이내
+
+        let hueCandidates = [];
+        let paletteHslCache = new Map();
+
+        for (let i = 0; i < palette.length; i++) {
+            const pColor = palette[i];
+            let h2;
+            if (paletteHslCache.has(pColor)) {
+                h2 = paletteHslCache.get(pColor)[0];
+            } else {
+                const hsl = ColorConverter.rgbToHsl(pColor[0], pColor[1], pColor[2]);
+                paletteHslCache.set(pColor, hsl);
+                h2 = hsl[0];
+            }
+
+            let diff = Math.abs(h1 - h2);
+            if (diff > 0.5) diff = 1 - diff; // 원형 구조 처리
+
+            if (diff < HUE_SIMILARITY_THRESHOLD) {
+                hueCandidates.push({ color: pColor, index: i });
+            }
+        }
+
+        if (hueCandidates.length > 0) {
+            // 후보군 내에서 OKLab으로 가장 가까운 색 찾기
+            const candidatePalette = hueCandidates.map(c => c.color);
+            const candidateOklab = state.highQualityMode ? hueCandidates.map(c => paletteOklab[c.index]) : null;
+            return findClosestColorOKLab(r1, g1, b1, candidatePalette, candidateOklab);
+        } else {
+            // 비슷한 Hue가 없으면 전체에서 찾기 (Fallback)
+            return findClosestColorOKLab(r1, g1, b1, palette, paletteOklab);
+        }
+    };
+    
+    // [v2.10 수정] 메인 색상 찾기 함수를 "지휘자" 역할로 변경
+    const findClosestColor = (r1, g1, b1, palette, paletteOklab, hueThreshold) => {
+        const [, s] = ColorConverter.rgbToHsl(r1, g1, b1);
+
+        // 채도가 임계값보다 높거나, 픽셀 자체가 무채색에 가까우면 기존 방식 사용
+        if ((s * 100) >= hueThreshold || s < 0.05) {
+            return findClosestColorOKLab(r1, g1, b1, palette, paletteOklab);
+        } else {
+            // 채도가 임계값보다 낮으면 (그림자 영역) Hue 우선 방식 시도
+            return findClosestColorByHue(r1, g1, b1, palette, paletteOklab);
         }
     };
 
-    // [v2.6 수정] 메타데이터 적용 로직 변경 (단순화)
-    const applySettingsData = (settings) => {
-        if (!settings || settings.type !== 'colors' || !Array.isArray(settings.data)) return;
-        
-        elements.addedColorsContainer.innerHTML = '';
-        settings.data.forEach(rgb => createAddedColorItem({ rgb }, true));
-        
-        updatePaletteStatus();
-        triggerConversion();
-    };
-    
+    // [v2.6 수정] 메타데이터 수집 로직 변경
+    const gatherSettingsData = () => { if (state.currentMode === 'geopixels') { return { version: '2.10', type: 'colors', data: Array.from(elements.addedColorsContainer.querySelectorAll('.added-color-item')).map(item => JSON.parse(item.dataset.rgb)) }; } else { return { version: '2.10', type: 'marker' }; } };
+    const applySettingsData = (settings) => { if (!settings || settings.type !== 'colors' || !Array.isArray(settings.data)) return; elements.addedColorsContainer.innerHTML = ''; settings.data.forEach(rgb => createAddedColorItem({ rgb }, true)); updatePaletteStatus(); triggerConversion(); };
     const getTextColorForBg = (rgb) => { const [r, g, b] = rgb; const luminance = (0.299 * r + 0.587 * g + 0.114 * b); return luminance > 128 ? '#000000' : '#FFFFFF'; };
-    const updateColorRecommendations = () => { elements.recommendedColorsContainer.innerHTML = ''; if (state.currentMode !== 'geopixels' || state.colorAnalysis.totalPixels === 0) return; const activeSelectors = ['#geoPixelColors .color-button[data-on="true"]', '#addedColors .added-color-item[data-on="true"]']; if (state.useWplaceInGeoMode) { activeSelectors.push('#wplace-palette-in-geo .color-button[data-on="true"]'); } const activePalette = Array.from(document.querySelectorAll(activeSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb)); if (activePalette.length === 0) return; const allExistingSelectors = ['#geoPixelColors .color-button', '#addedColors .added-color-item', '#wplace-palette-in-geo .color-button']; const allExistingColors = new Set(); document.querySelectorAll(allExistingSelectors.join(',')).forEach(btn => { allExistingColors.add(JSON.parse(btn.dataset.rgb).join(',')); }); const candidates = []; const minCountThreshold = state.colorAnalysis.totalPixels * 0.01; for (const [rgbStr, count] of state.colorAnalysis.counts.entries()) { if (allExistingColors.has(rgbStr)) continue; if (count < minCountThreshold) continue; const originalRgb = JSON.parse(`[${rgbStr}]`); const { distance } = findClosestColor(originalRgb[0], originalRgb[1], originalRgb[2], activePalette, null); if (distance > 0) { const score = distance * count; candidates.push({ rgb: originalRgb, score, count }); } } candidates.sort((a, b) => b.score - a.score); const finalRecommendations = candidates.slice(0, 10); finalRecommendations.forEach(rec => { const item = document.createElement('div'); item.className = 'recommendation-item'; const swatch = document.createElement('div'); swatch.className = 'recommendation-swatch'; swatch.style.backgroundColor = `rgb(${rec.rgb.join(',')})`; const info = document.createElement('div'); info.className = 'recommendation-info'; const rgbLabel = document.createElement('span'); rgbLabel.textContent = `(${rec.rgb.join(',')})`; const percentLabel = document.createElement('span'); percentLabel.textContent = `(${(rec.count / state.colorAnalysis.totalPixels * 100).toFixed(1)}%)`; info.appendChild(rgbLabel); info.appendChild(percentLabel); const addBtn = document.createElement('button'); addBtn.className = 'recommendation-add-btn'; addBtn.textContent = '+'; addBtn.title = '이 색상 추가하기'; addBtn.onclick = () => { createAddedColorItem({ rgb: rec.rgb }); updatePaletteStatus(); triggerConversion(); }; item.appendChild(swatch); item.appendChild(info); item.appendChild(addBtn); elements.recommendedColorsContainer.appendChild(item); }); };
+    const updateColorRecommendations = () => { elements.recommendedColorsContainer.innerHTML = ''; if (state.currentMode !== 'geopixels' || state.colorAnalysis.totalPixels === 0) return; const activeSelectors = ['#geoPixelColors .color-button[data-on="true"]', '#addedColors .added-color-item[data-on="true"]']; if (state.useWplaceInGeoMode) { activeSelectors.push('#wplace-palette-in-geo .color-button[data-on="true"]'); } const activePalette = Array.from(document.querySelectorAll(activeSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb)); if (activePalette.length === 0) return; const allExistingSelectors = ['#geoPixelColors .color-button', '#addedColors .added-color-item', '#wplace-palette-in-geo .color-button']; const allExistingColors = new Set(); document.querySelectorAll(allExistingSelectors.join(',')).forEach(btn => { allExistingColors.add(JSON.parse(btn.dataset.rgb).join(',')); }); const candidates = []; const minCountThreshold = state.colorAnalysis.totalPixels * 0.01; for (const [rgbStr, count] of state.colorAnalysis.counts.entries()) { if (allExistingColors.has(rgbStr)) continue; if (count < minCountThreshold) continue; const originalRgb = JSON.parse(`[${rgbStr}]`); const { distance } = findClosestColor(originalRgb[0], originalRgb[1], originalRgb[2], activePalette, null, state.hueThreshold); if (distance > 0) { const score = distance * count; candidates.push({ rgb: originalRgb, score, count }); } } candidates.sort((a, b) => b.score - a.score); const finalRecommendations = candidates.slice(0, 10); finalRecommendations.forEach(rec => { const item = document.createElement('div'); item.className = 'recommendation-item'; const swatch = document.createElement('div'); swatch.className = 'recommendation-swatch'; swatch.style.backgroundColor = `rgb(${rec.rgb.join(',')})`; const info = document.createElement('div'); info.className = 'recommendation-info'; const rgbLabel = document.createElement('span'); rgbLabel.textContent = `(${rec.rgb.join(',')})`; const percentLabel = document.createElement('span'); percentLabel.textContent = `(${(rec.count / state.colorAnalysis.totalPixels * 100).toFixed(1)}%)`; info.appendChild(rgbLabel); info.appendChild(percentLabel); const addBtn = document.createElement('button'); addBtn.className = 'recommendation-add-btn'; addBtn.textContent = '+'; addBtn.title = '이 색상 추가하기'; addBtn.onclick = () => { createAddedColorItem({ rgb: rec.rgb }); updatePaletteStatus(); triggerConversion(); }; item.appendChild(swatch); item.appendChild(info); item.appendChild(addBtn); elements.recommendedColorsContainer.appendChild(item); }); };
     const updatePaletteStatus = () => { document.querySelectorAll('.palette-status-icon').forEach(icon => { const targetIds = icon.dataset.target.split(','); let isActive = false; for (const id of targetIds) { const container = document.getElementById(id); if (container && (container.querySelector('.color-button[data-on="true"]') || container.querySelector('.added-color-item[data-on="true"]'))) { isActive = true; break; } } icon.classList.toggle('active', isActive); }); updateColorRecommendations(); };
     const createColorButton = (colorData, container, startOn = true) => { const ctn = document.createElement('div'); ctn.className = 'color-container'; const btn = document.createElement('div'); btn.className = 'color-button'; btn.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`; btn.dataset.rgb = JSON.stringify(colorData.rgb); btn.dataset.on = startOn.toString(); if (!startOn) { btn.classList.add('off'); } btn.title = colorData.name || `rgb(${colorData.rgb.join(',')})`; btn.addEventListener('click', () => { btn.classList.toggle('off'); btn.dataset.on = btn.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); }); ctn.appendChild(btn); if (colorData.name) { const lbl = document.createElement('div'); lbl.className = 'color-name'; lbl.textContent = colorData.name; ctn.appendChild(lbl); } container.appendChild(ctn); };
     const createAddedColorItem = (colorData, startOn = true) => { if (isColorAlreadyAdded(colorData.rgb)) return; const item = document.createElement('div'); item.className = 'added-color-item'; item.dataset.rgb = JSON.stringify(colorData.rgb); item.dataset.on = startOn.toString(); if (!startOn) item.classList.add('off'); const swatch = document.createElement('div'); swatch.className = 'added-color-swatch'; swatch.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`; swatch.addEventListener('click', () => { item.classList.toggle('off'); item.dataset.on = item.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); }); const info = document.createElement('div'); info.className = 'added-color-info'; info.textContent = colorData.name || `(${colorData.rgb.join(',')})`; const deleteBtn = document.createElement('button'); deleteBtn.className = 'delete-color-btn'; deleteBtn.textContent = '−'; deleteBtn.title = '이 색상 삭제'; deleteBtn.onclick = () => { item.remove(); updatePaletteStatus(); triggerConversion(); }; item.appendChild(swatch); item.appendChild(info); item.appendChild(deleteBtn); elements.addedColorsContainer.appendChild(item); };
     const createMasterToggleButton = (targetId, container) => { const btn = document.createElement('button'); btn.className = 'toggle-all toggle-all-palette'; btn.dataset.target = targetId; btn.title = '전체 선택/해제'; btn.textContent = 'A'; container.prepend(btn); };
-
-    // [v2.6 수정] 채도 버그 수정
-    const preprocessImageData = (sourceImageData) => {
-        const sat = parseFloat(elements.saturationSlider.value) / 100.0, bri = parseInt(elements.brightnessSlider.value), con = parseFloat(elements.contrastSlider.value);
-        const factor = (259 * (con + 255)) / (255 * (259 - con));
-        const data = new Uint8ClampedArray(sourceImageData.data);
-        const clamp = (value) => Math.max(0, Math.min(255, value));
-        for (let i = 0; i < data.length; i += 4) {
-            let r = data[i], g = data[i + 1], b = data[i + 2];
-            if (bri !== 0) { r = clamp(r + bri); g = clamp(g + bri); b = clamp(b + bri); }
-            if (con !== 0) { r = clamp(factor * (r - 128) + 128); g = clamp(factor * (g - 128) + 128); b = clamp(factor * (b - 128) + 128); }
-            if (sat !== 1.0) { const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = clamp(gray + sat * (r - gray)); g = clamp(gray + sat * (g - gray)); b = clamp(gray + sat * (b - gray)); }
-            data[i] = r; data[i + 1] = g; data[i + 2] = b;
-        }
-        return new ImageData(data, sourceImageData.width, sourceImageData.height);
-    };
-
+    const preprocessImageData = (sourceImageData) => { const sat = parseFloat(elements.saturationSlider.value) / 100.0, bri = parseInt(elements.brightnessSlider.value), con = parseFloat(elements.contrastSlider.value); const factor = (259 * (con + 255)) / (255 * (259 - con)); const data = new Uint8ClampedArray(sourceImageData.data); const clamp = (value) => Math.max(0, Math.min(255, value)); for (let i = 0; i < data.length; i += 4) { let r = data[i], g = data[i + 1], b = data[i + 2]; if (bri !== 0) { r = clamp(r + bri); g = clamp(g + bri); b = clamp(b + bri); } if (con !== 0) { r = clamp(factor * (r - 128) + 128); g = clamp(factor * (g - 128) + 128); b = clamp(factor * (b - 128) + 128); } if (sat !== 1.0) { const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = clamp(gray + sat * (r - gray)); g = clamp(gray + sat * (g - gray)); b = clamp(gray + sat * (b - gray)); } data[i] = r; data[i + 1] = g; data[i + 2] = b; } return new ImageData(data, sourceImageData.width, sourceImageData.height); };
+    
     const applyConversion = async (imageDataToProcess, activePalette, options) => {
         if (!imageDataToProcess) return; state.isConverting = true; showLoading(true); const activePaletteOklab = state.highQualityMode ? activePalette.map(c => ColorConverter.rgbToOklab(c)) : null; const preprocessed = preprocessImageData(imageDataToProcess); const { width, height } = preprocessed; let finalPixelData;
-        if (activePalette.length === 0) { const tempCanvas = document.createElement('canvas'); tempCanvas.width = width; tempCanvas.height = height; const tempCtx = tempCanvas.getContext('2d'); tempCtx.fillStyle = 'black'; tempCtx.fillRect(0, 0, width, height); finalPixelData = tempCtx.getImageData(0, 0, width, height); } else { const newData = new ImageData(width, height); const ditherData = new Float32Array(preprocessed.data); const ditherStr = options.dithering / 100.0; const algorithm = options.algorithm; for (let y = 0; y < height; y++) { if (y % 10 === 0) { await new Promise(r => setTimeout(r, 0)); if (!state.isConverting) { showLoading(false); return; } } for (let x = 0; x < width; x++) { const i = (y * width + x) * 4; if (ditherData[i + 3] === 0) { newData.data[i + 3] = 0; continue; } const [oldR, oldG, oldB] = [ditherData[i], ditherData[i + 1], ditherData[i + 2]]; const { color: newRgb } = findClosestColor(oldR, oldG, oldB, activePalette, activePaletteOklab); [newData.data[i], newData.data[i+1], newData.data[i+2], newData.data[i+3]] = [...newRgb, ditherData[i+3]]; if (ditherStr > 0 && algorithm !== 'none') { const errR = (oldR - newRgb[0]) * ditherStr; const errG = (oldG - newRgb[1]) * ditherStr; const errB = (oldB - newRgb[2]) * ditherStr; switch(algorithm) { case 'floyd': if (x < width - 1) { ditherData[i + 4] += errR * 7/16; ditherData[i + 5] += errG * 7/16; ditherData[i + 6] += errB * 7/16; } if (y < height - 1) { if (x > 0) { ditherData[i + width*4 - 4] += errR * 3/16; ditherData[i + width*4 - 3] += errG * 3/16; ditherData[i + width*4 - 2] += errB * 3/16; } ditherData[i + width*4] += errR * 5/16; ditherData[i + width*4 + 1] += errG * 5/16; ditherData[i + width*4 + 2] += errB * 5/16; if (x < width - 1) { ditherData[i + width*4 + 4] += errR * 1/16; ditherData[i + width*4 + 5] += errG * 1/16; ditherData[i + width*4 + 6] += errB * 1/16; } } break; case 'sierra': if (x < width - 1) { ditherData[i + 4] += errR * 2/4; ditherData[i + 5] += errG * 2/4; ditherData[i + 6] += errB * 2/4; } if (y < height - 1) { if (x > 0) { ditherData[i + width*4 - 4] += errR * 1/4; ditherData[i + width*4 - 3] += errG * 1/4; ditherData[i + width*4 - 2] += errB * 1/4; } ditherData[i + width*4] += errR * 1/4; ditherData[i + width*4 + 1] += errG * 1/4; ditherData[i + width*4 + 2] += errB * 1/4; } break; case 'atkinson': const factor = 1/8; if (x < width - 1) { ditherData[i + 4] += errR * factor; ditherData[i + 5] += errG * factor; ditherData[i + 6] += errB * factor; } if (x < width - 2) { ditherData[i + 8] += errR * factor; ditherData[i + 9] += errG * factor; ditherData[i + 10] += errB * factor; } if (y < height - 1) { if (x > 0) { ditherData[i + width*4 - 4] += errR * factor; ditherData[i + width*4 - 3] += errG * factor; ditherData[i + width*4 - 2] += errB * factor; } ditherData[i + width*4] += errR * factor; ditherData[i + width*4 + 1] += errG * factor; ditherData[i + width*4 + 2] += errB * factor; if (x < width - 1) { ditherData[i + width*4 + 4] += errR * factor; ditherData[i + width*4 + 5] += errG * factor; ditherData[i + width*4 + 6] += errB * factor; } } if (y < height - 2) { ditherData[i + width*8] += errR * factor; ditherData[i + width*8 + 1] += errG * factor; ditherData[i + width*8 + 2] += errB * factor; } break; } } } } finalPixelData = newData; }
+        if (activePalette.length === 0) { const tempCanvas = document.createElement('canvas'); tempCanvas.width = width; tempCanvas.height = height; const tempCtx = tempCanvas.getContext('2d'); tempCtx.fillStyle = 'black'; tempCtx.fillRect(0, 0, width, height); finalPixelData = tempCtx.getImageData(0, 0, width, height); } else { const newData = new ImageData(width, height); const ditherData = new Float32Array(preprocessed.data); const ditherStr = options.dithering / 100.0; const algorithm = options.algorithm; for (let y = 0; y < height; y++) { if (y % 10 === 0) { await new Promise(r => setTimeout(r, 0)); if (!state.isConverting) { showLoading(false); return; } } for (let x = 0; x < width; x++) { const i = (y * width + x) * 4; if (ditherData[i + 3] === 0) { newData.data[i + 3] = 0; continue; } const [oldR, oldG, oldB] = [ditherData[i], ditherData[i + 1], ditherData[i + 2]];
+            // [v2.10 수정] findClosestColor에 hueThreshold 옵션 전달
+            const { color: newRgb } = findClosestColor(oldR, oldG, oldB, activePalette, activePaletteOklab, options.hueThreshold);
+            [newData.data[i], newData.data[i+1], newData.data[i+2], newData.data[i+3]] = [...newRgb, ditherData[i+3]]; if (ditherStr > 0 && algorithm !== 'none') { const errR = (oldR - newRgb[0]) * ditherStr; const errG = (oldG - newRgb[1]) * ditherStr; const errB = (oldB - newRgb[2]) * ditherStr; switch(algorithm) { case 'floyd': if (x < width - 1) { ditherData[i + 4] += errR * 7/16; ditherData[i + 5] += errG * 7/16; ditherData[i + 6] += errB * 7/16; } if (y < height - 1) { if (x > 0) { ditherData[i + width*4 - 4] += errR * 3/16; ditherData[i + width*4 - 3] += errG * 3/16; ditherData[i + width*4 - 2] += errB * 3/16; } ditherData[i + width*4] += errR * 5/16; ditherData[i + width*4 + 1] += errG * 5/16; ditherData[i + width*4 + 2] += errB * 5/16; if (x < width - 1) { ditherData[i + width*4 + 4] += errR * 1/16; ditherData[i + width*4 + 5] += errG * 1/16; ditherData[i + width*4 + 6] += errB * 1/16; } } break; case 'sierra': if (x < width - 1) { ditherData[i + 4] += errR * 2/4; ditherData[i + 5] += errG * 2/4; ditherData[i + 6] += errB * 2/4; } if (y < height - 1) { if (x > 0) { ditherData[i + width*4 - 4] += errR * 1/4; ditherData[i + width*4 - 3] += errG * 1/4; ditherData[i + width*4 - 2] += errB * 1/4; } ditherData[i + width*4] += errR * 1/4; ditherData[i + width*4 + 1] += errG * 1/4; ditherData[i + width*4 + 2] += errB * 1/4; } break; case 'atkinson': const factor = 1/8; if (x < width - 1) { ditherData[i + 4] += errR * factor; ditherData[i + 5] += errG * factor; ditherData[i + 6] += errB * factor; } if (x < width - 2) { ditherData[i + 8] += errR * factor; ditherData[i + 9] += errG * factor; ditherData[i + 10] += errB * factor; } if (y < height - 1) { if (x > 0) { ditherData[i + width*4 - 4] += errR * factor; ditherData[i + width*4 - 3] += errG * factor; ditherData[i + width*4 - 2] += errB * factor; } ditherData[i + width*4] += errR * factor; ditherData[i + width*4 + 1] += errG * factor; ditherData[i + width*4 + 2] += errB * factor; if (x < width - 1) { ditherData[i + width*4 + 4] += errR * factor; ditherData[i + width*4 + 5] += errG * factor; ditherData[i + width*4 + 6] += errB * factor; } } if (y < height - 2) { ditherData[i + width*8] += errR * factor; ditherData[i + width*8 + 1] += errG * factor; ditherData[i + width*8 + 2] += errB * factor; } break; } } } } finalPixelData = newData; }
         state.finalDownloadableData = finalPixelData; const tempCanvas = document.createElement('canvas'); tempCanvas.width = finalPixelData.width; tempCanvas.height = finalPixelData.height; tempCanvas.getContext('2d').putImageData(finalPixelData, 0, 0); const displayWidth = (state.appMode === 'image' && state.originalImageObject) ? state.originalImageObject.width : finalPixelData.width; const displayHeight = (state.appMode === 'image' && state.originalImageObject) ? state.originalImageObject.height : finalPixelData.height; elements.convertedCanvas.width = displayWidth; elements.convertedCanvas.height = displayHeight; cCtx.imageSmoothingEnabled = false; cCtx.drawImage(tempCanvas, 0, 0, displayWidth, displayHeight); state.isConverting = false; elements.downloadBtn.disabled = false; updateTransform(); showLoading(false);
     };
 
     const analyzeColors = (imageData) => { const counts = new Map(); let totalPixels = 0; for (let i = 0; i < imageData.data.length; i += 4) { if (imageData.data[i + 3] > 128) { const key = `${imageData.data[i]},${imageData.data[i+1]},${imageData.data[i+2]}`; counts.set(key, (counts.get(key) || 0) + 1); totalPixels++; } } state.colorAnalysis = { counts, totalPixels }; updateColorRecommendations(); };
-    const processImage = () => { if (!state.originalImageObject) return; let newWidth, newHeight; if (state.scaleMode === 'ratio') { const scaleFactor = parseFloat(elements.scaleSlider.value) / CONFIG.SCALE_FACTOR; newWidth = Math.max(1, Math.round(state.originalImageObject.width / scaleFactor)); newHeight = Math.max(1, Math.round(state.originalImageObject.height / scaleFactor)); } else { newWidth = Math.max(1, parseInt(elements.scaleWidth.value, 10) || state.originalImageObject.width); newHeight = Math.max(1, parseInt(elements.scaleHeight.value, 10) || state.originalImageObject.height); } elements.convertedDimensions.textContent = `${newWidth} x ${newHeight} px`; const tempCanvas = document.createElement('canvas'); tempCanvas.width = newWidth; tempCanvas.height = newHeight; const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true }); tempCtx.imageSmoothingEnabled = !state.edgeCleanup; tempCtx.drawImage(state.originalImageObject, 0, 0, newWidth, newHeight); state.originalImageData = tempCtx.getImageData(0, 0, newWidth, newHeight); analyzeColors(state.originalImageData); let paletteSelectors = []; if (state.currentMode === 'geopixels') { paletteSelectors.push('#geopixels-controls #geoPixelColors .color-button[data-on="true"]', '#geopixels-controls .added-color-item[data-on="true"]'); if (state.useWplaceInGeoMode) { paletteSelectors.push('#geopixels-controls #wplace-palette-in-geo .color-button[data-on="true"]'); } } else { paletteSelectors.push('#wplace-controls .color-button[data-on="true"]'); } const palette = Array.from(document.querySelectorAll(paletteSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb)); const opts = { dithering: parseFloat(elements.ditheringSlider.value), algorithm: elements.ditheringAlgorithmSelect.value }; applyConversion(state.originalImageData, palette, opts); };
-    const processText = () => { const { content, fontFamily, fontSize, isBold, isItalic, letterSpacing, padding, textColor, bgColor, strokeColor, strokeWidth } = state.textState; if (!content) { elements.convertedCanvasContainer.classList.remove('has-image'); return; } const tempCtx = document.createElement('canvas').getContext('2d'); let fontStyle = ''; if (isItalic) fontStyle += 'italic '; if (isBold) fontStyle += 'bold '; tempCtx.font = `${fontStyle} ${fontSize * 2}px "${fontFamily}"`; tempCtx.letterSpacing = `${letterSpacing}px`; const lines = content.split('\n'); let maxWidth = 0; let totalHeight = 0; const lineMetrics = lines.map(line => { const metrics = tempCtx.measureText(line || ' '); maxWidth = Math.max(maxWidth, metrics.width); totalHeight += (metrics.actualBoundingBoxAscent || fontSize * 2) + (metrics.actualBoundingBoxDescent || 0); return metrics; }); const canvasWidth = Math.ceil(maxWidth + padding * 2); const canvasHeight = Math.ceil(totalHeight + padding * 2); elements.convertedDimensions.textContent = `${canvasWidth} x ${canvasHeight} px`; const textCanvas = document.createElement('canvas'); textCanvas.width = canvasWidth; textCanvas.height = canvasHeight; const ctx = textCanvas.getContext('2d', { willReadFrequently: true }); ctx.fillStyle = `rgb(${bgColor})`; ctx.fillRect(0, 0, canvasWidth, canvasHeight); ctx.font = tempCtx.font; ctx.letterSpacing = tempCtx.letterSpacing; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; let currentY = padding; lines.forEach((line, index) => { if (strokeWidth > 0) { ctx.strokeStyle = `rgb(${strokeColor})`; ctx.lineWidth = strokeWidth; ctx.strokeText(line, padding, currentY); } ctx.fillStyle = `rgb(${textColor})`; ctx.fillText(line, padding, currentY); currentY += (lineMetrics[index].actualBoundingBoxAscent || fontSize * 2) + (lineMetrics[index].actualBoundingBoxDescent || 0); }); const textImageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight); state.originalImageData = textImageData; state.originalImageObject = textCanvas; analyzeColors(textImageData); let paletteSelectors = []; if (state.currentMode === 'geopixels') { paletteSelectors.push('#geopixels-controls #geoPixelColors .color-button[data-on="true"]', '#geopixels-controls .added-color-item[data-on="true"]'); if (state.useWplaceInGeoMode) { paletteSelectors.push('#geopixels-controls #wplace-palette-in-geo .color-button[data-on="true"]'); } } else { paletteSelectors.push('#wplace-controls .color-button[data-on="true"]'); } const palette = Array.from(document.querySelectorAll(paletteSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb)); const opts = { dithering: parseFloat(elements.ditheringSlider.value), algorithm: elements.ditheringAlgorithmSelect.value }; elements.convertedCanvasContainer.classList.add('has-image'); applyConversion(state.originalImageData, palette, opts); };
+    const processImage = () => { if (!state.originalImageObject) return; let newWidth, newHeight; if (state.scaleMode === 'ratio') { const scaleFactor = parseFloat(elements.scaleSlider.value) / CONFIG.SCALE_FACTOR; newWidth = Math.max(1, Math.round(state.originalImageObject.width / scaleFactor)); newHeight = Math.max(1, Math.round(state.originalImageObject.height / scaleFactor)); } else { newWidth = Math.max(1, parseInt(elements.scaleWidth.value, 10) || state.originalImageObject.width); newHeight = Math.max(1, parseInt(elements.scaleHeight.value, 10) || state.originalImageObject.height); } elements.convertedDimensions.textContent = `${newWidth} x ${newHeight} px`; const tempCanvas = document.createElement('canvas'); tempCanvas.width = newWidth; tempCanvas.height = newHeight; const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true }); tempCtx.imageSmoothingEnabled = !state.edgeCleanup; tempCtx.drawImage(state.originalImageObject, 0, 0, newWidth, newHeight); state.originalImageData = tempCtx.getImageData(0, 0, newWidth, newHeight); analyzeColors(state.originalImageData); let paletteSelectors = []; if (state.currentMode === 'geopixels') { paletteSelectors.push('#geopixels-controls #geoPixelColors .color-button[data-on="true"]', '#geopixels-controls .added-color-item[data-on="true"]'); if (state.useWplaceInGeoMode) { paletteSelectors.push('#geopixels-controls #wplace-palette-in-geo .color-button[data-on="true"]'); } } else { paletteSelectors.push('#wplace-controls .color-button[data-on="true"]'); } const palette = Array.from(document.querySelectorAll(paletteSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb));
+        // [v2.10 수정] 옵션 객체에 hueThreshold 추가
+        const opts = { dithering: parseFloat(elements.ditheringSlider.value), algorithm: elements.ditheringAlgorithmSelect.value, hueThreshold: parseFloat(elements.hueThresholdSlider.value) };
+        applyConversion(state.originalImageData, palette, opts);
+    };
+    const processText = () => { const { content, fontFamily, fontSize, isBold, isItalic, letterSpacing, padding, textColor, bgColor, strokeColor, strokeWidth } = state.textState; if (!content) { elements.convertedCanvasContainer.classList.remove('has-image'); return; } const tempCtx = document.createElement('canvas').getContext('2d'); let fontStyle = ''; if (isItalic) fontStyle += 'italic '; if (isBold) fontStyle += 'bold '; tempCtx.font = `${fontStyle} ${fontSize * 2}px "${fontFamily}"`; tempCtx.letterSpacing = `${letterSpacing}px`; const lines = content.split('\n'); let maxWidth = 0; let totalHeight = 0; const lineMetrics = lines.map(line => { const metrics = tempCtx.measureText(line || ' '); maxWidth = Math.max(maxWidth, metrics.width); totalHeight += (metrics.actualBoundingBoxAscent || fontSize * 2) + (metrics.actualBoundingBoxDescent || 0); return metrics; }); const canvasWidth = Math.ceil(maxWidth + padding * 2); const canvasHeight = Math.ceil(totalHeight + padding * 2); elements.convertedDimensions.textContent = `${canvasWidth} x ${canvasHeight} px`; const textCanvas = document.createElement('canvas'); textCanvas.width = canvasWidth; textCanvas.height = canvasHeight; const ctx = textCanvas.getContext('2d', { willReadFrequently: true }); ctx.fillStyle = `rgb(${bgColor})`; ctx.fillRect(0, 0, canvasWidth, canvasHeight); ctx.font = tempCtx.font; ctx.letterSpacing = tempCtx.letterSpacing; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; let currentY = padding; lines.forEach((line, index) => { if (strokeWidth > 0) { ctx.strokeStyle = `rgb(${strokeColor})`; ctx.lineWidth = strokeWidth; ctx.strokeText(line, padding, currentY); } ctx.fillStyle = `rgb(${textColor})`; ctx.fillText(line, padding, currentY); currentY += (lineMetrics[index].actualBoundingBoxAscent || fontSize * 2) + (lineMetrics[index].actualBoundingBoxDescent || 0); }); const textImageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight); state.originalImageData = textImageData; state.originalImageObject = textCanvas; analyzeColors(textImageData); let paletteSelectors = []; if (state.currentMode === 'geopixels') { paletteSelectors.push('#geopixels-controls #geoPixelColors .color-button[data-on="true"]', '#geopixels-controls .added-color-item[data-on="true"]'); if (state.useWplaceInGeoMode) { paletteSelectors.push('#geopixels-controls #wplace-palette-in-geo .color-button[data-on="true"]'); } } else { paletteSelectors.push('#wplace-controls .color-button[data-on="true"]'); } const palette = Array.from(document.querySelectorAll(paletteSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb));
+        // [v2.10 수정] 옵션 객체에 hueThreshold 추가 (텍스트 모드에서도)
+        const opts = { dithering: parseFloat(elements.ditheringSlider.value), algorithm: elements.ditheringAlgorithmSelect.value, hueThreshold: parseFloat(elements.hueThresholdSlider.value) };
+        elements.convertedCanvasContainer.classList.add('has-image'); applyConversion(state.originalImageData, palette, opts);
+    };
 
     const triggerConversion = () => { if (state.isConverting) { state.isConverting = false; } clearTimeout(state.processId); state.processId = setTimeout(() => { if (state.appMode === 'image') { if (state.originalImageObject) processImage(); } else { processText(); } }, CONFIG.DEBOUNCE_DELAY); };
-    
-    // [v2.6 수정] handleFile 함수 전체 교체
-    const handleFile = async (file) => {
-        if (!file || !file.type.startsWith('image/')) return;
-        
-        elements.metadataInfoDisplay.classList.remove('visible'); // 이전 메시지 초기화
-        try {
-            const settings = await PNGMetadata.extract(file);
-            if (settings) {
-                if (settings.type === 'colors') {
-                    if (confirm("이미지에서 '추가한 색상' 목록을 발견했습니다. 현재 목록을 덮어쓰고 불러오시겠습니까?")) {
-                        applySettingsData(settings);
-                    }
-                } else if (settings.type === 'marker') {
-                    elements.metadataInfoDisplay.textContent = "해당 이미지는 NoaDot을 통해 변환된 기록이 있습니다.";
-                    elements.metadataInfoDisplay.classList.add('visible');
-                }
-            }
-        } catch (error) { console.error("메타데이터 읽기 오류:", error); }
-        
-        state.originalFileName = file.name;
-        const img = new Image();
-        img.onload = () => {
-            state.originalImageObject = img; state.aspectRatio = img.height / img.width; elements.scaleWidth.value = img.width; elements.scaleHeight.value = img.height; elements.pixelScaleSlider.max = img.width > 1 ? img.width - 1 : 1; elements.pixelScaleSlider.value = 0; elements.scaleControlsFieldset.disabled = false; elements.appContainer.classList.add('image-loaded'); elements.originalDimensions.textContent = `${img.width} x ${img.height} px`; elements.convertedCanvasContainer.classList.add('has-image'); state.panX = 0; state.panY = 0; updateZoom(100); triggerConversion();
-        };
-        img.src = URL.createObjectURL(file);
-    };
-    
+    const handleFile = async (file) => { if (!file || !file.type.startsWith('image/')) return; elements.metadataInfoDisplay.classList.remove('visible'); try { const settings = await PNGMetadata.extract(file); if (settings) { if (settings.type === 'colors') { if (confirm("이미지에서 '추가한 색상' 목록을 발견했습니다. 현재 목록을 덮어쓰고 불러오시겠습니까?")) { applySettingsData(settings); } } else if (settings.type === 'marker') { elements.metadataInfoDisplay.textContent = "해당 이미지는 NoaDot을 통해 변환된 기록이 있습니다."; elements.metadataInfoDisplay.classList.add('visible'); } } } catch (error) { console.error("메타데이터 읽기 오류:", error); } state.originalFileName = file.name; const img = new Image(); img.onload = () => { state.originalImageObject = img; state.aspectRatio = img.height / img.width; elements.scaleWidth.value = img.width; elements.scaleHeight.value = img.height; elements.pixelScaleSlider.max = img.width > 1 ? img.width - 1 : 1; elements.pixelScaleSlider.value = 0; elements.scaleControlsFieldset.disabled = false; elements.appContainer.classList.add('image-loaded'); elements.originalDimensions.textContent = `${img.width} x ${img.height} px`; elements.convertedCanvasContainer.classList.add('has-image'); state.panX = 0; state.panY = 0; updateZoom(100); triggerConversion(); }; img.src = URL.createObjectURL(file); };
     const resetAll = () => { state.originalImageObject = null; state.originalImageData = null; state.textState.content = ''; elements.editorTextarea.value = ''; elements.appContainer.classList.remove('image-loaded'); elements.convertedCanvasContainer.classList.remove('has-image'); cCtx.clearRect(0,0, elements.convertedCanvas.width, elements.convertedCanvas.height); document.querySelectorAll('.reset-btn').forEach(btn => btn.click()); elements.scaleControlsFieldset.disabled = true; elements.scaleWidth.value = ''; elements.scaleHeight.value = ''; elements.metadataInfoDisplay.classList.remove('visible'); };
     const setAppMode = (mode) => { if (state.appMode === mode) return; if (state.appMode === 'image' && state.originalImageObject && mode === 'text') { if (!confirm("모드를 전환하시면 업로드한 이미지 내용은 초기화됩니다. 계속하시겠습니까?")) { elements.imageModeBtn.checked = true; return; } } else if (state.appMode === 'text' && state.textState.content && mode === 'image') { if (!confirm("모드를 전환하시면 작성하신 텍스트 내용은 초기화됩니다. 계속하시겠습니까?")) { elements.textModeBtn.checked = true; return; } } resetAll(); state.appMode = mode; elements.appContainer.classList.toggle('text-mode', mode === 'text'); elements.imageControls.style.display = mode === 'image' ? 'grid' : 'none'; elements.textControls.style.display = mode === 'text' ? 'block' : 'none'; elements.recommendationSection.style.display = 'block'; const placeholderText = elements.placeholderUi.querySelector('p'); if (mode === 'image') { placeholderText.textContent = "창 클릭 혹은 이미지를 화면으로 드래그"; elements.convertedDimensionsLabel.textContent = '변환 크기: '; } else { placeholderText.textContent = "왼쪽에서 텍스트를 입력하면 여기에 미리보기가 표시됩니다."; elements.convertedDimensionsLabel.textContent = '생성 크기: '; triggerConversion(); } };
     const setPaletteMode = (mode) => { state.currentMode = mode; if (mode === 'geopixels') { elements.geopixelsControls.style.display = 'block'; elements.wplaceControls.style.display = 'none'; } else { elements.geopixelsControls.style.display = 'none'; elements.wplaceControls.style.display = 'block'; document.querySelectorAll('#wplaceFreeColors .color-button.off').forEach(btn => btn.click()); document.querySelectorAll('#wplacePaidColors .color-button[data-on="true"]').forEach(btn => btn.click()); } updatePaletteStatus(); triggerConversion(); };
@@ -216,7 +261,15 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.imageUpload.addEventListener('change', e => { if (e.target.files.length > 0) handleFile(e.target.files[0]); });
         
         ['saturation', 'brightness', 'contrast', 'dithering'].forEach(t => { const s = elements[`${t}Slider`], v = elements[`${t}Value`]; if(s && v) { s.addEventListener('input', () => { v.textContent = s.value; triggerConversion(); }); } });
-        document.querySelectorAll('.reset-btn').forEach(btn => { const targetId = btn.dataset.target; if (elements[targetId]) { btn.addEventListener('click', () => { const slider = elements[targetId]; const valueDisplay = elements[`${targetId.replace('Slider', '')}Value`]; const defaultValue = CONFIG.DEFAULTS[targetId]; slider.value = defaultValue; valueDisplay.textContent = defaultValue; triggerConversion(); }); } });
+        
+        // [v2.10 수정] hueThresholdSlider 이벤트 리스너 추가
+        elements.hueThresholdSlider.addEventListener('input', () => {
+            elements.hueThresholdValue.textContent = elements.hueThresholdSlider.value;
+            state.hueThreshold = elements.hueThresholdSlider.value;
+            triggerConversion();
+        });
+
+        document.querySelectorAll('.reset-btn').forEach(btn => { const targetId = btn.dataset.target; if (elements[targetId]) { btn.addEventListener('click', () => { const slider = elements[targetId]; const valueDisplay = elements[`${targetId.replace('Slider', '')}Value`]; const defaultValue = CONFIG.DEFAULTS[targetId]; slider.value = defaultValue; valueDisplay.textContent = defaultValue; if (targetId === 'hueThresholdSlider') state.hueThreshold = defaultValue; triggerConversion(); }); } });
         elements.scaleModeSelect.addEventListener('change', e => { const newMode = e.target.value; if (newMode === state.scaleMode) return; if (state.originalImageObject) { if (newMode === 'pixel') switchToPixelMode(); else switchToRatioMode(); } state.scaleMode = newMode; updateScaleUIVisibility(); triggerConversion(); });
         elements.scaleSlider.addEventListener('input', () => { elements.scaleValue.textContent = (elements.scaleSlider.value / CONFIG.SCALE_FACTOR).toFixed(2); triggerConversion(); });
         let isUpdatingScale = false;
@@ -245,31 +298,9 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.resetAddedColorsBtn.addEventListener('click', resetAddedColors);
         elements.importColorsBtn.addEventListener('click', () => { const code = elements.colorCodeInput.value.trim(); if (code === '') { alert('적용할 코드를 입력해주세요.'); return; } try { const colors = JSON.parse(atob(code)); if (!Array.isArray(colors)) throw new Error(); let addedCount = 0; colors.forEach(rgb => { if (Array.isArray(rgb) && rgb.length === 3 && !isColorAlreadyAdded(rgb)) { createAddedColorItem({ rgb }); addedCount++; } }); if (addedCount > 0) { elements.colorCodeInput.value = ''; updatePaletteStatus(); triggerConversion(); } else { alert("새롭게 추가된 색상이 없습니다. (중복 제외)"); } } catch (err) { alert('유효하지 않은 코드입니다. 다시 확인해주세요.'); } });
 
-        document.querySelectorAll('.toggle-all').forEach(btn => {
-            btn.addEventListener('click', e => {
-                const targetIds = e.currentTarget.dataset.target.split(','); let allItems = []; targetIds.forEach(id => { const container = document.getElementById(id); if (container) { allItems.push(...container.querySelectorAll('.color-button, .added-color-item')); } }); if (allItems.length === 0) return; const onItemsCount = allItems.filter(b => b.dataset.on === 'true').length; const turnOn = onItemsCount < allItems.length; allItems.forEach(item => { const isOn = item.dataset.on === 'true'; if ((turnOn && !isOn) || (!turnOn && isOn)) { const clickable = item.classList.contains('added-color-item') ? item.querySelector('.added-color-swatch') : item; clickable.click(); } });
-            });
-        });
+        document.querySelectorAll('.toggle-all').forEach(btn => { btn.addEventListener('click', e => { const targetIds = e.currentTarget.dataset.target.split(','); let allItems = []; targetIds.forEach(id => { const container = document.getElementById(id); if (container) { allItems.push(...container.querySelectorAll('.color-button, .added-color-item')); } }); if (allItems.length === 0) return; const onItemsCount = allItems.filter(b => b.dataset.on === 'true').length; const turnOn = onItemsCount < allItems.length; allItems.forEach(item => { const isOn = item.dataset.on === 'true'; if ((turnOn && !isOn) || (!turnOn && isOn)) { const clickable = item.classList.contains('added-color-item') ? item.querySelector('.added-color-swatch') : item; clickable.click(); } }); }); });
         
-        // [v2.6 수정] 다운로드 버튼 로직 교체
-        elements.downloadBtn.addEventListener('click', async () => {
-            if (!state.finalDownloadableData) { alert('다운로드할 이미지가 없습니다.'); return; }
-            showLoading(true);
-            try {
-                const tempCanvas = document.createElement('canvas'); tempCanvas.width = state.finalDownloadableData.width; tempCanvas.height = state.finalDownloadableData.height; tempCanvas.getContext('2d').putImageData(state.finalDownloadableData, 0, 0);
-                const blob = await new Promise(resolve => tempCanvas.toBlob(resolve, 'image/png'));
-                const arrayBuffer = await blob.arrayBuffer();
-                const settingsData = gatherSettingsData();
-                const newPngBuffer = PNGMetadata.embed(arrayBuffer, settingsData);
-                const newBlob = new Blob([newPngBuffer], { type: 'image/png' });
-                const url = URL.createObjectURL(newBlob);
-                const now = new Date(); const ts = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
-                const baseName = state.originalFileName.substring(0, state.originalFileName.lastIndexOf('.')) || state.originalFileName;
-                const nameSuffix = state.currentMode === 'geopixels' ? '_colors.png' : '_converted.png';
-                const newName = `${baseName}_NoaDot_${ts}${nameSuffix}`;
-                const link = document.createElement('a'); link.download = newName; link.href = url; link.click(); URL.revokeObjectURL(url);
-            } catch (error) { console.error("다운로드 중 오류 발생:", error); alert("메타데이터를 포함하여 다운로드하는 중 오류가 발생했습니다."); } finally { showLoading(false); }
-        });
+        elements.downloadBtn.addEventListener('click', async () => { if (!state.finalDownloadableData) { alert('다운로드할 이미지가 없습니다.'); return; } showLoading(true); try { const tempCanvas = document.createElement('canvas'); tempCanvas.width = state.finalDownloadableData.width; tempCanvas.height = state.finalDownloadableData.height; tempCanvas.getContext('2d').putImageData(state.finalDownloadableData, 0, 0); const blob = await new Promise(resolve => tempCanvas.toBlob(resolve, 'image/png')); const arrayBuffer = await blob.arrayBuffer(); const settingsData = gatherSettingsData(); const newPngBuffer = PNGMetadata.embed(arrayBuffer, settingsData); const newBlob = new Blob([newPngBuffer], { type: 'image/png' }); const url = URL.createObjectURL(newBlob); const now = new Date(); const ts = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`; const baseName = state.originalFileName.substring(0, state.originalFileName.lastIndexOf('.')) || state.originalFileName; const nameSuffix = state.currentMode === 'geopixels' ? '_colors.png' : '_converted.png'; const newName = `${baseName}_NoaDot_${ts}${nameSuffix}`; const link = document.createElement('a'); link.download = newName; link.href = url; link.click(); URL.revokeObjectURL(url); } catch (error) { console.error("다운로드 중 오류 발생:", error); alert("메타데이터를 포함하여 다운로드하는 중 오류가 발생했습니다."); } finally { showLoading(false); } });
     };
 
     const initialize = () => {
