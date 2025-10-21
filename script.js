@@ -128,7 +128,42 @@ document.addEventListener('DOMContentLoaded', () => {
     const isColorAlreadyAdded = (rgbArray) => { const rgbStr = JSON.stringify(rgbArray); const existingItems = elements.addedColorsContainer.querySelectorAll('.added-color-item'); for (const item of existingItems) { if (item.dataset.rgb === rgbStr) return true; } return false; };
     const resetAddedColors = () => { if (!elements.addedColorsContainer.querySelector('.added-color-item')) { alert('초기화할 색상이 없습니다.'); return; } if (confirm('정말로 추가한 모든 색상을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) { elements.addedColorsContainer.innerHTML = ''; updatePaletteStatus(); triggerConversion(); } };
     const handleFontUpload = (file) => { if (!file) return; showLoading(true); const reader = new FileReader(); reader.onload = async (e) => { const fontName = file.name.split('.').slice(0, -1).join('.'); try { const fontFace = new FontFace(fontName, e.target.result); await fontFace.load(); document.fonts.add(fontFace); const option = new Option(fontName, fontName); elements.fontSelect.add(option); option.selected = true; state.textState.fontFamily = fontName; triggerConversion(); } catch (err) { console.error("Font loading failed:", err); alert("지원하지 않거나 손상된 폰트 파일입니다."); } finally { showLoading(false); } }; reader.onerror = () => { alert("폰트 파일을 읽는 데 실패했습니다."); showLoading(false); }; reader.readAsArrayBuffer(file); };
-    const populateColorSelects = () => { const selects = [elements.textColorSelect, elements.bgColorSelect, elements.strokeColorSelect]; selects.forEach(select => select.innerHTML = ''); const palettes = []; if (state.currentMode === 'geopixels') { palettes.push({ groupName: 'GeoPixels', data: geopixelsColors }); } else { palettes.push({ groupName: 'Wplace 무료', data: wplaceFreeColors }); palettes.push({ groupName: 'Wplace 유료', data: wplacePaidColors }); } selects.forEach(select => { palettes.forEach(palette => { const optgroup = document.createElement('optgroup'); optgroup.label = palette.groupName; palette.data.forEach(color => { if (!color.rgb) return; const option = document.createElement('option'); option.value = color.rgb.join(','); option.textContent = color.name || `rgb(${color.rgb.join(',')})`; option.style.backgroundColor = `rgb(${color.rgb.join(',')})`; option.style.color = getTextColorForBg(color.rgb); optgroup.appendChild(option); }); select.appendChild(optgroup); }); }); elements.textColorSelect.value = state.textState.textColor; elements.bgColorSelect.value = state.textState.bgColor; elements.strokeColorSelect.value = state.textState.strokeColor; };
+    const populateColorSelects = () => {
+        const selects = [elements.textColorSelect, elements.bgColorSelect, elements.strokeColorSelect];
+        selects.forEach(select => select.innerHTML = '');
+
+        const palettes = [];
+        if (state.currentMode === 'geopixels') {
+            // geopixelsColors 배열 (white/black 포함된 버전)을 사용하도록 수정
+            palettes.push({ groupName: 'GeoPixels', data: geopixelsColors });
+        } else {
+            // wplace 모드는 기존과 동일
+            palettes.push({ groupName: 'Wplace 무료', data: wplaceFreeColors });
+            palettes.push({ groupName: 'Wplace 유료', data: wplacePaidColors });
+        }
+
+        selects.forEach(select => {
+            palettes.forEach(palette => {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = palette.groupName;
+                palette.data.forEach(color => {
+                    if (!color.rgb) return; // null 값인 색상(transparent 등)은 건너뜀
+                    const option = document.createElement('option');
+                    option.value = color.rgb.join(',');
+                    option.textContent = color.name || `rgb(${color.rgb.join(',')})`;
+                    option.style.backgroundColor = `rgb(${color.rgb.join(',')})`;
+                    option.style.color = getTextColorForBg(color.rgb);
+                    optgroup.appendChild(option);
+                });
+                select.appendChild(optgroup);
+            });
+        });
+
+        // 현재 선택된 색상을 드롭다운에 반영
+        elements.textColorSelect.value = state.textState.textColor;
+        elements.bgColorSelect.value = state.textState.bgColor;
+        elements.strokeColorSelect.value = state.textState.strokeColor;
+    };
     const updateScaleUIVisibility = () => { const isRatio = state.scaleMode === 'ratio'; elements.ratioScaleControls.classList.toggle('hidden', !isRatio); elements.pixelScaleControls.classList.toggle('hidden', isRatio); };
     const switchToPixelMode = () => { if (!state.originalImageObject) return; const scaleFactor = parseFloat(elements.scaleSlider.value) / CONFIG.SCALE_FACTOR; const newWidth = Math.max(1, Math.round(state.originalImageObject.width / scaleFactor)); elements.scaleWidth.value = newWidth; elements.scaleHeight.value = Math.round(newWidth * state.aspectRatio); elements.pixelScaleSlider.value = state.originalImageObject.width - newWidth; };
     const switchToRatioMode = () => { if (!state.originalImageObject) return; const currentWidth = parseInt(elements.scaleWidth.value, 10); const ratio = state.originalImageObject.width / currentWidth; const newSliderValue = Math.round(ratio * CONFIG.SCALE_FACTOR); const clampedValue = Math.max(parseInt(elements.scaleSlider.min, 10), Math.min(parseInt(elements.scaleSlider.max, 10), newSliderValue)); elements.scaleSlider.value = clampedValue; elements.scaleValue.textContent = (clampedValue / CONFIG.SCALE_FACTOR).toFixed(2); };
