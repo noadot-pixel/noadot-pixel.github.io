@@ -52,7 +52,6 @@ h3 { display: inline-block; padding: 0; margin: 0; }
 .upload-icon { width: 64px; height: 64px; fill: #aaa; margin-bottom: 10px; }
 #convertedCanvasContainer.has-image #placeholder-ui { display: none; }
 
-#zoomLevelDisplay { position: absolute; top: 10px; left: 10px; background-color: rgba(0, 0, 0, 0.5); color: white; padding: 2px 8px; border-radius: 5px; font-size: 14px; z-index: 10; pointer-events: none; }
 #centerBtn { position: absolute; bottom: 10px; right: 10px; z-index: 10; padding: 5px 10px; cursor: pointer; display: none; }
 #convertedCanvasContainer.has-image #centerBtn { display: block; }
 
@@ -141,168 +140,42 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
 #text-controls .color-picker-group { flex-direction: row; justify-content: space-between; align-items: center; }
 #text-controls select { -webkit-appearance: none; -moz-appearance: none; appearance: none; padding: 8px; padding-right: 30px; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right .7em top 50%; background-size: .65em auto; }
 
-#loading-indicator {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 24px;
-    height: 24px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-top: 3px solid #fff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    display: none;
-    z-index: 11;
-}
-#loading-indicator.visible {
-    display: block;
-}
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+.button-group-horizontal { display: flex; gap: 10px; }
+.button-group-horizontal button { flex-grow: 1; }
+.reset-all-colors-btn { width: 100%; padding: 8px; margin-top: 15px; background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; border-radius: 4px; cursor: pointer; font-weight: bold; transition: background-color 0.2s; }
+.reset-all-colors-btn:hover { background-color: #f1b0b7; }
+.hidden { display: none !important; }
 
-.button-group-horizontal {
-    display: flex;
-    gap: 10px;
-}
-.button-group-horizontal button {
-    flex-grow: 1; /* 버튼이 공간을 균등하게 차지하도록 */
-}
-
-.reset-all-colors-btn {
-    width: 100%;
-    padding: 8px;
-    margin-top: 15px; /* 위쪽 요소와 간격 */
-    background-color: #f8d7da; /* 주의를 끄는 연한 붉은색 */
-    border: 1px solid #f5c6cb;
-    color: #721c24;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.2s;
-}
-.reset-all-colors-btn:hover {
-    background-color: #f1b0b7;
-}
-
-.hidden {
-    display: none !important;
-}
-
-/* 픽셀 조정 UI 그룹 내부의 여백 조절 */
-#pixel-scale-controls.scale-control-group {
-    gap: 12px;
-}
-#pixel-scale-controls .control-group {
-    margin-bottom: -5px; /* 슬라이더와 위쪽 요소 간격 줄임 */
-}
-
-fieldset:disabled {
-    opacity: 0.6;
-    pointer-events: none;
-}
-
-@media (max-width: 1100px) {
-  body { overflow: auto; }
-  .app-container { flex-direction: column; height: auto; }
-  .right-panel { width: 100%; height: auto; overflow-y: visible; }
-  .app-container.text-mode .left-panel-content { flex-direction: column; }
-}
+#pixel-scale-controls.scale-control-group { gap: 12px; }
+#pixel-scale-controls .control-group { margin-bottom: -5px; }
+fieldset:disabled { opacity: 0.6; pointer-events: none; }
 
 .scale-control-group { gap: 8px; }
 .scale-input-wrapper { display: flex; align-items: center; gap: 8px; }
 .scale-label { width: 30px; font-size: 14px; }
 .scale-input-wrapper input[type="number"] { flex-grow: 1; text-align: center; }
 .scale-buttons { display: flex; }
-.scale-mod-btn {
-    padding: 4px 6px;
-    font-size: 12px;
-    line-height: 1;
-    min-width: 30px;
-    border: 1px solid #ccc;
-    background-color: #f0f0f0;
-}
+.scale-mod-btn { padding: 4px 6px; font-size: 12px; line-height: 1; min-width: 30px; border: 1px solid #ccc; background-color: #f0f0f0; }
 .scale-mod-btn:hover { background-color: #e0e0e0; }
 .scale-mod-btn:first-child { border-radius: 4px 0 0 4px; }
 .scale-mod-btn:last-child { border-radius: 0 4px 4px 0; }
 .scale-mod-btn:not(:last-child) { border-right: none; }
 
-/* [v2.6 수정] 파일 하단에 추가 */
-#metadata-info-display {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    background-color: rgba(255, 221, 87, 0.85); /* 눈에 띄는 노란색 배경 */
-    color: #333;
-    padding: 3px 8px;
-    border-radius: 5px;
-    font-size: 13px;
-    font-weight: bold;
-    z-index: 10;
-    pointer-events: none;
-    display: none; /* 평소에는 숨김 */
-    border: 1px solid rgba(0,0,0,0.2);
-}
+#top-ui-container { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 11; pointer-events: none; }
+.top-right-ui { display: flex; align-items: center; gap: 10px; }
 
-/* [v2.9 수정] 파일 최하단부의 UI 관련 스타일을 아래 코드로 전부 교체 */
+#metadata-info-display { background-color: rgba(255, 221, 87, 0.85); color: #333; padding: 3px 8px; border-radius: 5px; font-size: 13px; font-weight: bold; border: 1px solid rgba(0,0,0,0.2); display: none; pointer-events: auto; }
+#metadata-info-display.visible { display: block; }
 
-/* 새로운 UI 레이아웃 컨테이너 */
-#top-ui-container {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    display: flex;
-    justify-content: space-between; /* 왼쪽과 오른쪽 아이템을 양 끝으로 보냄 */
-    align-items: center;
-    z-index: 11;
-    pointer-events: none; /* 컨테이너 자체는 클릭 방해 안함 */
-}
+#zoomLevelDisplay { background-color: rgba(0, 0, 0, 0.5); color: white; padding: 2px 8px; border-radius: 5px; font-size: 14px; pointer-events: auto; }
 
-/* 우측 상단 UI 그룹 */
-.top-right-ui {
-    display: flex;
-    align-items: center;
-    gap: 10px; /* 로딩 스피너와 확대율 표시 사이 간격 */
-}
+#loading-indicator { width: 24px; height: 24px; border: 3px solid rgba(255, 255, 255, 0.3); border-top: 3px solid #fff; border-radius: 50%; animation: spin 1s linear infinite; display: none; z-index: 11; }
+#loading-indicator.visible { display: block; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-/* 메타데이터 정보 표시 */
-#metadata-info-display {
-    background-color: rgba(255, 221, 87, 0.85);
-    color: #333;
-    padding: 3px 8px;
-    border-radius: 5px;
-    font-size: 13px;
-    font-weight: bold;
-    border: 1px solid rgba(0,0,0,0.2);
-    display: none; /* 평소에는 숨김 */
-    pointer-events: auto; /* 필요 시 클릭 가능하도록 */
-}
-
-#metadata-info-display.visible {
-    display: block;
-}
-
-/* 확대율 표시 */
-#zoomLevelDisplay {
-    background-color: rgba(0, 0, 0, 0.5);
-    color: white;
-    padding: 2px 8px;
-    border-radius: 5px;
-    font-size: 14px;
-    pointer-events: auto;
-}
-
-/* 로딩 스피너 (위치 속성만 제거) */
-#loading-indicator {
-    /* position, top, right 속성이 제거되어 Flexbox 레이아웃에 포함됨 */
-    width: 24px;
-    height: 24px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-top: 3px solid #fff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    display: none;
-    z-index: 11;
+@media (max-width: 1100px) {
+  body { overflow: auto; }
+  .app-container { flex-direction: column; height: auto; }
+  .right-panel { width: 100%; height: auto; overflow-y: visible; }
+  .app-container.text-mode .left-panel-content { flex-direction: column; }
 }

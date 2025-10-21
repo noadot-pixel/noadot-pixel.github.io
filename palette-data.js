@@ -46,7 +46,6 @@ const wplaceFreeColors = [
   { rgb: [104, 70, 52], name: "dark brown" },
   { rgb: [149, 104, 42], name: "brown" },
   { rgb: [248, 178, 119], name: "beige" },
-  { rgb: null, name: "transparent" }
 ];
 
 // ==================================================================
@@ -91,7 +90,7 @@ const wplacePaidColors = [
 // 3. geopixels 색상 (geopixels 기본 색상 목록)
 // ==================================================================
 const geopixelsColors = [
-  { rgb: [255, 255, 255], name: "white" },
+  { rgb: [255, 255, 255], name: null },
   { rgb: [244, 245, 159], name: null },
   { rgb: [255, 202, 58], name: null },
   { rgb: [255, 159, 28], name: null },
@@ -119,6 +118,5 @@ const geopixelsColors = [
   { rgb: [192, 127, 122], name: null },
   { rgb: [196, 154, 108], name: null },
   { rgb: [91, 123, 28], name: null },
-  { rgb: [0, 0, 0], name: "black" },
-  { rgb: null, name: "transparent" }
+  { rgb: [0, 0, 0], name: null },
 ];
