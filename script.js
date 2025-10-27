@@ -1,4 +1,4 @@
-// script.js (수정 완료 - 텍스트 모드 디더링 숨기기 적용)
+// script.js (수정 완료 - HEX 코드 이름 표시 기능 추가)
 
 const wplaceFreeColors = [{rgb:[0,0,0],name:"black"},{rgb:[60,60,60],name:"dark gray"},{rgb:[120,120,120],name:"gray"},{rgb:[210,210,210],name:"light gray"},{rgb:[255,255,255],name:"white"},{rgb:[96,0,24],name:"deep red"},{rgb:[237,28,36],name:"red"},{rgb:[255,127,39],name:"orange"},{rgb:[246,171,9],name:"gold"},{rgb:[249,221,59],name:"yellow"},{rgb:[255,250,188],name:"light yellow"},{rgb:[14,185,104],name:"dark green"},{rgb:[19,230,123],name:"green"},{rgb:[135,255,94],name:"light green"},{rgb:[12,129,110],name:"dark teal"},{rgb:[16,174,166],name:"teal"},{rgb:[19,225,190],name:"light teal"},{rgb:[96,247,242],name:"cyan"},{rgb:[40,80,158],name:"dark blue"},{rgb:[64,147,228],name:"blue"},{rgb:[107,80,246],name:"indigo"},{rgb:[153,177,251],name:"light indigo"},{rgb:[120,12,153],name:"dark purple"},{rgb:[170,56,185],name:"purple"},{rgb:[224,159,249],name:"light purple"},{rgb:[203,0,122],name:"dark pink"},{rgb:[236,31,128],name:"pink"},{rgb:[243,141,169],name:"light pink"},{rgb:[104,70,52],name:"dark brown"},{rgb:[149,104,42],name:"brown"},{rgb:[248,178,119],name:"beige"}];
 const wplacePaidColors = [{rgb:[170,170,170],name:"medium gray"},{rgb:[165,14,30],name:"dark red"},{rgb:[250,128,114],name:"light red"},{rgb:[228,92,26],name:"dark orange"},{rgb:[156,132,49],name:"dark goldenrod"},{rgb:[197,173,49],name:"goldenrod"},{rgb:[232,212,95],name:"light goldenrod"},{rgb:[74,107,58],name:"dark olive"},{rgb:[90,148,74],name:"olive"},{rgb:[132,197,115],name:"light olive"},{rgb:[15,121,159],name:"dark cyan"},{rgb:[187,250,242],name:"light cyan"},{rgb:[125,199,255],name:"light blue"},{rgb:[77,49,184],name:"dark indigo"},{rgb:[74,66,132],name:"dark slate blue"},{rgb:[122,113,196],name:"slate blue"},{rgb:[181,174,241],name:"light slate blue"},{rgb:[155,82,73],name:"dark peach"},{rgb:[209,128,120],name:"peach"},{rgb:[250,182,164],name:"light peach"},{rgb:[219,164,99],name:"light brown"},{rgb:[123,99,82],name:"dark tan"},{rgb:[156,132,107],name:"tan"},{rgb:[214,181,148],name:"light tan"},{rgb:[209,128,81],name:"dark beige"},{rgb:[255,197,165],name:"light beige"},{rgb:[109,100,63],name:"dark stone"},{rgb:[148,140,107],name:"stone"},{rgb:[205,197,158],name:"light stone"},{rgb:[51,57,65],name:"dark slate"},{rgb:[109,117,141],name:"slate"},{rgb:[179,185,209],name:"light slate"}];
@@ -31,7 +31,6 @@ document.addEventListener('DOMContentLoaded', () => {
         edgeCleanup: document.getElementById('edgeCleanup'),
         ditheringAlgorithmSelect: document.getElementById('ditheringAlgorithmSelect'),
         ditheringSlider: document.getElementById('ditheringSlider'), ditheringValue: document.getElementById('ditheringValue'),
-        // [수정 2] 디더링 그룹 ID 추가
         ditheringAlgorithmGroup: document.getElementById('dithering-algorithm-group'),
         ditheringStrengthGroup: document.getElementById('dithering-strength-group'),
         scaleControlsFieldset: document.getElementById('scaleControlsFieldset'),
@@ -48,9 +47,13 @@ document.addEventListener('DOMContentLoaded', () => {
         geoPixelColorsContainer: document.getElementById('geoPixelColors'),
         addedColorsContainer: document.getElementById('addedColors'),
         addColorBtn: document.getElementById('addColorBtn'),
+        addHex: document.getElementById('addHex'),
         addR: document.getElementById('addR'), addG: document.getElementById('addG'), addB: document.getElementById('addB'),
-        importColorsBtn: document.getElementById('importColorsBtn'),
-        colorCodeInput: document.getElementById('colorCodeInput'),
+        hexInputFeedback: document.getElementById('hexInputFeedback'),
+        rgbInputFeedback: document.getElementById('rgbInputFeedback'),
+        exportPaletteBtn: document.getElementById('exportPaletteBtn'),
+        importPaletteBtn: document.getElementById('importPaletteBtn'),
+        paletteUpload: document.getElementById('paletteUpload'),
         resetAddedColorsBtn: document.getElementById('resetAddedColorsBtn'),
         geopixelsModeBtn: document.getElementById('geopixelsMode'),
         wplaceModeBtn: document.getElementById('wplaceMode'),
@@ -81,6 +84,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateZoom = (newZoom) => { state.currentZoom = Math.max(25, Math.min(500, newZoom)); updateTransform(); };
     const gatherSettingsData = () => { if (state.currentMode === 'geopixels') { return { version: '2.10', type: 'colors', data: Array.from(elements.addedColorsContainer.querySelectorAll('.added-color-item')).map(item => JSON.parse(item.dataset.rgb)) }; } else { return { version: '2.10', type: 'marker' }; } };
     const applySettingsData = (settings) => { if (!settings || settings.type !== 'colors' || !Array.isArray(settings.data)) return; elements.addedColorsContainer.innerHTML = ''; settings.data.forEach(rgb => createAddedColorItem({ rgb }, true)); updatePaletteStatus(); triggerConversion(); };
+
+    const hexToRgb = (hex) => {
+        let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        if (!result) {
+            const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+            const shorthandResult = shorthandRegex.exec(hex);
+            if (shorthandResult) {
+                result = [
+                    shorthandResult[0],
+                    shorthandResult[1] + shorthandResult[1],
+                    shorthandResult[2] + shorthandResult[2],
+                    shorthandResult[3] + shorthandResult[3]
+                ];
+            }
+        }
+        return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
+    };
+    
+    const parseRgbString = (str) => {
+        const numbers = str.match(/\d+/g);
+        if (numbers && numbers.length === 3) {
+            const rgb = numbers.map(numStr => parseInt(numStr, 10));
+            if (rgb.every(num => num >= 0 && num <= 255)) {
+                return rgb;
+            }
+        }
+        return null;
+    };
 
     const updateColorRecommendations = (recommendations = []) => {
         elements.recommendedColorsContainer.innerHTML = '';
@@ -121,7 +152,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const updatePaletteStatus = () => { document.querySelectorAll('.palette-status-icon').forEach(icon => { const targetIds = icon.dataset.target.split(','); let isActive = false; for (const id of targetIds) { const container = document.getElementById(id); if (container && (container.querySelector('.color-button[data-on="true"]') || container.querySelector('.added-color-item[data-on="true"]'))) { isActive = true; break; } } icon.classList.toggle('active', isActive); }); };
     const createColorButton = (colorData, container, startOn = true) => { if (!colorData.rgb) return; const ctn = document.createElement('div'); ctn.className = 'color-container'; const btn = document.createElement('div'); btn.className = 'color-button'; btn.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`; btn.dataset.rgb = JSON.stringify(colorData.rgb); btn.dataset.on = startOn.toString(); if (!startOn) { btn.classList.add('off'); } btn.title = colorData.name || `rgb(${colorData.rgb.join(',')})`; btn.addEventListener('click', () => { btn.classList.toggle('off'); btn.dataset.on = btn.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); }); ctn.appendChild(btn); if (colorData.name) { const lbl = document.createElement('div'); lbl.className = 'color-name'; lbl.textContent = colorData.name; ctn.appendChild(lbl); } container.appendChild(ctn); };
-    const createAddedColorItem = (colorData, startOn = true) => { if (isColorAlreadyAdded(colorData.rgb)) return; const item = document.createElement('div'); item.className = 'added-color-item'; item.dataset.rgb = JSON.stringify(colorData.rgb); item.dataset.on = startOn.toString(); if (!startOn) item.classList.add('off'); const swatch = document.createElement('div'); swatch.className = 'added-color-swatch'; swatch.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`; swatch.addEventListener('click', () => { item.classList.toggle('off'); item.dataset.on = item.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); }); const info = document.createElement('div'); info.className = 'added-color-info'; info.textContent = colorData.name || `(${colorData.rgb.join(',')})`; const deleteBtn = document.createElement('button'); deleteBtn.className = 'delete-color-btn'; deleteBtn.textContent = '−'; deleteBtn.title = '이 색상 삭제'; deleteBtn.onclick = () => { item.remove(); updatePaletteStatus(); triggerConversion(); }; item.appendChild(swatch); item.appendChild(info); item.appendChild(deleteBtn); elements.addedColorsContainer.appendChild(item); };
+    
+    // [수정] createAddedColorItem 함수는 colorData.name을 우선적으로 사용하도록 이미 잘 되어있음.
+    const createAddedColorItem = (colorData, startOn = true) => {
+        if (isColorAlreadyAdded(colorData.rgb)) return false;
+        const item = document.createElement('div');
+        item.className = 'added-color-item';
+        item.dataset.rgb = JSON.stringify(colorData.rgb);
+        item.dataset.on = startOn.toString();
+        if (!startOn) item.classList.add('off');
+        const swatch = document.createElement('div');
+        swatch.className = 'added-color-swatch';
+        swatch.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`;
+        swatch.addEventListener('click', () => {
+            item.classList.toggle('off');
+            item.dataset.on = item.dataset.on === 'true' ? 'false' : 'true';
+            triggerConversion();
+            updatePaletteStatus();
+        });
+        const info = document.createElement('div');
+        info.className = 'added-color-info';
+        // 이 로직이 핵심: colorData.name이 있으면 그것을, 없으면 (R,G,B) 문자열을 사용
+        info.textContent = colorData.name || `(${colorData.rgb.join(',')})`;
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-color-btn';
+        deleteBtn.textContent = '−';
+        deleteBtn.title = '이 색상 삭제';
+        deleteBtn.onclick = () => {
+            item.remove();
+            updatePaletteStatus();
+            triggerConversion();
+        };
+        item.appendChild(swatch);
+        item.appendChild(info);
+        item.appendChild(deleteBtn);
+        elements.addedColorsContainer.appendChild(item);
+        return true;
+    };
     const createMasterToggleButton = (targetId, container) => { const btn = document.createElement('button'); btn.className = 'toggle-all toggle-all-palette'; btn.dataset.target = targetId; btn.title = '전체 선택/해제'; btn.textContent = 'A'; container.prepend(btn); };
 
     const applyConversion = (imageDataToProcess, activePalette, options) => {
@@ -215,9 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const textImageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
         
         const { palette, options } = getActivePaletteAndOptions();
-        // 텍스트 모드에서는 디더링을 사용하지 않음
-        options.dithering = 0;
-        options.algorithm = 'none';
+        options.dithering = 0; options.algorithm = 'none';
 
         elements.convertedCanvasContainer.classList.add('has-image');
         applyConversion(textImageData, palette, options);
@@ -227,7 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleFile = async (file) => { if (!file || !file.type.startsWith('image/')) return; elements.metadataInfoDisplay.classList.remove('visible'); updateColorRecommendations([]); try { const settings = await PNGMetadata.extract(file); if (settings) { if (settings.type === 'colors') { if (confirm("이미지에서 '추가한 색상' 목록을 발견했습니다. 현재 목록을 덮어쓰고 불러오시겠습니까?")) { applySettingsData(settings); } } else if (settings.type === 'marker') { elements.metadataInfoDisplay.textContent = "해당 이미지는 NoaDot을 통해 변환된 기록이 있습니다."; elements.metadataInfoDisplay.classList.add('visible'); } } } catch (error) { console.error("메타데이터 읽기 오류:", error); } state.originalFileName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name; const img = new Image(); img.onload = () => { state.originalImageObject = img; state.aspectRatio = img.height / img.width; elements.scaleWidth.value = img.width; elements.scaleHeight.value = img.height; elements.pixelScaleSlider.max = img.width > 1 ? img.width - 1 : 1; elements.pixelScaleSlider.value = 0; elements.scaleControlsFieldset.disabled = false; elements.appContainer.classList.add('image-loaded'); elements.originalDimensions.textContent = `${img.width} x ${img.height} px`; elements.convertedCanvasContainer.classList.add('has-image'); state.panX = 0; state.panY = 0; updateZoom(100); triggerConversion(); }; img.src = URL.createObjectURL(file); };
     const resetAll = () => { state.originalImageObject = null; state.originalImageData = null; state.textState.content = ''; elements.editorTextarea.value = ''; elements.appContainer.classList.remove('image-loaded'); elements.convertedCanvasContainer.classList.remove('has-image'); cCtx.clearRect(0,0, elements.convertedCanvas.width, elements.convertedCanvas.height); updateColorRecommendations([]); document.querySelectorAll('.reset-btn').forEach(btn => btn.click()); elements.scaleControlsFieldset.disabled = true; elements.scaleWidth.value = ''; elements.scaleHeight.value = ''; elements.metadataInfoDisplay.classList.remove('visible'); };
     
-    // [수정 2] setAppMode 함수 수정
     const setAppMode = (mode) => {
         if (state.appMode === mode) return;
         if (state.appMode === 'image' && state.originalImageObject && mode === 'text') { if (!confirm("모드를 전환하시면 업로드한 이미지 내용은 초기화됩니다. 계속하시겠습니까?")) { elements.imageModeBtn.checked = true; return; } } else if (state.appMode === 'text' && state.textState.content && mode === 'image') { if (!confirm("모드를 전환하시면 작성하신 텍스트 내용은 초기화됩니다. 계속하시겠습니까?")) { elements.textModeBtn.checked = true; return; } }
@@ -260,7 +324,185 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateScaleUIVisibility = () => { const isRatio = state.scaleMode === 'ratio'; elements.ratioScaleControls.classList.toggle('hidden', !isRatio); elements.pixelScaleControls.classList.toggle('hidden', isRatio); };
     const switchToPixelMode = () => { if (!state.originalImageObject) return; const scaleFactor = parseFloat(elements.scaleSlider.value) / CONFIG.SCALE_FACTOR; const newWidth = Math.max(1, Math.round(state.originalImageObject.width / scaleFactor)); elements.scaleWidth.value = newWidth; elements.scaleHeight.value = Math.round(newWidth * state.aspectRatio); elements.pixelScaleSlider.value = state.originalImageObject.width - newWidth; };
     const switchToRatioMode = () => { if (!state.originalImageObject) return; const currentWidth = parseInt(elements.scaleWidth.value, 10); const ratio = state.originalImageObject.width / currentWidth; const newSliderValue = Math.round(ratio * CONFIG.SCALE_FACTOR); const clampedValue = Math.max(parseInt(elements.scaleSlider.min, 10), Math.min(parseInt(elements.scaleSlider.max, 10), newSliderValue)); elements.scaleSlider.value = clampedValue; elements.scaleValue.textContent = (clampedValue / CONFIG.SCALE_FACTOR).toFixed(2); };
-    const setupEventListeners = () => { elements.imageModeBtn.addEventListener('change', () => setAppMode('image')); elements.textModeBtn.addEventListener('change', () => setAppMode('text')); elements.geopixelsModeBtn.addEventListener('change', () => { setPaletteMode('geopixels'); populateColorSelects(); });  elements.wplaceModeBtn.addEventListener('change', () => { setPaletteMode('wplace'); populateColorSelects(); }); elements.useWplaceInGeoMode.addEventListener('change', (e) => { state.useWplaceInGeoMode = e.target.checked; elements.wplacePaletteInGeo.style.display = e.target.checked ? 'block' : 'none'; updatePaletteStatus(); triggerConversion(); }); elements.highQualityMode.addEventListener('change', (e) => { state.highQualityMode = e.target.checked; triggerConversion(); }); elements.edgeCleanup.addEventListener('change', (e) => { state.edgeCleanup = e.target.checked; triggerConversion(); }); elements.ditheringAlgorithmSelect.addEventListener('change', () => { elements.ditheringSlider.disabled = elements.ditheringAlgorithmSelect.value === 'none'; triggerConversion(); }); const cont = elements.convertedCanvasContainer; cont.addEventListener('wheel', e => { e.preventDefault(); const step = 25; if (e.deltaY < 0) { updateZoom(state.currentZoom + step); } else { updateZoom(state.currentZoom - step); } }); cont.addEventListener('mousedown', e => { if ((state.appMode === 'image' && !state.originalImageObject) || (state.appMode === 'text' && !state.textState.content)) return; state.isDragging = true; state.startDragX = e.pageX; state.startDragY = e.pageY; state.startPanX = state.panX; state.startPanY = state.panY; }); cont.addEventListener('mouseleave', () => { state.isDragging = false; }); cont.addEventListener('mouseup', () => { state.isDragging = false; }); cont.addEventListener('mousemove', e => { if (!state.isDragging) return; e.preventDefault(); const dx = e.pageX - state.startDragX; const dy = e.pageY - state.startDragY; state.panX = state.startPanX + dx; state.panY = state.startPanY + dy; updateTransform(); }); elements.centerBtn.addEventListener('click', () => { state.panX = 0; state.panY = 0; updateZoom(100); }); cont.addEventListener('click', () => { if (state.appMode === 'image' && !state.originalImageObject) elements.imageUpload.click(); }); cont.addEventListener('dragover', e => { e.preventDefault(); if (state.appMode === 'image') cont.classList.add('drag-over'); }); cont.addEventListener('dragleave', () => { cont.classList.remove('drag-over'); }); cont.addEventListener('drop', e => { e.preventDefault(); cont.classList.remove('drag-over'); if (state.appMode === 'image' && e.dataTransfer.files.length > 0) { handleFile(e.dataTransfer.files[0]); } }); elements.imageUpload.addEventListener('change', e => { if (e.target.files.length > 0) handleFile(e.target.files[0]); }); ['saturation', 'brightness', 'contrast', 'dithering'].forEach(t => { const s = elements[`${t}Slider`], v = elements[`${t}Value`]; if(s && v) { s.addEventListener('input', () => { v.textContent = s.value; triggerConversion(); }); } }); document.querySelectorAll('.reset-btn').forEach(btn => { const targetId = btn.dataset.target; if (elements[targetId]) { btn.addEventListener('click', () => { const slider = elements[targetId]; const valueDisplay = elements[`${targetId.replace('Slider', '')}Value`]; const defaultValue = CONFIG.DEFAULTS[targetId]; slider.value = defaultValue; if (valueDisplay) valueDisplay.textContent = defaultValue; triggerConversion(); }); } }); elements.scaleModeSelect.addEventListener('change', e => { const newMode = e.target.value; if (newMode === state.scaleMode) return; if (state.originalImageObject) { if (newMode === 'pixel') switchToPixelMode(); else switchToRatioMode(); } state.scaleMode = newMode; updateScaleUIVisibility(); triggerConversion(); }); elements.scaleSlider.addEventListener('input', () => { elements.scaleValue.textContent = (elements.scaleSlider.value / CONFIG.SCALE_FACTOR).toFixed(2); triggerConversion(); }); let isUpdatingScale = false; const updatePixelInputs = (source) => { if (isUpdatingScale || !state.originalImageObject) return; isUpdatingScale = true; let width, height; if (source === 'width') { width = parseInt(elements.scaleWidth.value, 10) || 0; if (width > state.originalImageObject.width) width = state.originalImageObject.width; width = Math.max(1, width); height = Math.round(width * state.aspectRatio); elements.scaleWidth.value = width; elements.scaleHeight.value = height; } else if (source === 'height') { height = parseInt(elements.scaleHeight.value, 10) || 0; if (height > state.originalImageObject.height) height = state.originalImageObject.height; height = Math.max(1, height); width = Math.round(height / state.aspectRatio); elements.scaleWidth.value = width; elements.scaleHeight.value = height; } else { const sliderValue = parseInt(elements.pixelScaleSlider.value, 10); width = state.originalImageObject.width - sliderValue; width = Math.max(1, width); height = Math.round(width * state.aspectRatio); elements.scaleWidth.value = width; elements.scaleHeight.value = height; } elements.pixelScaleSlider.value = state.originalImageObject.width - width; triggerConversion(); isUpdatingScale = false; }; elements.scaleWidth.addEventListener('input', () => updatePixelInputs('width')); elements.scaleHeight.addEventListener('input', () => updatePixelInputs('height')); elements.pixelScaleSlider.addEventListener('input', () => updatePixelInputs('slider')); document.querySelectorAll('.scale-mod-btn').forEach(btn => { btn.addEventListener('click', () => { if (!state.originalImageObject) return; const targetInput = elements[btn.dataset.target]; const amount = parseInt(btn.dataset.amount, 10); const oldValue = parseInt(targetInput.value, 10); targetInput.value = Math.max(1, oldValue + amount); targetInput.dispatchEvent(new Event('input', { bubbles: true })); }); }); elements.editorTextarea.addEventListener('input', e => { state.textState.content = e.target.value; triggerConversion(); }); elements.fontSelect.addEventListener('change', e => { state.textState.fontFamily = e.target.value; triggerConversion(); }); elements.fontSizeSlider.addEventListener('input', e => { state.textState.fontSize = parseInt(e.target.value, 10); elements.fontSizeValue.textContent = e.target.value; triggerConversion(); }); elements.letterSpacingSlider.addEventListener('input', e => { state.textState.letterSpacing = parseInt(e.target.value, 10); elements.letterSpacingValue.textContent = e.target.value; triggerConversion(); }); elements.paddingSlider.addEventListener('input', e => { state.textState.padding = parseInt(e.target.value, 10); elements.paddingValue.textContent = e.target.value; triggerConversion(); }); elements.textColorSelect.addEventListener('change', e => { state.textState.textColor = e.target.value; triggerConversion(); }); elements.bgColorSelect.addEventListener('change', e => { state.textState.bgColor = e.target.value; triggerConversion(); }); elements.strokeColorSelect.addEventListener('change', e => { state.textState.strokeColor = e.target.value; triggerConversion(); }); elements.strokeWidthSlider.addEventListener('input', e => { state.textState.strokeWidth = parseInt(e.target.value, 10); elements.strokeWidthValue.textContent = e.target.value; triggerConversion(); }); document.querySelectorAll('.style-btn').forEach(btn => btn.addEventListener('click', e => { const style = e.currentTarget.dataset.style; state.textState[`is${style.charAt(0).toUpperCase() + style.slice(1)}`] = !state.textState[`is${style.charAt(0).toUpperCase() + style.slice(1)}`]; e.currentTarget.classList.toggle('active'); triggerConversion(); })); elements.uploadFontBtn.addEventListener('click', () => elements.fontUpload.click()); elements.fontUpload.addEventListener('change', (e) => { if(e.target.files.length > 0) handleFontUpload(e.target.files[0]) }); const handlePaste = (e) => { e.preventDefault(); const pastedText = e.clipboardData.getData('text'); let rgb = []; const numbers = pastedText.match(/\d+/g); if (numbers && numbers.length === 3) { rgb = numbers.map(numStr => parseInt(numStr, 10)); } else { const cleanText = pastedText.replace(/\D/g, ''); if (cleanText.length === 9) { rgb = [ parseInt(cleanText.substring(0, 3), 10), parseInt(cleanText.substring(3, 6), 10), parseInt(cleanText.substring(6, 9), 10) ]; } } if (rgb.length === 3 && rgb.every(num => num >= 0 && num <= 255)) { elements.addR.value = rgb[0]; elements.addG.value = rgb[1]; elements.addB.value = rgb[2]; elements.addColorBtn.click(); } }; [elements.addR, elements.addG, elements.addB].forEach(input => { input.addEventListener('paste', handlePaste); }); elements.addColorBtn.addEventListener('click', () => { const r = parseInt(elements.addR.value), g = parseInt(elements.addG.value), b = parseInt(elements.addB.value); if (isNaN(r) || r < 0 || r > 255 || isNaN(g) || g < 0 || g > 255 || isNaN(b) || b < 0 || b > 255) { alert("0~255 사이의 올바른 RGB 값을 입력해주세요."); return; } const rgb = [r, g, b]; if (isColorAlreadyAdded(rgb)) { alert("이미 추가된 색상입니다."); return; } createAddedColorItem({ rgb }); updatePaletteStatus(); triggerConversion(); elements.addR.value = ''; elements.addG.value = ''; elements.addB.value = ''; }); elements.resetAddedColorsBtn.addEventListener('click', resetAddedColors); elements.importColorsBtn.addEventListener('click', () => { const code = elements.colorCodeInput.value.trim(); if (code === '') { alert('적용할 코드를 입력해주세요.'); return; } try { const colors = JSON.parse(atob(code)); if (!Array.isArray(colors)) throw new Error(); let addedCount = 0; colors.forEach(rgb => { if (Array.isArray(rgb) && rgb.length === 3 && !isColorAlreadyAdded(rgb)) { createAddedColorItem({ rgb }); addedCount++; } }); if (addedCount > 0) { elements.colorCodeInput.value = ''; updatePaletteStatus(); triggerConversion(); } else { alert("새롭게 추가된 색상이 없습니다. (중복 제외)"); } } catch (err) { alert('유효하지 않은 코드입니다. 다시 확인해주세요.'); } }); document.querySelectorAll('.toggle-all').forEach(btn => { btn.addEventListener('click', e => { const targetIds = e.currentTarget.dataset.target.split(','); let allItems = []; targetIds.forEach(id => { const container = document.getElementById(id); if (container) { allItems.push(...container.querySelectorAll('.color-button, .added-color-item')); } }); if (allItems.length === 0) return; const onItemsCount = allItems.filter(b => b.dataset.on === 'true').length; const turnOn = onItemsCount < allItems.length; allItems.forEach(item => { const isOn = item.dataset.on === 'true'; if ((turnOn && !isOn) || (!turnOn && isOn)) { const clickable = item.classList.contains('added-color-item') ? item.querySelector('.added-color-swatch') : item; clickable.click(); } }); }); }); elements.downloadBtn.addEventListener('click', async () => { if (!state.finalDownloadableData) { alert('다운로드할 이미지가 없습니다.'); return; } showLoading(true); try { const tempCanvas = document.createElement('canvas'); tempCanvas.width = state.finalDownloadableData.width; tempCanvas.height = state.finalDownloadableData.height; tempCanvas.getContext('2d').putImageData(state.finalDownloadableData, 0, 0); const blob = await new Promise(resolve => tempCanvas.toBlob(resolve, 'image/png')); const arrayBuffer = await blob.arrayBuffer(); const settingsData = gatherSettingsData(); const newPngBuffer = PNGMetadata.embed(arrayBuffer, settingsData); const newBlob = new Blob([newPngBuffer], { type: 'image/png' }); const url = URL.createObjectURL(newBlob); const now = new Date(); const ts = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`; const newName = `${state.originalFileName}_NoaDot_${ts}${state.currentMode === 'geopixels' ? '_colors.png' : '_converted.png'}`; const link = document.createElement('a'); link.download = newName; link.href = url; link.click(); URL.revokeObjectURL(url); } catch (error) { console.error("다운로드 중 오류 발생:", error); alert("메타데이터를 포함하여 다운로드하는 중 오류가 발생했습니다."); } finally { showLoading(false); } }); };
+    const setupEventListeners = () => {
+        elements.imageModeBtn.addEventListener('change', () => setAppMode('image'));
+        elements.textModeBtn.addEventListener('change', () => setAppMode('text'));
+        elements.geopixelsModeBtn.addEventListener('change', () => { setPaletteMode('geopixels'); populateColorSelects(); });
+        elements.wplaceModeBtn.addEventListener('change', () => { setPaletteMode('wplace'); populateColorSelects(); });
+        elements.useWplaceInGeoMode.addEventListener('change', (e) => { state.useWplaceInGeoMode = e.target.checked; elements.wplacePaletteInGeo.style.display = e.target.checked ? 'block' : 'none'; updatePaletteStatus(); triggerConversion(); });
+        elements.highQualityMode.addEventListener('change', (e) => { state.highQualityMode = e.target.checked; triggerConversion(); });
+        elements.edgeCleanup.addEventListener('change', (e) => { state.edgeCleanup = e.target.checked; triggerConversion(); });
+        elements.ditheringAlgorithmSelect.addEventListener('change', () => { elements.ditheringSlider.disabled = elements.ditheringAlgorithmSelect.value === 'none'; triggerConversion(); });
+        const cont = elements.convertedCanvasContainer; cont.addEventListener('wheel', e => { e.preventDefault(); const step = 25; if (e.deltaY < 0) { updateZoom(state.currentZoom + step); } else { updateZoom(state.currentZoom - step); } }); cont.addEventListener('mousedown', e => { if ((state.appMode === 'image' && !state.originalImageObject) || (state.appMode === 'text' && !state.textState.content)) return; state.isDragging = true; state.startDragX = e.pageX; state.startDragY = e.pageY; state.startPanX = state.panX; state.startPanY = state.panY; }); cont.addEventListener('mouseleave', () => { state.isDragging = false; }); cont.addEventListener('mouseup', () => { state.isDragging = false; }); cont.addEventListener('mousemove', e => { if (!state.isDragging) return; e.preventDefault(); const dx = e.pageX - state.startDragX; const dy = e.pageY - state.startDragY; state.panX = state.startPanX + dx; state.panY = state.startPanY + dy; updateTransform(); });
+        elements.centerBtn.addEventListener('click', () => { state.panX = 0; state.panY = 0; updateZoom(100); });
+        cont.addEventListener('click', () => { if (state.appMode === 'image' && !state.originalImageObject) elements.imageUpload.click(); });
+        cont.addEventListener('dragover', e => { e.preventDefault(); if (state.appMode === 'image') cont.classList.add('drag-over'); });
+        cont.addEventListener('dragleave', () => { cont.classList.remove('drag-over'); });
+        cont.addEventListener('drop', e => { e.preventDefault(); cont.classList.remove('drag-over'); if (state.appMode === 'image' && e.dataTransfer.files.length > 0) { handleFile(e.dataTransfer.files[0]); } });
+        elements.imageUpload.addEventListener('change', e => { if (e.target.files.length > 0) handleFile(e.target.files[0]); });
+        ['saturation', 'brightness', 'contrast', 'dithering'].forEach(t => { const s = elements[`${t}Slider`], v = elements[`${t}Value`]; if(s && v) { s.addEventListener('input', () => { v.textContent = s.value; triggerConversion(); }); } });
+        document.querySelectorAll('.reset-btn').forEach(btn => { const targetId = btn.dataset.target; if (elements[targetId]) { btn.addEventListener('click', () => { const slider = elements[targetId]; const valueDisplay = elements[`${targetId.replace('Slider', '')}Value`]; const defaultValue = CONFIG.DEFAULTS[targetId]; slider.value = defaultValue; if (valueDisplay) valueDisplay.textContent = defaultValue; triggerConversion(); }); } });
+        elements.scaleModeSelect.addEventListener('change', e => { const newMode = e.target.value; if (newMode === state.scaleMode) return; if (state.originalImageObject) { if (newMode === 'pixel') switchToPixelMode(); else switchToRatioMode(); } state.scaleMode = newMode; updateScaleUIVisibility(); triggerConversion(); });
+        elements.scaleSlider.addEventListener('input', () => { elements.scaleValue.textContent = (elements.scaleSlider.value / CONFIG.SCALE_FACTOR).toFixed(2); triggerConversion(); });
+        let isUpdatingScale = false; const updatePixelInputs = (source) => { if (isUpdatingScale || !state.originalImageObject) return; isUpdatingScale = true; let width, height; if (source === 'width') { width = parseInt(elements.scaleWidth.value, 10) || 0; if (width > state.originalImageObject.width) width = state.originalImageObject.width; width = Math.max(1, width); height = Math.round(width * state.aspectRatio); elements.scaleWidth.value = width; elements.scaleHeight.value = height; } else if (source === 'height') { height = parseInt(elements.scaleHeight.value, 10) || 0; if (height > state.originalImageObject.height) height = state.originalImageObject.height; height = Math.max(1, height); width = Math.round(height / state.aspectRatio); elements.scaleWidth.value = width; elements.scaleHeight.value = height; } else { const sliderValue = parseInt(elements.pixelScaleSlider.value, 10); width = state.originalImageObject.width - sliderValue; width = Math.max(1, width); height = Math.round(width * state.aspectRatio); elements.scaleWidth.value = width; elements.scaleHeight.value = height; } elements.pixelScaleSlider.value = state.originalImageObject.width - width; triggerConversion(); isUpdatingScale = false; };
+        elements.scaleWidth.addEventListener('input', () => updatePixelInputs('width'));
+        elements.scaleHeight.addEventListener('input', () => updatePixelInputs('height'));
+        elements.pixelScaleSlider.addEventListener('input', () => updatePixelInputs('slider'));
+        document.querySelectorAll('.scale-mod-btn').forEach(btn => { btn.addEventListener('click', () => { if (!state.originalImageObject) return; const targetInput = elements[btn.dataset.target]; const amount = parseInt(btn.dataset.amount, 10); const oldValue = parseInt(targetInput.value, 10); targetInput.value = Math.max(1, oldValue + amount); targetInput.dispatchEvent(new Event('input', { bubbles: true })); }); });
+        elements.editorTextarea.addEventListener('input', e => { state.textState.content = e.target.value; triggerConversion(); });
+        elements.fontSelect.addEventListener('change', e => { state.textState.fontFamily = e.target.value; triggerConversion(); });
+        elements.fontSizeSlider.addEventListener('input', e => { state.textState.fontSize = parseInt(e.target.value, 10); elements.fontSizeValue.textContent = e.target.value; triggerConversion(); });
+        elements.letterSpacingSlider.addEventListener('input', e => { state.textState.letterSpacing = parseInt(e.target.value, 10); elements.letterSpacingValue.textContent = e.target.value; triggerConversion(); });
+        elements.paddingSlider.addEventListener('input', e => { state.textState.padding = parseInt(e.target.value, 10); elements.paddingValue.textContent = e.target.value; triggerConversion(); });
+        elements.textColorSelect.addEventListener('change', e => { state.textState.textColor = e.target.value; triggerConversion(); });
+        elements.bgColorSelect.addEventListener('change', e => { state.textState.bgColor = e.target.value; triggerConversion(); });
+        elements.strokeColorSelect.addEventListener('change', e => { state.textState.strokeColor = e.target.value; triggerConversion(); });
+        elements.strokeWidthSlider.addEventListener('input', e => { state.textState.strokeWidth = parseInt(e.target.value, 10); elements.strokeWidthValue.textContent = e.target.value; triggerConversion(); });
+        document.querySelectorAll('.style-btn').forEach(btn => btn.addEventListener('click', e => { const style = e.currentTarget.dataset.style; state.textState[`is${style.charAt(0).toUpperCase() + style.slice(1)}`] = !state.textState[`is${style.charAt(0).toUpperCase() + style.slice(1)}`]; e.currentTarget.classList.toggle('active'); triggerConversion(); }));
+        elements.uploadFontBtn.addEventListener('click', () => elements.fontUpload.click());
+        elements.fontUpload.addEventListener('change', (e) => { if(e.target.files.length > 0) handleFontUpload(e.target.files[0]) });
+
+        // [수정] 색상 추가 로직 및 이벤트 핸들러 전체
+        const clearAndResetInputFields = () => {
+            elements.addHex.value = '';
+            elements.addR.value = '';
+            elements.addG.value = '';
+            elements.addB.value = '';
+            elements.hexInputFeedback.textContent = '\u00A0';
+            elements.rgbInputFeedback.textContent = '\u00A0';
+        };
+
+        const tryAddColor = (rgb, name = null) => {
+            if (!rgb) return;
+            // createAddedColorItem은 성공 시 true, 중복 시 false 반환
+            if (createAddedColorItem({ rgb, name })) {
+                updatePaletteStatus();
+                triggerConversion();
+                clearAndResetInputFields();
+            } else {
+                alert("이미 추가된 색상입니다.");
+            }
+        };
+
+        elements.addColorBtn.addEventListener('click', () => {
+            const hexValue = elements.addHex.value.trim();
+            const rVal = elements.addR.value.trim(), gVal = elements.addG.value.trim(), bVal = elements.addB.value.trim();
+            
+            if (hexValue) {
+                const rgbFromHex = hexToRgb(hexValue);
+                if (rgbFromHex) {
+                    tryAddColor([rgbFromHex.r, rgbFromHex.g, rgbFromHex.b], hexValue.toUpperCase());
+                } else {
+                    elements.hexInputFeedback.textContent = '유효하지 않은 HEX 코드입니다.';
+                }
+            } else if (rVal || gVal || bVal) {
+                const r = parseInt(rVal), g = parseInt(gVal), b = parseInt(bVal);
+                if ([r,g,b].every(v => !isNaN(v) && v >= 0 && v <= 255)) {
+                    tryAddColor([r, g, b]); // 이름은 null로 전달됨
+                } else {
+                    elements.rgbInputFeedback.textContent = 'RGB 값은 0-255 사이의 숫자여야 합니다.';
+                }
+            } else {
+                alert('추가할 색상 값을 입력해주세요.');
+            }
+        });
+
+        const handlePaste = (e) => {
+            e.preventDefault();
+            const pastedText = e.clipboardData.getData('text').trim();
+            const rgbFromHex = hexToRgb(pastedText);
+            const rgbFromString = parseRgbString(pastedText);
+
+            if (rgbFromHex) {
+                tryAddColor([rgbFromHex.r, rgbFromHex.g, rgbFromHex.b], pastedText.toUpperCase());
+            } else if (rgbFromString) {
+                tryAddColor(rgbFromString);
+            } else {
+                alert('붙여넣은 텍스트에서 유효한 색상 코드(HEX 또는 RGB)를 찾을 수 없습니다.');
+            }
+        };
+
+        [elements.addHex, elements.addR, elements.addG, elements.addB].forEach(input => {
+            input.addEventListener('paste', handlePaste);
+            input.addEventListener('input', () => {
+                elements.hexInputFeedback.textContent = '\u00A0';
+                elements.rgbInputFeedback.textContent = '\u00A0';
+            });
+        });
+        
+        elements.addHex.addEventListener('input', () => {
+            if(parseRgbString(elements.addHex.value)) {
+                elements.hexInputFeedback.textContent = 'RGB 값은 아래 입력란을 사용해주세요.';
+            }
+        });
+
+        [elements.addR, elements.addG, elements.addB].forEach(input => {
+            input.addEventListener('input', () => {
+                if(hexToRgb(input.value)) {
+                    elements.rgbInputFeedback.textContent = 'HEX 코드는 위 입력란을 사용해주세요.';
+                }
+            });
+        });
+        
+        elements.resetAddedColorsBtn.addEventListener('click', resetAddedColors);
+
+        elements.exportPaletteBtn.addEventListener('click', () => {
+            const colors = Array.from(elements.addedColorsContainer.querySelectorAll('.added-color-item')).map(item => JSON.parse(item.dataset.rgb));
+            if (colors.length === 0) { alert('내보낼 색상이 없습니다.'); return; }
+            const jsonString = JSON.stringify(colors, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'noadot_palette.json';
+            link.click();
+            URL.revokeObjectURL(url);
+        });
+
+        elements.importPaletteBtn.addEventListener('click', () => {
+            elements.paletteUpload.click();
+        });
+
+        elements.paletteUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const colors = JSON.parse(event.target.result);
+                    if (!Array.isArray(colors)) throw new Error('파일 형식이 올바르지 않습니다.');
+                    if (confirm("'추가한 색상' 목록에 불러온 팔레트를 추가하시겠습니까? (기존 목록은 유지됩니다)")) {
+                        let addedCount = 0;
+                        colors.forEach(rgb => {
+                            if (Array.isArray(rgb) && rgb.length === 3 && rgb.every(c => typeof c === 'number' && c >= 0 && c <= 255)) {
+                                if (!isColorAlreadyAdded(rgb)) {
+                                    createAddedColorItem({ rgb }); // 파일에서 불러온 것은 이름이 없으므로 RGB로 표시
+                                    addedCount++;
+                                }
+                            }
+                        });
+                        if (addedCount > 0) {
+                            updatePaletteStatus();
+                            triggerConversion();
+                            alert(`${addedCount}개의 새로운 색상을 불러왔습니다.`);
+                        } else {
+                            alert("새롭게 추가된 색상이 없습니다. (중복 또는 유효하지 않은 색상 제외)");
+                        }
+                    }
+                } catch (err) {
+                    alert('유효하지 않은 팔레트 파일입니다. JSON 형식을 확인해주세요.');
+                    console.error("팔레트 불러오기 오류:", err);
+                } finally {
+                    e.target.value = '';
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        document.querySelectorAll('.toggle-all').forEach(btn => { btn.addEventListener('click', e => { const targetIds = e.currentTarget.dataset.target.split(','); let allItems = []; targetIds.forEach(id => { const container = document.getElementById(id); if (container) { allItems.push(...container.querySelectorAll('.color-button, .added-color-item')); } }); if (allItems.length === 0) return; const onItemsCount = allItems.filter(b => b.dataset.on === 'true').length; const turnOn = onItemsCount < allItems.length; allItems.forEach(item => { const isOn = item.dataset.on === 'true'; if ((turnOn && !isOn) || (!turnOn && isOn)) { const clickable = item.classList.contains('added-color-item') ? item.querySelector('.added-color-swatch') : item; clickable.click(); } }); }); });
+        
+        elements.downloadBtn.addEventListener('click', async () => { if (!state.finalDownloadableData) { alert('다운로드할 이미지가 없습니다.'); return; } showLoading(true); try { const tempCanvas = document.createElement('canvas'); tempCanvas.width = state.finalDownloadableData.width; tempCanvas.height = state.finalDownloadableData.height; tempCanvas.getContext('2d').putImageData(state.finalDownloadableData, 0, 0); const blob = await new Promise(resolve => tempCanvas.toBlob(resolve, 'image/png')); const arrayBuffer = await blob.arrayBuffer(); const settingsData = gatherSettingsData(); const newPngBuffer = PNGMetadata.embed(arrayBuffer, settingsData); const newBlob = new Blob([newPngBuffer], { type: 'image/png' }); const url = URL.createObjectURL(newBlob); const now = new Date(); const ts = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`; const newName = `${state.originalFileName}_NoaDot_${ts}${state.currentMode === 'geopixels' ? '_colors.png' : '_converted.png'}`; const link = document.createElement('a'); link.download = newName; link.href = url; link.click(); URL.revokeObjectURL(url); } catch (error) { console.error("다운로드 중 오류 발생:", error); alert("메타데이터를 포함하여 다운로드하는 중 오류가 발생했습니다."); } finally { showLoading(false); } });
+    };
     const initialize = () => {
         elements.ditheringAlgorithmSelect.value = 'atkinson';
         geopixelsColors.forEach(c => createColorButton(c, elements.geoPixelColorsContainer, true)); wplaceFreeColors.forEach(c => createColorButton(c, elements.wplaceFreeColorsContainer, false)); wplacePaidColors.forEach(c => createColorButton(c, elements.wplacePaidColorsContainer, false)); wplaceFreeColors.forEach(c => createColorButton(c, elements.wplaceFreeColorsInGeo, false)); wplacePaidColors.forEach(c => createColorButton(c, elements.wplacePaidColorsInGeo, false)); createMasterToggleButton('geoPixelColors', elements.geoPixelColorsContainer); createMasterToggleButton('wplaceFreeColors', elements.wplaceFreeColorsContainer); createMasterToggleButton('wplacePaidColors', elements.wplacePaidColorsContainer); createMasterToggleButton('wplaceFreeColorsInGeo', elements.wplaceFreeColorsInGeo); createMasterToggleButton('wplacePaidColorsInGeo', elements.wplacePaidColorsInGeo); setupEventListeners(); updateScaleUIVisibility(); setAppMode('image'); setPaletteMode('geopixels'); populateColorSelects();

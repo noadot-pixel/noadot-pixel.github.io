@@ -185,7 +185,7 @@
                 </label>
                 <input type="range" id="contrastSlider" min="-100" max="100" value="0">
             </div>
-            <div class="control-group">
+            <div id="dithering-algorithm-group" class="control-group">
                 <label for="ditheringAlgorithmSelect">디더링</label>
                 <select id="ditheringAlgorithmSelect">
                     <option value="floyd">플로이드-스타인버그</option>
@@ -194,7 +194,7 @@
                     <option value="none">사용 안함</option>
                 </select>
             </div>
-            <div class="control-group">
+            <div id="dithering-strength-group" class="control-group">
                 <label for="ditheringSlider">디더링 강도: <span id="ditheringValue">0</span>%
                     <button class="reset-btn" data-target="ditheringSlider" title="초기화">⟳</button>
                 </label>
@@ -269,7 +269,6 @@
             </div>
         </div>
 
-        <!-- [수정 3] 사용자 팔레트 섹션에 ID 추가 -->
         <details open class="palette-category user-palette" id="user-palette-section">
             <summary><span class="palette-status-icon" data-target="recommendedColors,addedColors"></span>사용자 팔레트</summary>
             <div id="recommendation-section" class="palette-section">
@@ -284,20 +283,32 @@
                      <div class="placeholder-section">아래에서 직접 색상을 추가하세요.</div>
                 </div>
                 <form class="add-color-form" onsubmit="return false;">
-                    <input type="number" id="addR" min="0" max="255" placeholder="R">
-                    <input type="number" id="addG" min="0" max="255" placeholder="G">
-                    <input type="number" id="addB" min="0" max="255" placeholder="B">
+                    <div class="add-color-input-group">
+                        <input type="text" id="addHex" placeholder="HEX 코드 입력 (예: #FF595E)">
+                    </div>
+                    <span id="hexInputFeedback" class="input-feedback">&nbsp;</span>
+                    <div class="add-color-separator">또는</div>
+                    <div class="add-color-input-group">
+                        <input type="number" id="addR" min="0" max="255" placeholder="R">
+                        <input type="number" id="addG" min="0" max="255" placeholder="G">
+                        <input type="number" id="addB" min="0" max="255" placeholder="B">
+                    </div>
+                    <span id="rgbInputFeedback" class="input-feedback">&nbsp;</span>
                     <button id="addColorBtn">추가</button>
                 </form>
                 <button id="resetAddedColorsBtn" class="reset-all-colors-btn">추가한 색상 전체 초기화</button>
             </div>
              <div class="palette-section">
-                <h2>코드 가져오기/내보내기</h2>
+                <h2>팔레트 가져오기/내보내기</h2>
                 <div class="color-code-section">
-                    <textarea id="colorCodeInput" placeholder="여기에 코드를 붙여넣으세요"></textarea>
+                    <p style="font-size:14px; color:#555; margin:0 0 10px 0;">
+                        현재 '추가한 색상' 목록을 파일로 저장하거나, 파일에서 불러옵니다.
+                    </p>
                     <div class="button-group-horizontal">
-                        <button id="importColorsBtn">가져오기</button>
+                        <button id="exportPaletteBtn">파일로 내보내기</button>
+                        <button id="importPaletteBtn">파일에서 불러오기</button>
                     </div>
+                    <input type="file" id="paletteUpload" accept=".json, .txt" hidden>
                 </div>
             </div>
         </details>
