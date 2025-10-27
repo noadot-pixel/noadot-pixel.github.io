@@ -255,8 +255,11 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.scaleHeight.value = '';
         elements.metadataInfoDisplay.classList.remove('visible');
 
-        // ====================== [변경점 시작] ======================
-        // 모든 체크박스 옵션을 강제로 OFF 시키고 관련 상태를 초기화합니다.
+        // ====================== [여기에 한 줄 추가] ======================
+        elements.imageUpload.value = ''; // 파일 입력(input)의 상태를 완전히 초기화합니다.
+        // ================================================================
+
+        // (참고: 이전 수정에서 추가했던 체크박스 초기화 로직도 포함된 완전한 버전)
         if (elements.highQualityMode) elements.highQualityMode.checked = false;
         if (elements.edgeCleanup) elements.edgeCleanup.checked = false;
         if (elements.showOutline) elements.showOutline.checked = false;
@@ -266,10 +269,8 @@ document.addEventListener('DOMContentLoaded', () => {
         state.edgeCleanup = false;
         state.useWplaceInGeoMode = false;
         
-        // 상세 옵션 UI도 닫습니다.
         if (elements.edgeCleanupOptions) elements.edgeCleanupOptions.style.display = 'none';
         if (elements.wplacePaletteInGeo) elements.wplacePaletteInGeo.style.display = 'none';
-        // ======================= [변경점 끝] =======================
     };
     
     // 수정 후 코드
