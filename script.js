@@ -117,38 +117,15 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.appendChild(elements.tooltip);
         }
     };
-    const showTooltip = (e) => {const showTooltip = (e) => {
-        const target = e.target;
-        if (!elements.tooltip) return;
-
-        let tooltipKey = null;
-
-        // 1. 만약 마우스가 '디더링' <select> 또는 그 <label> 위에 있다면
-        if (target.closest('#dithering-algorithm-group')) {
-            // 현재 선택된 <option>에서 툴팁 키를 가져온다.
-            const selectedOption = elements.ditheringAlgorithmSelect.options[elements.ditheringAlgorithmSelect.selectedIndex];
-            if (selectedOption && selectedOption.dataset.tooltipKey) {
-                tooltipKey = selectedOption.dataset.tooltipKey;
-            }
-        } 
-        // 2. 그 외의 다른 툴팁 대상 요소를 찾는다.
-        else {
-            const tooltipTarget = target.closest('[data-tooltip-key]');
-            if (tooltipTarget) {
-                tooltipKey = tooltipTarget.dataset.tooltipKey;
-            }
-        }
-
-        if (!tooltipKey) return;
-
+    const showTooltip = (e) => {
+        const target = e.target.closest('[data-tooltip-key]');
+        if (!target || !elements.tooltip) return;
+        const tooltipKey = target.dataset.tooltipKey;
         const text = languageData[state.language][tooltipKey] || '';
         if (!text) return;
-
         elements.tooltip.innerHTML = text;
         updateTooltipPosition(e);
         elements.tooltip.classList.add('visible');
-    };
-    
     };
     const hideTooltip = () => { if (elements.tooltip) elements.tooltip.classList.remove('visible'); };
     const updateTooltipPosition = (e) => {
