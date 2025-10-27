@@ -12,7 +12,7 @@
     <!-- 왼쪽 패널: 헤더 및 변환 결과 영역 -->
     <div class="left-panel">
         <header class="main-header">
-            <h1>🎨 NoaDot v2.10</h1>
+            <h1>🎨 NoaDot v3.1</h1> <!-- 버전 업데이트 -->
             <div class="external-links">
                 <a href="https://github.com/noadot-pixel/noadot-pixel.github.io" target="_blank" title="GitHub">
                     <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub">
@@ -204,10 +204,27 @@
                 <input type="checkbox" id="highQualityMode">
                 <label for="highQualityMode">고품질 색상 계산 (느림)</label>
             </div>
+            
+            <!-- 추가 시작: 픽셀 외곽선 정리 기능 UI -->
             <div class="control-group checkbox-group">
                 <input type="checkbox" id="edgeCleanup">
-                <label for="edgeCleanup">픽셀 외곽선 정리</label>
+                <label for="edgeCleanup">만화 스타일 필터</label>
             </div>
+            <div id="edgeCleanupOptions" class="sub-options" style="display: none;">
+                <div class="control-group">
+                    <label for="posterizeLevelsSlider">색상 레벨: <span id="posterizeLevelsValue">8</span>
+                        <button class="reset-btn" data-target="posterizeLevelsSlider" title="초기화">⟳</button>
+                    </label>
+                    <!-- 색상을 몇 단계로 단순화할지 결정. 값이 낮을수록 더 단순해짐 -->
+                    <input type="range" id="posterizeLevelsSlider" min="2" max="32" value="8">
+                </div>
+                 <div class="control-group checkbox-group" style="padding-left: 0; margin-top: 5px;">
+                    <input type="checkbox" id="showOutline">
+                    <label for="showOutline">외곽선 표시</label>
+                </div>
+            </div>
+            <!-- 추가 끝 -->
+
         </section>
 
         <!-- 팔레트 선택 -->

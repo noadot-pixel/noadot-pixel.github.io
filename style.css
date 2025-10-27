@@ -209,3 +209,17 @@ fieldset:disabled { opacity: 0.6; pointer-events: none; }
     padding-bottom: 8px; /* 아래쪽 여백 조정 */
     font-size: 14px;     /* 폰트 크기 살짝 줄이기 */
 }
+
+.sub-options {
+    margin-top: 10px;      /* 위쪽 컨트롤과의 간격 */
+    margin-left: 20px;     /* 체크박스보다 살짝 들여쓰기 */
+    padding-left: 15px;    /* 내부 컨트롤과의 간격 */
+    border-left: 2px solid #e0e0e0; /* 계층 구조를 보여주는 왼쪽 테두리 */
+    display: grid;         /* 내부 컨트롤들을 그리드로 정렬 */
+    gap: 10px;             /* 컨트롤 간의 간격 */
+}
+
+/* 상세 옵션 컨테이너 내의 각 컨트롤 그룹 */
+.sub-options .control-group {
+    margin-bottom: 0; /* 불필요한 하단 마진 제거 */
+}
