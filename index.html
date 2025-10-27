@@ -200,12 +200,6 @@
                 </label>
                 <input type="range" id="ditheringSlider" min="0" max="100" value="0">
             </div>
-            <div class="control-group">
-                <label for="hueThresholdSlider">그림자 색조 우선도: <span id="hueThresholdValue">30</span>
-                    <button class="reset-btn" data-target="hueThresholdSlider" title="초기화">⟳</button>
-                </label>
-                <input type="range" id="hueThresholdSlider" min="0" max="100" value="0">
-            </div>
             <div class="control-group checkbox-group">
                 <input type="checkbox" id="highQualityMode">
                 <label for="highQualityMode">고품질 색상 계산 (느림)</label>
@@ -270,11 +264,31 @@
         </div>
 
         <details open class="palette-category user-palette" id="user-palette-section">
-            <summary><span class="palette-status-icon" data-target="recommendedColors,addedColors"></span>사용자 팔레트</summary>
+            <summary><span class="palette-status-icon" data-target="addedColors"></span>사용자 팔레트</summary>
             <div id="recommendation-section" class="palette-section">
                 <h2>색상 추출 추천</h2>
-                <div class="palette-buttons" id="recommendedColors">
-                    <div class="placeholder-section">이미지를 업로드하면<br>추천 색상이 표시됩니다.</div>
+                <div class="control-group">
+                    <label for="highlightSensitivitySlider">하이라이트 탐지 감도: <span id="highlightSensitivityValue">0</span></label>
+                    <input type="range" id="highlightSensitivitySlider" min="0" max="5" value="0">
+                </div>
+
+                <!-- [수정] 모드 전환 토글 방식으로 변경 -->
+                <section id="recommendation-toggle-container" class="mode-switcher" style="display: none; margin-top: 15px; padding: 0; background: none; border: none; margin-bottom: 10px;">
+                    <div class="radio-toggle">
+                        <input type="radio" id="highUsageMode" name="recommendMode" value="highUsage" checked>
+                        <label for="highUsageMode">고비율 색상</label>
+                        <input type="radio" id="highlightMode" name="recommendMode" value="highlight">
+                        <label for="highlightMode">하이라이트</label>
+                    </div>
+                </section>
+
+                <!-- [수정] 추천 목록을 표시할 단일 컨테이너 -->
+                <div id="recommendation-list-container" class="recommendation-list-area" style="margin-top: 10px;">
+                    <!-- JS로 채워짐 -->
+                </div>
+                
+                <div id="recommendedColorsPlaceholder" class="placeholder-section" style="margin-top: 15px;">
+                    이미지를 업로드하면<br>추천 색상이 표시됩니다.
                 </div>
             </div>
             <div id="user-defined-palette" class="palette-section">

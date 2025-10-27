@@ -93,19 +93,36 @@ details[open] > summary::after { transform: rotate(90deg); }
 button.toggle-all { cursor: pointer; }
 .toggle-all-palette { width: 56px; height: 56px; border: 2px solid #666; background-color: #fff; color: #333; font-size: 28px; font-weight: bold; display: flex; justify-content: center; align-items: center; }
 
-.add-color-form { display: flex; gap: 5px; margin-bottom: 10px; }
-.add-color-form input { width: 100%; }
+.add-color-form { display: flex; flex-direction: column; gap: 10px; }
+.add-color-input-group { display: flex; gap: 5px; }
+.add-color-input-group input { width: 100%; }
+.add-color-separator { text-align: center; color: #888; font-size: 14px; margin: -5px 0; }
+.input-feedback { font-size: 12px; color: #d9534f; padding: 4px 0 0 2px; min-height: 1.2em; display: block; transition: color 0.2s; }
 input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type=number] { -moz-appearance: textfield; appearance: none; }
 .color-code-section { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
 .color-code-section textarea { width: 100%; min-height: 60px; resize: vertical; box-sizing: border-box; }
 .color-code-section button { width: fit-content; padding: 5px 10px; }
 
-#recommendation-section .palette-buttons { min-height: 60px; border: 1px dashed #ccc; border-radius: 5px; padding: 10px; background-color: #f9f9f9; }
+/* [수정] 색상 추천 목록 스타일 */
+.recommendation-list-area {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 5px;
+    min-height: 70px;
+    border: 1px dashed #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #f9f9f9;
+}
 .recommendation-item { display: flex; align-items: center; gap: 8px; background-color: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 5px; font-size: 12px; }
 .recommendation-swatch { width: 24px; height: 24px; border: 1px solid #888; flex-shrink: 0; }
-.recommendation-info { display: flex; flex-direction: column; }
-.recommendation-add-btn { padding: 4px 8px; cursor: pointer; font-size: 14px; font-weight: bold; }
+.recommendation-info { flex-grow: 1; display: flex; flex-direction: column; }
+.recommendation-add-btn { padding: 4px 8px; cursor: pointer; font-size: 14px; font-weight: bold; border: none; background: none; color: #007bff; transition: color 0.2s; }
+.recommendation-add-btn:hover { color: #0056b3; }
 
 .option-section { padding: var(--padding); background-color: rgba(255, 255, 255, 0.9); border-radius: 8px; margin-bottom: var(--padding); }
 .checkbox-group { flex-direction: row; align-items: center; gap: 8px; }
@@ -180,33 +197,15 @@ fieldset:disabled { opacity: 0.6; pointer-events: none; }
   .app-container.text-mode .left-panel-content { flex-direction: column; }
 }
 
-.add-color-form {
-    flex-direction: column; /* 세로 정렬로 변경 */
-    gap: 10px; /* 요소 간 간격 추가 */
+/* --- [추가] 색상 추천 토글 UI 개선 --- */
+#recommendation-toggle-container .radio-toggle {
+    background-color: transparent; /* 배경색 제거 */
+    border: none;                  /* 테두리 제거 */
+    padding: 0;                    /* 안쪽 여백 제거 */
 }
 
-.add-color-input-group {
-    display: flex;
-    gap: 5px;
-}
-
-.add-color-input-group input {
-    width: 100%;
-}
-
-.add-color-separator {
-    text-align: center;
-    color: #888;
-    font-size: 14px;
-    margin: -5px 0; /* 위아래 간격 조절 */
-}
-
-/* --- [추가] 입력 유효성 검사 메시지 스타일 --- */
-.input-feedback {
-    font-size: 12px;
-    color: #d9534f; /* 경고를 나타내는 붉은색 계열 */
-    padding: 4px 0 0 2px;
-    min-height: 1.2em; /* 메시지가 없을 때도 공간을 차지하여 레이아웃이 흔들리지 않도록 함 */
-    display: block; /* 항상 보이도록 하되, 내용이 없을 땐 비어있게 */
-    transition: color 0.2s;
+#recommendation-toggle-container .radio-toggle label {
+    padding-top: 8px;    /* 위쪽 여백 조정 */
+    padding-bottom: 8px; /* 아래쪽 여백 조정 */
+    font-size: 14px;     /* 폰트 크기 살짝 줄이기 */
 }
