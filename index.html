@@ -1,9 +1,11 @@
 <!DOCTYPE html>
+<!-- [수정] lang 속성을 동적으로 변경할 예정이므로 초기값은 ko로 유지 -->
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NoaDot - 이미지/텍스트 변환기</title>
+    <!-- [수정] 타이틀도 다국어 처리 대상 -->
+    <title data-lang-key="app_title">NoaDot - 이미지/텍스트 변환기</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,8 +14,14 @@
     <!-- 왼쪽 패널: 헤더 및 변환 결과 영역 -->
     <div class="left-panel">
         <header class="main-header">
-            <h1>🎨 NoaDot v3.1</h1> <!-- 버전 업데이트 -->
+            <!-- [수정] data-lang-key 추가 -->
+            <h1 data-lang-key="app_header">🎨 NoaDot v3.2</h1>
             <div class="external-links">
+                <!-- [추가] 언어 전환 버튼 UI -->
+                <div id="language-switcher" class="language-switcher">
+                    <button data-lang="ko" class="active">KR</button>
+                    <button data-lang="en">EN</button>
+                </div>
                 <a href="https://github.com/noadot-pixel/noadot-pixel.github.io" target="_blank" title="GitHub">
                     <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub">
                 </a>
@@ -21,19 +29,16 @@
         </header>
 
         <div class="left-panel-content">
-            <!-- 텍스트 모드 전용 에디터 -->
             <div id="text-editor-panel">
                 <div class="editor-toolbar">
-                    <button class="style-btn" data-style="bold" title="굵게"><b>B</b></button>
-                    <button class="style-btn" data-style="italic" title="기울임"><i>I</i></button>
+                    <button class="style-btn" data-style="bold" title="굵게" data-lang-key="text_bold" data-tooltip-key="tooltip_bold"><b>B</b></button>
+                    <button class="style-btn" data-style="italic" title="기울임" data-lang-key="text_italic" data-tooltip-key="tooltip_italic"><i>I</i></button>
                 </div>
-                <textarea id="editor-textarea" placeholder="여기에 텍스트를 입력하세요..."></textarea>
+                <textarea id="editor-textarea" data-lang-placeholder="placeholder_text_editor" placeholder="여기에 텍스트를 입력하세요..."></textarea>
             </div>
-
-            <!-- 결과 표시 영역 -->
+            
             <section id="result-area">
                 <div id="convertedCanvasContainer">
-                    <!-- 캔버스 위 UI 요소 -->
                     <div id="top-ui-container">
                         <div id="metadata-info-display"></div>
                         <div class="top-right-ui">
@@ -41,80 +46,67 @@
                             <div id="loading-indicator"></div>
                         </div>
                     </div>
-
-                    <!-- 이미지 업로드 전 UI -->
+                    
                     <div id="placeholder-ui">
                         <svg class="upload-icon" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
-                        <p>창 클릭 혹은 이미지를 화면으로 드래그</p>
+                        <p data-lang-key="placeholder_image_upload">창 클릭 혹은 이미지를 화면으로 드래그</p>
                     </div>
-
-                    <!-- 변환된 이미지 캔버스 -->
+                    
                     <canvas id="convertedCanvas"></canvas>
-                    <button id="centerBtn" title="화면 중앙 및 확대/축소 초기화">✜</button>
+                    <button id="centerBtn" title="화면 중앙 및 확대/축소 초기화" data-tooltip-key="tooltip_center_zoom">✜</button>
                 </div>
             </section>
         </div>
     </div>
 
-    <!-- 오른쪽 패널: 컨트롤 영역 -->
     <div class="right-panel">
-        <!-- 모드 전환 -->
         <section class="main-mode-switcher">
-            <h2>1. 모드 선택</h2>
+            <h2 data-lang-key="section_mode">1. 모드 선택</h2>
             <div class="radio-toggle main-toggle">
                 <input type="radio" id="imageMode" name="appMode" value="image" checked>
-                <label for="imageMode">🖼️ 이미지</label>
+                <label for="imageMode" data-lang-key="mode_image">🖼️ 이미지</label>
                 <input type="radio" id="textMode" name="appMode" value="text">
-                <label for="textMode">✏️ 텍스트</label>
+                <label for="textMode" data-lang-key="mode_text">✏️ 텍스트</label>
             </div>
         </section>
 
-        <!-- 컨트롤 영역 (이미지/텍스트) -->
         <div id="image-controls">
             <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/gif" hidden>
             <section class="image-info">
                 <div id="imageDimensionsDisplay">
-                    <span class="image-only-info">원본 크기: <strong id="originalDimensions">N/A</strong></span>
-                    <span id="convertedDimensionsLabel">변환 크기: </span><strong id="convertedDimensions">N/A</strong>
+                    <span class="image-only-info"><span data-lang-key="info_original_size">원본 크기</span>: <strong id="originalDimensions">N/A</strong></span>
+                    <span id="convertedDimensionsLabel" data-lang-key="info_converted_size">변환 크기</span>: <strong id="convertedDimensions">N/A</strong>
                 </div>
             </section>
             <section>
-                <h2>2. 크기 조절</h2>
+                <h2 data-lang-key="section_resize">2. 크기 조절</h2>
                 <fieldset id="scaleControlsFieldset" disabled>
                     <div class="control-group">
-                        <label for="scaleModeSelect">조절 방식</label>
+                        <label for="scaleModeSelect" data-lang-key="resize_mode">조절 방식</label>
                         <select id="scaleModeSelect">
-                            <option value="pixel">픽셀 단위</option>
-                            <option value="ratio">비율 단위</option>
+                            <option value="pixel" data-lang-key="resize_pixel">픽셀 단위</option>
+                            <option value="ratio" data-lang-key="resize_ratio">비율 단위</option>
                         </select>
                     </div>
                     <div id="ratio-scale-controls" class="hidden">
                         <div class="control-group">
-                            <label for="scaleSlider">축소 비율: <span id="scaleValue">1.00</span></label>
+                            <label for="scaleSlider"><span data-lang-key="resize_scale_ratio">축소 비율</span>: <span id="scaleValue">1.00</span></label>
                             <input type="range" id="scaleSlider" min="1" max="100" value="4">
                         </div>
                     </div>
                     <div id="pixel-scale-controls">
                          <div class="control-group">
-                            <label for="pixelScaleSlider">픽셀 축소량</label>
+                            <label for="pixelScaleSlider" data-lang-key="resize_pixel_amount">픽셀 축소량</label>
                             <input type="range" id="pixelScaleSlider" min="0" value="0">
                         </div>
                         <div class="control-group scale-control-group">
                             <div class="scale-input-wrapper">
-                                <span class="scale-label">너비</span>
-                                <input type="number" id="scaleWidth" min="1">
-                                <div class="scale-buttons">
-                                    <button class="scale-mod-btn" data-target="scaleWidth" data-amount="-1">-</button>
-                                    <button class="scale-mod-btn" data-target="scaleWidth" data-amount="1">+</button>
-                                </div>
+                                <span class="scale-label" data-lang-key="resize_width">너비</span><input type="number" id="scaleWidth" min="1">
+                                <div class="scale-buttons"><button class="scale-mod-btn" data-target="scaleWidth" data-amount="-1">-</button><button class="scale-mod-btn" data-target="scaleWidth" data-amount="1">+</button></div>
                             </div>
                             <div class="scale-input-wrapper">
-                                <span class="scale-label">높이</span>
-                                <input type="number" id="scaleHeight" min="1">
-                                <div class="scale-buttons">
-                                    <button class="scale-mod-btn" data-target="scaleHeight" data-amount="-1">-</button>
-                                    <button class="scale-mod-btn" data-target="scaleHeight" data-amount="1">+</button>
-                                </div>
+                                <span class="scale-label" data-lang-key="resize_height">높이</span><input type="number" id="scaleHeight" min="1">
+                                <div class="scale-buttons"><button class="scale-mod-btn" data-target="scaleHeight" data-amount="-1">-</button><button class="scale-mod-btn" data-target="scaleHeight" data-amount="1">+</button></div>
                             </div>
                         </div>
                     </div>
@@ -124,233 +116,161 @@
 
         <div id="text-controls" style="display: none;">
             <section>
-                <h2>2. 텍스트 스타일</h2>
+                <h2 data-lang-key="section_text_style">2. 텍스트 스타일</h2>
                 <div class="control-group font-controls">
                     <select id="fontSelect">
-                        <option value="Malgun Gothic">맑은 고딕</option>
-                        <option value="Gulim">굴림</option>
-                        <option value="Dotum">돋움</option>
-                        <option value="Arial">Arial</option>
-                        <option value="Verdana">Verdana</option>
+                        <option value="Malgun Gothic">맑은 고딕</option> <option value="Gulim">굴림</option> <option value="Dotum">돋움</option> <option value="Arial">Arial</option> <option value="Verdana">Verdana</option>
                     </select>
-                    <button id="uploadFontBtn" title="폰트 파일 업로드">폰트+</button>
+                    <button id="uploadFontBtn" title="폰트 파일 업로드" data-lang-key="text_upload_font">폰트+</button>
                     <input type="file" id="fontUpload" accept=".ttf, .otf, .woff, .woff2" hidden>
                 </div>
                  <div class="control-group">
-                    <label for="fontSizeSlider">글자 크기: <span id="fontSizeValue">15</span>px</label>
+                    <label for="fontSizeSlider"><span data-lang-key="text_font_size">글자 크기</span>: <span id="fontSizeValue">15</span>px</label>
                     <input type="range" id="fontSizeSlider" min="8" max="100" value="15">
                 </div>
                 <div class="control-group">
-                    <label for="letterSpacingSlider">자간: <span id="letterSpacingValue">0</span>px</label>
+                    <label for="letterSpacingSlider"><span data-lang-key="text_letter_spacing">자간</span>: <span id="letterSpacingValue">0</span>px</label>
                     <input type="range" id="letterSpacingSlider" min="-5" max="20" value="0">
                 </div>
                 <div class="control-group">
-                    <label for="paddingSlider">여백: <span id="paddingValue">10</span>px</label>
+                    <label for="paddingSlider"><span data-lang-key="text_padding">여백</span>: <span id="paddingValue">10</span>px</label>
                     <input type="range" id="paddingSlider" min="0" max="50" value="10">
                 </div>
                  <div class="control-group">
-                    <label for="strokeWidthSlider">테두리 두께: <span id="strokeWidthValue">0</span>px</label>
+                    <label for="strokeWidthSlider"><span data-lang-key="text_stroke_width">테두리 두께</span>: <span id="strokeWidthValue">0</span>px</label>
                     <input type="range" id="strokeWidthSlider" min="0" max="10" value="0">
                 </div>
                 <div class="control-group color-picker-group">
-                    <label for="textColorSelect">글자색</label><select id="textColorSelect"></select>
+                    <label for="textColorSelect" data-lang-key="text_color">글자색</label><select id="textColorSelect"></select>
                 </div>
                  <div class="control-group color-picker-group">
-                    <label for="strokeColorSelect">테두리색</label><select id="strokeColorSelect"></select>
+                    <label for="strokeColorSelect" data-lang-key="text_stroke_color">테두리색</label><select id="strokeColorSelect"></select>
                 </div>
                 <div class="control-group color-picker-group">
-                    <label for="bgColorSelect">배경색</label><select id="bgColorSelect"></select>
+                    <label for="bgColorSelect" data-lang-key="text_bg_color">배경색</label><select id="bgColorSelect"></select>
                 </div>
             </section>
         </div>
 
-        <!-- 공통 컨트롤 -->
         <section class="option-section">
-            <h2>3. 변환 옵션</h2>
+            <h2 data-lang-key="section_options">3. 변환 옵션</h2>
             <div class="control-group">
-                <label for="saturationSlider">채도: <span id="saturationValue">100</span>
-                    <button class="reset-btn" data-target="saturationSlider" title="초기화">⟳</button>
-                </label>
+                <label for="saturationSlider"><span data-lang-key="option_saturation">채도</span>: <span id="saturationValue">100</span><button class="reset-btn" data-target="saturationSlider" title="초기화">⟳</button></label>
                 <input type="range" id="saturationSlider" min="0" max="200" value="100">
             </div>
             <div class="control-group">
-                <label for="brightnessSlider">밝기: <span id="brightnessValue">0</span>
-                    <button class="reset-btn" data-target="brightnessSlider" title="초기화">⟳</button>
-                </label>
+                <label for="brightnessSlider"><span data-lang-key="option_brightness">밝기</span>: <span id="brightnessValue">0</span><button class="reset-btn" data-target="brightnessSlider" title="초기화">⟳</button></label>
                 <input type="range" id="brightnessSlider" min="-100" max="100" value="0">
             </div>
             <div class="control-group">
-                <label for="contrastSlider">대비: <span id="contrastValue">0</span>
-                    <button class="reset-btn" data-target="contrastSlider" title="초기화">⟳</button>
-                </label>
+                <label for="contrastSlider"><span data-lang-key="option_contrast">대비</span>: <span id="contrastValue">0</span><button class="reset-btn" data-target="contrastSlider" title="초기화">⟳</button></label>
                 <input type="range" id="contrastSlider" min="-100" max="100" value="0">
             </div>
             <div id="dithering-algorithm-group" class="control-group">
-                <label for="ditheringAlgorithmSelect">디더링</label>
+                <label for="ditheringAlgorithmSelect" data-lang-key="option_dithering" data-tooltip-key="tooltip_dithering">디더링</label>
                 <select id="ditheringAlgorithmSelect">
-                    <option value="floyd">플로이드-스타인버그</option>
-                    <option value="sierra">시에라-2</option>
-                    <option value="atkinson" selected>애킨슨</option>
-                    <option value="none">사용 안함</option>
+                    <option value="floyd" data-lang-key="dithering_floyd">플로이드-스타인버그</option>
+                    <option value="sierra" data-lang-key="dithering_sierra">시에라-2</option>
+                    <option value="atkinson" selected data-lang-key="dithering_atkinson">애킨슨</option>
+                    <option value="none" data-lang-key="dithering_none">사용 안함</option>
                 </select>
             </div>
             <div id="dithering-strength-group" class="control-group">
-                <label for="ditheringSlider">디더링 강도: <span id="ditheringValue">0</span>%
-                    <button class="reset-btn" data-target="ditheringSlider" title="초기화">⟳</button>
-                </label>
+                <label for="ditheringSlider"><span data-lang-key="option_dithering_strength">디더링 강도</span>: <span id="ditheringValue">0</span>%<button class="reset-btn" data-target="ditheringSlider" title="초기화">⟳</button></label>
                 <input type="range" id="ditheringSlider" min="0" max="100" value="0">
             </div>
             <div class="control-group checkbox-group">
                 <input type="checkbox" id="highQualityMode">
-                <label for="highQualityMode">고품질 색상 계산 (느림)</label>
+                <label for="highQualityMode" data-lang-key="option_hq_mode" data-tooltip-key="tooltip_hq_mode">고품질 색상 계산 (느림)</label>
             </div>
-            
-            <!-- 추가 시작: 픽셀 외곽선 정리 기능 UI -->
             <div class="control-group checkbox-group">
                 <input type="checkbox" id="edgeCleanup">
-                <label for="edgeCleanup">만화 스타일 필터</label>
+                <label for="edgeCleanup" data-lang-key="option_cartoon_filter" data-tooltip-key="tooltip_cartoon_filter">만화 스타일 필터</label>
             </div>
             <div id="edgeCleanupOptions" class="sub-options" style="display: none;">
                 <div class="control-group">
-                    <label for="posterizeLevelsSlider">색상 레벨: <span id="posterizeLevelsValue">8</span>
-                        <button class="reset-btn" data-target="posterizeLevelsSlider" title="초기화">⟳</button>
-                    </label>
-                    <!-- 색상을 몇 단계로 단순화할지 결정. 값이 낮을수록 더 단순해짐 -->
+                    <label for="posterizeLevelsSlider"><span data-lang-key="cartoon_color_level">색상 레벨</span>: <span id="posterizeLevelsValue">8</span><button class="reset-btn" data-target="posterizeLevelsSlider" title="초기화">⟳</button></label>
                     <input type="range" id="posterizeLevelsSlider" min="2" max="32" value="8">
                 </div>
                  <div class="control-group checkbox-group" style="padding-left: 0; margin-top: 5px;">
                     <input type="checkbox" id="showOutline">
-                    <label for="showOutline">외곽선 표시</label>
+                    <label for="showOutline" data-lang-key="cartoon_show_outline">외곽선 표시</label>
                 </div>
             </div>
-            <!-- 추가 끝 -->
-
         </section>
 
-        <!-- 팔레트 선택 -->
         <section class="mode-switcher">
-            <h2>4. 팔레트 선택</h2>
+            <h2 data-lang-key="section_palette">4. 팔레트 선택</h2>
             <div class="radio-toggle">
-                <input type="radio" id="geopixelsMode" name="paletteMode" value="geopixels" checked>
-                <label for="geopixelsMode">GeoPixels</label>
-                <input type="radio" id="wplaceMode" name="paletteMode" value="wplace">
-                <label for="wplaceMode">Wplace</label>
+                <input type="radio" id="geopixelsMode" name="paletteMode" value="geopixels" checked><label for="geopixelsMode">GeoPixels</label>
+                <input type="radio" id="wplaceMode" name="paletteMode" value="wplace"><label for="wplaceMode">Wplace</label>
             </div>
         </section>
 
-        <!-- 팔레트 컬렉션 -->
         <div class="palette-collection">
             <div id="geopixels-controls">
-                <details open class="palette-category">
-                    <summary><span class="palette-status-icon" data-target="geoPixelColors"></span>GeoPixels 기본 팔레트</summary>
-                    <div class="palette-section">
-                        <div class="palette-buttons" id="geoPixelColors"><!-- JS로 채워짐 --></div>
-                    </div>
-                </details>
-                <details class="palette-category">
-                    <summary><span class="palette-status-icon" data-target="wplaceFreeColorsInGeo,wplacePaidColorsInGeo"></span>Wplace 팔레트 사용하기</summary>
-                    <div class="palette-section">
-                         <div class="control-group checkbox-group">
-                            <input type="checkbox" id="useWplaceInGeoMode">
-                            <label for="useWplaceInGeoMode">GeoPixels 모드에서 Wplace 팔레트 함께 사용</label>
-                        </div>
-                        <div id="wplace-palette-in-geo" style="display: none;">
-                            <h4>Wplace 무료</h4>
-                            <div class="palette-buttons" id="wplaceFreeColorsInGeo"><!-- JS로 채워짐 --></div>
-                            <h4 style="margin-top:15px;">Wplace 유료</h4>
-                            <div class="palette-buttons" id="wplacePaidColorsInGeo"><!-- JS로 채워짐 --></div>
-                        </div>
-                    </div>
-                </details>
+                <details open class="palette-category"><summary><span class="palette-status-icon" data-target="geoPixelColors"></span><span data-lang-key="palette_geopixels_default">GeoPixels 기본 팔레트</span></summary><div class="palette-section"><div class="palette-buttons" id="geoPixelColors"></div></div></details>
+                <details class="palette-category"><summary><span class="palette-status-icon" data-target="wplaceFreeColorsInGeo,wplacePaidColorsInGeo"></span><span data-lang-key="palette_use_wplace">Wplace 팔레트 사용하기</span></summary><div class="palette-section"><div class="control-group checkbox-group"><input type="checkbox" id="useWplaceInGeoMode"><label for="useWplaceInGeoMode" data-lang-key="palette_use_wplace_in_geo">GeoPixels 모드에서 Wplace 팔레트 함께 사용</label></div><div id="wplace-palette-in-geo" style="display: none;"><h4 data-lang-key="palette_wplace_free">Wplace 무료</h4><div class="palette-buttons" id="wplaceFreeColorsInGeo"></div><h4 style="margin-top:15px;" data-lang-key="palette_wplace_paid">Wplace 유료</h4><div class="palette-buttons" id="wplacePaidColorsInGeo"></div></div></div></details>
             </div>
-
             <div id="wplace-controls" style="display: none;">
-                <details open class="palette-category">
-                    <summary><span class="palette-status-icon" data-target="wplaceFreeColors"></span>Wplace 무료 팔레트</summary>
-                    <div class="palette-section">
-                        <div class="palette-buttons" id="wplaceFreeColors"><!-- JS로 채워짐 --></div>
-                    </div>
-                </details>
-                <details class="palette-category">
-                    <summary><span class="palette-status-icon" data-target="wplacePaidColors"></span>Wplace 유료 팔레트</summary>
-                    <div class="palette-section">
-                        <div class="palette-buttons" id="wplacePaidColors"><!-- JS로 채워짐 --></div>
-                    </div>
-                </details>
+                <details open class="palette-category"><summary><span class="palette-status-icon" data-target="wplaceFreeColors"></span><span data-lang-key="palette_wplace_free">Wplace 무료 팔레트</span></summary><div class="palette-section"><div class="palette-buttons" id="wplaceFreeColors"></div></div></details>
+                <details class="palette-category"><summary><span class="palette-status-icon" data-target="wplacePaidColors"></span><span data-lang-key="palette_wplace_paid">Wplace 유료 팔레트</span></summary><div class="palette-section"><div class="palette-buttons" id="wplacePaidColors"></div></div></details>
             </div>
         </div>
 
         <details open class="palette-category user-palette" id="user-palette-section">
-            <summary><span class="palette-status-icon" data-target="addedColors"></span>사용자 팔레트</summary>
+            <summary><span class="palette-status-icon" data-target="addedColors"></span><span data-lang-key="palette_user">사용자 팔레트</span></summary>
             <div id="recommendation-section" class="palette-section">
-                <h2>색상 추출 추천</h2>
+                <h2 data-lang-key="section_color_extract">색상 추출 추천</h2>
                 <div class="control-group">
-                    <label for="highlightSensitivitySlider">하이라이트 탐지 감도: <span id="highlightSensitivityValue">0</span></label>
+                    <label for="highlightSensitivitySlider" data-tooltip-key="tooltip_highlight_sensitivity"><span data-lang-key="extract_highlight_sensitivity">하이라이트 탐지 감도</span>: <span id="highlightSensitivityValue">0</span></label>
                     <input type="range" id="highlightSensitivitySlider" min="0" max="5" value="0">
                 </div>
-
-                <!-- [수정] 모드 전환 토글 방식으로 변경 -->
                 <section id="recommendation-toggle-container" class="mode-switcher" style="display: none; margin-top: 15px; padding: 0; background: none; border: none; margin-bottom: 10px;">
                     <div class="radio-toggle">
-                        <input type="radio" id="highUsageMode" name="recommendMode" value="highUsage" checked>
-                        <label for="highUsageMode">고비율 색상</label>
-                        <input type="radio" id="highlightMode" name="recommendMode" value="highlight">
-                        <label for="highlightMode">하이라이트</label>
+                        <input type="radio" id="highUsageMode" name="recommendMode" value="highUsage" checked><label for="highUsageMode" data-lang-key="extract_mode_high_usage">고비율 색상</label>
+                        <input type="radio" id="highlightMode" name="recommendMode" value="highlight"><label for="highlightMode" data-lang-key="extract_mode_highlight">하이라이트</label>
                     </div>
                 </section>
-
-                <!-- [수정] 추천 목록을 표시할 단일 컨테이너 -->
-                <div id="recommendation-list-container" class="recommendation-list-area" style="margin-top: 10px;">
-                    <!-- JS로 채워짐 -->
-                </div>
-                
-                <div id="recommendedColorsPlaceholder" class="placeholder-section" style="margin-top: 15px;">
-                    이미지를 업로드하면<br>추천 색상이 표시됩니다.
-                </div>
+                <div id="recommendation-list-container" class="recommendation-list-area" style="margin-top: 10px;"></div>
+                <div id="recommendedColorsPlaceholder" class="placeholder-section" style="margin-top: 15px;" data-lang-key="placeholder_recommend">이미지를 업로드하면<br>추천 색상이 표시됩니다.</div>
             </div>
             <div id="user-defined-palette" class="palette-section">
-                <h2>추가한 색상</h2>
+                <h2 data-lang-key="palette_added_colors">추가한 색상</h2>
                 <div class="palette-buttons" id="addedColors">
-                     <div class="placeholder-section">아래에서 직접 색상을 추가하세요.</div>
+                     <div class="placeholder-section" data-lang-key="placeholder_add_color">아래에서 직접 색상을 추가하세요.</div>
                 </div>
                 <form class="add-color-form" onsubmit="return false;">
-                    <div class="add-color-input-group">
-                        <input type="text" id="addHex" placeholder="HEX 코드 입력 (예: #FF595E)">
-                    </div>
+                    <div class="add-color-input-group"><input type="text" id="addHex" data-lang-placeholder="placeholder_hex" placeholder="HEX 코드 입력 (예: #FF595E)"></div>
                     <span id="hexInputFeedback" class="input-feedback">&nbsp;</span>
-                    <div class="add-color-separator">또는</div>
-                    <div class="add-color-input-group">
-                        <input type="number" id="addR" min="0" max="255" placeholder="R">
-                        <input type="number" id="addG" min="0" max="255" placeholder="G">
-                        <input type="number" id="addB" min="0" max="255" placeholder="B">
-                    </div>
+                    <div class="add-color-separator" data-lang-key="palette_or">또는</div>
+                    <div class="add-color-input-group"><input type="number" id="addR" min="0" max="255" placeholder="R"><input type="number" id="addG" min="0" max="255" placeholder="G"><input type="number" id="addB" min="0" max="255" placeholder="B"></div>
                     <span id="rgbInputFeedback" class="input-feedback">&nbsp;</span>
-                    <button id="addColorBtn">추가</button>
+                    <button id="addColorBtn" data-lang-key="btn_add">추가</button>
                 </form>
-                <button id="resetAddedColorsBtn" class="reset-all-colors-btn">추가한 색상 전체 초기화</button>
+                <button id="resetAddedColorsBtn" class="reset-all-colors-btn" data-lang-key="btn_reset_added_colors">추가한 색상 전체 초기화</button>
             </div>
              <div class="palette-section">
-                <h2>팔레트 가져오기/내보내기</h2>
+                <h2 data-lang-key="section_palette_io">팔레트 가져오기/내보내기</h2>
                 <div class="color-code-section">
-                    <p style="font-size:14px; color:#555; margin:0 0 10px 0;">
-                        현재 '추가한 색상' 목록을 파일로 저장하거나, 파일에서 불러옵니다.
-                    </p>
+                    <p style="font-size:14px; color:#555; margin:0 0 10px 0;" data-lang-key="info_palette_io">현재 '추가한 색상' 목록을 파일로 저장하거나, 파일에서 불러옵니다.</p>
                     <div class="button-group-horizontal">
-                        <button id="exportPaletteBtn">파일로 내보내기</button>
-                        <button id="importPaletteBtn">파일에서 불러오기</button>
+                        <button id="exportPaletteBtn" data-lang-key="btn_export_palette">파일로 내보내기</button>
+                        <button id="importPaletteBtn" data-lang-key="btn_import_palette">파일에서 불러오기</button>
                     </div>
                     <input type="file" id="paletteUpload" accept=".json, .txt" hidden>
                 </div>
             </div>
         </details>
 
-        <!-- 다운로드 -->
         <section class="download-section">
-            <button id="downloadBtn" disabled>다운로드</button>
+            <button id="downloadBtn" disabled data-lang-key="btn_download">다운로드</button>
         </section>
     </div>
 </div>
 
+<script src="palette-data.js"></script>
+<script src="language.js"></script>
 <script src="script.js"></script>
 
 </body>

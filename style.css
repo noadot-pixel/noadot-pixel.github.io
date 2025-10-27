@@ -223,3 +223,64 @@ fieldset:disabled { opacity: 0.6; pointer-events: none; }
 .sub-options .control-group {
     margin-bottom: 0; /* 불필요한 하단 마진 제거 */
 }
+
+/* ============================================= */
+/*          [추가] UI/UX 개선 스타일 (v3.2)         */
+/* ============================================= */
+
+/* --- 1. 언어 전환 버튼 스타일 --- */
+.language-switcher {
+    display: flex;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.language-switcher button {
+    background-color: #f0f0f0;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+    color: #555;
+    font-size: 13px;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.language-switcher button:not(:last-child) {
+    border-right: 1px solid #ccc;
+}
+
+.language-switcher button:hover {
+    background-color: #e0e0e0;
+}
+
+.language-switcher button.active {
+    background-color: #337ab7;
+    color: white;
+}
+
+
+/* --- 2. 툴팁 스타일 --- */
+.tooltip-box {
+    position: fixed; /* 화면 기준으로 위치 고정 */
+    background-color: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 300px;
+    z-index: 9999; /* 다른 모든 요소 위에 표시 */
+    pointer-events: none; /* 툴팁이 마우스 이벤트를 가로채지 않도록 설정 */
+    
+    /* 부드러운 애니메이션 효과 */
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+.tooltip-box.visible {
+    opacity: 1;
+    transform: translateY(0);
+}

@@ -1,8 +1,6 @@
-// script.js (v3.0 기반 + 접근법 2.0 기능 추가)
+// script.js (v3.2.1 - 최종 통합본)
 
-const wplaceFreeColors = [{rgb:[0,0,0],name:"black"},{rgb:[60,60,60],name:"dark gray"},{rgb:[120,120,120],name:"gray"},{rgb:[210,210,210],name:"light gray"},{rgb:[255,255,255],name:"white"},{rgb:[96,0,24],name:"deep red"},{rgb:[237,28,36],name:"red"},{rgb:[255,127,39],name:"orange"},{rgb:[246,171,9],name:"gold"},{rgb:[249,221,59],name:"yellow"},{rgb:[255,250,188],name:"light yellow"},{rgb:[14,185,104],name:"dark green"},{rgb:[19,230,123],name:"green"},{rgb:[135,255,94],name:"light green"},{rgb:[12,129,110],name:"dark teal"},{rgb:[16,174,166],name:"teal"},{rgb:[19,225,190],name:"light teal"},{rgb:[96,247,242],name:"cyan"},{rgb:[40,80,158],name:"dark blue"},{rgb:[64,147,228],name:"blue"},{rgb:[107,80,246],name:"indigo"},{rgb:[153,177,251],name:"light indigo"},{rgb:[120,12,153],name:"dark purple"},{rgb:[170,56,185],name:"purple"},{rgb:[224,159,249],name:"light purple"},{rgb:[203,0,122],name:"dark pink"},{rgb:[236,31,128],name:"pink"},{rgb:[243,141,169],name:"light pink"},{rgb:[104,70,52],name:"dark brown"},{rgb:[149,104,42],name:"brown"},{rgb:[248,178,119],name:"beige"}];
-const wplacePaidColors = [{rgb:[170,170,170],name:"medium gray"},{rgb:[165,14,30],name:"dark red"},{rgb:[250,128,114],name:"light red"},{rgb:[228,92,26],name:"dark orange"},{rgb:[156,132,49],name:"dark goldenrod"},{rgb:[197,173,49],name:"goldenrod"},{rgb:[232,212,95],name:"light goldenrod"},{rgb:[74,107,58],name:"dark olive"},{rgb:[90,148,74],name:"olive"},{rgb:[132,197,115],name:"light olive"},{rgb:[15,121,159],name:"dark cyan"},{rgb:[187,250,242],name:"light cyan"},{rgb:[125,199,255],name:"light blue"},{rgb:[77,49,184],name:"dark indigo"},{rgb:[74,66,132],name:"dark slate blue"},{rgb:[122,113,196],name:"slate blue"},{rgb:[181,174,241],name:"light slate blue"},{rgb:[155,82,73],name:"dark peach"},{rgb:[209,128,120],name:"peach"},{rgb:[250,182,164],name:"light peach"},{rgb:[219,164,99],name:"light brown"},{rgb:[123,99,82],name:"dark tan"},{rgb:[156,132,107],name:"tan"},{rgb:[214,181,148],name:"light tan"},{rgb:[209,128,81],name:"dark beige"},{rgb:[255,197,165],name:"light beige"},{rgb:[109,100,63],name:"dark stone"},{rgb:[148,140,107],name:"stone"},{rgb:[205,197,158],name:"light stone"},{rgb:[51,57,65],name:"dark slate"},{rgb:[109,117,141],name:"slate"},{rgb:[179,185,209],name:"light slate"}];
-const geopixelsColors = [{rgb:[255,255,255],name:null},{rgb:[244,245,159],name:null},{rgb:[255,202,58],name:null},{rgb:[255,159,28],name:null},{rgb:[255,89,94],name:null},{rgb:[231,29,54],name:null},{rgb:[243,187,194],name:null},{rgb:[255,133,161],name:null},{rgb:[189,99,125],name:null},{rgb:[205,180,219],name:null},{rgb:[106,76,147],name:null},{rgb:[77,25,77],name:null},{rgb:[168,208,220],name:null},{rgb:[46,196,182],name:null},{rgb:[26,83,92],name:null},{rgb:[109,157,205],name:null},{rgb:[25,130,196],name:null},{rgb:[161,193,129],name:null},{rgb:[138,201,38],name:null},{rgb:[160,160,160],name:null},{rgb:[107,66,38],name:null},{rgb:[80,80,80],name:null},{rgb:[207,208,120],name:null},{rgb:[20,90,122],name:null},{rgb:[139,29,36],name:null},{rgb:[192,127,122],name:null},{rgb:[196,154,108],name:null},{rgb:[91,123,28],name:null},{rgb:[0,0,0],name:null}];
+// 색상 데이터와 언어 데이터는 외부 파일(palette-data.js, language.js)에서 불러옵니다.
 
 const PNGMetadata = { encode(keyword, content) { const keywordBytes = new TextEncoder().encode(keyword); const contentBytes = new TextEncoder().encode(content); const chunkType = new Uint8Array([116, 69, 88, 116]); const chunkData = new Uint8Array(keywordBytes.length + 1 + contentBytes.length); chunkData.set(keywordBytes); chunkData.set([0], keywordBytes.length); chunkData.set(contentBytes, keywordBytes.length + 1); const length = new Uint8Array(4); new DataView(length.buffer).setUint32(0, chunkData.length, false); const crcData = new Uint8Array(chunkType.length + chunkData.length); crcData.set(chunkType); crcData.set(chunkData, chunkType.length); const crc = new Uint8Array(4); new DataView(crc.buffer).setUint32(0, this.crc32(crcData), false); const chunk = new Uint8Array(length.length + chunkType.length + chunkData.length + crc.length); chunk.set(length); chunk.set(chunkType, 4); chunk.set(chunkData, 8); chunk.set(crc, 8 + chunkData.length); return chunk; }, embed(pngArrayBuffer, metadata) { const pngBytes = new Uint8Array(pngArrayBuffer); const keyword = 'NoaDotSettings'; const content = JSON.stringify(metadata); const metadataChunk = this.encode(keyword, content); const iendIndex = pngBytes.length - 12; const newPngBytes = new Uint8Array(pngBytes.length + metadataChunk.length); newPngBytes.set(pngBytes.subarray(0, iendIndex)); newPngBytes.set(metadataChunk, iendIndex); newPngBytes.set(pngBytes.subarray(iendIndex), iendIndex + metadataChunk.length); return newPngBytes.buffer; }, async extract(file) { const buffer = await file.arrayBuffer(); const bytes = new Uint8Array(buffer); const keyword = 'NoaDotSettings'; let offset = 8; while (offset < bytes.length) { const view = new DataView(bytes.buffer, offset); const length = view.getUint32(0); const type = new TextDecoder().decode(bytes.subarray(offset + 4, offset + 8)); if (type === 'tEXt') { const chunkData = bytes.subarray(offset + 8, offset + 8 + length); let separatorIndex = -1; for(let i=0; i<chunkData.length; i++) { if (chunkData[i] === 0) { separatorIndex = i; break; } } if (separatorIndex !== -1) { const currentKeyword = new TextDecoder().decode(chunkData.subarray(0, separatorIndex)); if (currentKeyword === keyword) { const content = new TextDecoder().decode(chunkData.subarray(separatorIndex + 1)); return JSON.parse(content); } } } offset += 12 + length; } return null; }, crcTable: (() => { let c; const crcTable = []; for (let n = 0; n < 256; n++) { c = n; for (let k = 0; k < 8; k++) { c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1)); } crcTable[n] = c; } return crcTable; })(), crc32(bytes) { let crc = 0 ^ (-1); for (let i = 0; i < bytes.length; i++) { crc = (crc >>> 8) ^ this.crcTable[(crc ^ bytes[i]) & 0xFF]; } return (crc ^ (-1)) >>> 0; } };
 
@@ -15,14 +13,23 @@ document.addEventListener('DOMContentLoaded', () => {
             brightnessSlider: 0, 
             contrastSlider: 0, 
             ditheringSlider: 0,
-            // [추가] 새 슬라이더 기본값
-            posterizeLevelsSlider: 8 
+            posterizeLevelsSlider: 8
         } 
     };
 
-    const state = { appMode: 'image', isConverting: false, processId: 0, originalImageData: null, originalImageObject: null, originalFileName: 'image', currentZoom: 100, isDragging: false, panX: 0, panY: 0, startPanX: 0, startPanY: 0, startDragX: 0, startDragY: 0, finalDownloadableData: null, currentMode: 'geopixels', useWplaceInGeoMode: false, highQualityMode: false, edgeCleanup: false, scaleMode: 'pixel', aspectRatio: 1, textState: { content: '', fontFamily: 'Malgun Gothic', fontSize: 15, isBold: false, isItalic: false, letterSpacing: 0, padding: 10, textColor: '0,0,0', bgColor: '255,255,255', strokeColor: '0,0,0', strokeWidth: 0 }, recommendedColors: [], recommendMode: 'highUsage' };
+    const state = { 
+        language: 'ko',
+        appMode: 'image', isConverting: false, processId: 0, originalImageData: null, originalImageObject: null, originalFileName: 'image', 
+        currentZoom: 100, isDragging: false, panX: 0, panY: 0, startPanX: 0, startPanY: 0, startDragX: 0, startDragY: 0, 
+        finalDownloadableData: null, currentMode: 'geopixels', useWplaceInGeoMode: false, highQualityMode: false, edgeCleanup: false, 
+        scaleMode: 'pixel', aspectRatio: 1, 
+        textState: { content: '', fontFamily: 'Malgun Gothic', fontSize: 15, isBold: false, isItalic: false, letterSpacing: 0, padding: 10, textColor: '0,0,0', bgColor: '255,255,255', strokeColor: '0,0,0', strokeWidth: 0 }, 
+        recommendedColors: [], recommendMode: 'highUsage' 
+    };
     
     const elements = {
+        languageSwitcher: document.getElementById('language-switcher'),
+        tooltip: null,
         loadingIndicator: document.getElementById('loading-indicator'),
         appContainer: document.querySelector('.app-container'),
         imageModeBtn: document.getElementById('imageMode'), textModeBtn: document.getElementById('textMode'),
@@ -45,14 +52,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ditheringSlider: document.getElementById('ditheringSlider'), ditheringValue: document.getElementById('ditheringValue'),
         ditheringAlgorithmGroup: document.getElementById('dithering-algorithm-group'),
         ditheringStrengthGroup: document.getElementById('dithering-strength-group'),
-        
-        // [추가] 만화 스타일 필터 관련 DOM 요소 재구성
         edgeCleanup: document.getElementById('edgeCleanup'),
         edgeCleanupOptions: document.getElementById('edgeCleanupOptions'),
         posterizeLevelsSlider: document.getElementById('posterizeLevelsSlider'),
         posterizeLevelsValue: document.getElementById('posterizeLevelsValue'),
         showOutline: document.getElementById('showOutline'),
-
         scaleControlsFieldset: document.getElementById('scaleControlsFieldset'),
         scaleModeSelect: document.getElementById('scaleModeSelect'),
         ratioScaleControls: document.getElementById('ratio-scale-controls'),
@@ -106,12 +110,98 @@ document.addEventListener('DOMContentLoaded', () => {
     const cCtx = elements.convertedCanvas.getContext('2d');
     const conversionWorker = new Worker('worker.js');
 
+    const createTooltip = () => {
+        if (!elements.tooltip) {
+            elements.tooltip = document.createElement('div');
+            elements.tooltip.className = 'tooltip-box';
+            document.body.appendChild(elements.tooltip);
+        }
+    };
+    const showTooltip = (e) => {const showTooltip = (e) => {
+        const target = e.target;
+        if (!elements.tooltip) return;
+
+        let tooltipKey = null;
+
+        // 1. 만약 마우스가 '디더링' <select> 또는 그 <label> 위에 있다면
+        if (target.closest('#dithering-algorithm-group')) {
+            // 현재 선택된 <option>에서 툴팁 키를 가져온다.
+            const selectedOption = elements.ditheringAlgorithmSelect.options[elements.ditheringAlgorithmSelect.selectedIndex];
+            if (selectedOption && selectedOption.dataset.tooltipKey) {
+                tooltipKey = selectedOption.dataset.tooltipKey;
+            }
+        } 
+        // 2. 그 외의 다른 툴팁 대상 요소를 찾는다.
+        else {
+            const tooltipTarget = target.closest('[data-tooltip-key]');
+            if (tooltipTarget) {
+                tooltipKey = tooltipTarget.dataset.tooltipKey;
+            }
+        }
+
+        if (!tooltipKey) return;
+
+        const text = languageData[state.language][tooltipKey] || '';
+        if (!text) return;
+
+        elements.tooltip.innerHTML = text;
+        updateTooltipPosition(e);
+        elements.tooltip.classList.add('visible');
+    };
+    
+    };
+    const hideTooltip = () => { if (elements.tooltip) elements.tooltip.classList.remove('visible'); };
+    const updateTooltipPosition = (e) => {
+        if (!elements.tooltip || !elements.tooltip.classList.contains('visible')) return;
+        const x = e.clientX + 15; const y = e.clientY + 15;
+        const tooltipRect = elements.tooltip.getBoundingClientRect();
+        const bodyRect = document.body.getBoundingClientRect();
+        let finalX = x; let finalY = y;
+        if (x + tooltipRect.width > bodyRect.width) finalX = e.clientX - tooltipRect.width - 15;
+        if (y + tooltipRect.height > bodyRect.height) finalY = e.clientY - tooltipRect.height - 15;
+        elements.tooltip.style.left = `${finalX}px`;
+        elements.tooltip.style.top = `${finalY}px`;
+    };
+
+    const setLanguage = (lang) => {
+        if (!languageData[lang]) return;
+        state.language = lang;
+        localStorage.setItem('userLanguage', lang);
+        document.querySelectorAll('[data-lang-key]').forEach(el => {
+            const key = el.dataset.langKey;
+            const text = languageData[lang][key];
+            if (text !== undefined) el.innerHTML = text;
+        });
+        document.querySelectorAll('[data-lang-placeholder]').forEach(el => {
+            const key = el.dataset.langPlaceholder;
+            const text = languageData[lang][key];
+            if (text !== undefined) el.placeholder = text;
+        });
+        document.documentElement.lang = lang;
+        if (elements.languageSwitcher) {
+            elements.languageSwitcher.querySelectorAll('button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.lang === lang);
+            });
+        }
+        document.querySelectorAll('#wplace-controls .color-container, #wplace-palette-in-geo .color-container').forEach(container => {
+            const nameEl = container.querySelector('.color-name');
+            if (!nameEl) return;
+            const rgbStr = container.querySelector('.color-button').dataset.rgb;
+            const colorInfo = [...wplaceFreeColors, ...wplacePaidColors].find(c => JSON.stringify(c.rgb) === rgbStr);
+            if (lang === 'en' && colorInfo && colorInfo.name) {
+                nameEl.textContent = colorInfo.name;
+            } else if (colorInfo) {
+                nameEl.textContent = `(${colorInfo.rgb.join(',')})`;
+            }
+        });
+    };
+
     const showLoading = (visible) => { elements.loadingIndicator.classList.toggle('visible', visible); };
     const getTextColorForBg = (rgb) => { const [r, g, b] = rgb; const luminance = (0.299 * r + 0.587 * g + 0.114 * b); return luminance > 128 ? '#000000' : '#FFFFFF'; };
     const updateTransform = () => { const scale = state.currentZoom / 100; elements.convertedCanvas.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${scale})`; elements.zoomLevelDisplay.textContent = `${state.currentZoom}%`; };
     const updateZoom = (newZoom) => { state.currentZoom = Math.max(25, Math.min(500, newZoom)); updateTransform(); };
-    const gatherSettingsData = () => { if (state.currentMode === 'geopixels') { return { version: '3.1', type: 'colors', data: Array.from(elements.addedColorsContainer.querySelectorAll('.added-color-item')).map(item => JSON.parse(item.dataset.rgb)) }; } else { return { version: '3.1', type: 'marker' }; } };
-    const applySettingsData = (settings) => { if (!settings || settings.type !== 'colors' || !Array.isArray(settings.data)) return; elements.addedColorsContainer.innerHTML = ''; settings.data.forEach(rgb => createAddedColorItem({ rgb }, true)); updatePaletteStatus(); triggerConversion(); };
+    const gatherSettingsData = () => { if (state.currentMode === 'geopixels') { return { version: '3.2', type: 'colors', data: Array.from(elements.addedColorsContainer.querySelectorAll('.added-color-item')).map(item => JSON.parse(item.dataset.rgb)) }; } else { return { version: '3.2', type: 'marker' }; } };
+    const applySettingsData = (settings) => { if (!settings || settings.type !== 'colors' || !Array.isArray(settings.data)) return; if (confirm(languageData[state.language].confirm_load_palette_from_png)) { elements.addedColorsContainer.innerHTML = ''; settings.data.forEach(rgb => createAddedColorItem({ rgb }, true)); updatePaletteStatus(); triggerConversion(); } };
     const hexToRgb = (hex) => { let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); if (!result) { const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i; const shorthandResult = shorthandRegex.exec(hex); if (shorthandResult) { result = [ shorthandResult[0], shorthandResult[1] + shorthandResult[1], shorthandResult[2] + shorthandResult[2], shorthandResult[3] + shorthandResult[3] ]; } } return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null; };
     const parseRgbString = (str) => { const numbers = str.match(/\d+/g); if (numbers && numbers.length === 3) { const rgb = numbers.map(numStr => parseInt(numStr, 10)); if (rgb.every(num => num >= 0 && num <= 255)) return rgb; } return null; };
     
@@ -126,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let colorsToRender;
         if (state.recommendMode === 'highUsage') { colorsToRender = state.recommendedColors.filter(c => c.type === '사용량 높은 색상').sort((a, b) => b.score - a.score); }
         else { colorsToRender = state.recommendedColors.filter(c => c.type === '하이라이트 색상').sort((a, b) => b.score - a.score); }
-        if (colorsToRender.length === 0) { container.innerHTML = `<div class="placeholder-section" style="padding:10px; font-size:12px;">선택된 모드에 맞는<br>추천 색상이 없습니다.</div>`; return; }
+        if (colorsToRender.length === 0) { container.innerHTML = `<div class="placeholder-section" style="padding:10px; font-size:12px;" data-lang-key="placeholder_no_recommendations">${languageData[state.language].placeholder_no_recommendations}</div>`; return; }
         colorsToRender.forEach(rec => {
             const item = document.createElement('div'); item.className = 'recommendation-item';
             const swatch = document.createElement('div'); swatch.className = 'recommendation-swatch'; swatch.style.backgroundColor = `rgb(${rec.rgb.join(',')})`;
@@ -134,14 +224,32 @@ document.addEventListener('DOMContentLoaded', () => {
             const rgbLabel = document.createElement('span'); rgbLabel.textContent = `(${rec.rgb.join(',')})`; info.appendChild(rgbLabel);
             if (rec.type === '사용량 높은 색상') { const percentLabel = document.createElement('span'); percentLabel.textContent = `(${(rec.usage * 100).toFixed(1)}%)`; info.appendChild(percentLabel); }
             const addBtn = document.createElement('button'); addBtn.className = 'recommendation-add-btn'; addBtn.textContent = '+'; addBtn.title = '이 색상 추가하기';
-            addBtn.onclick = () => { if (createAddedColorItem({ rgb: rec.rgb })) { state.recommendedColors = state.recommendedColors.filter(c => c.rgb.join(',') !== rec.rgb.join(',')); updateColorRecommendations(); updatePaletteStatus(); triggerConversion(); } else { alert('이미 추가된 색상입니다.'); } };
+            addBtn.onclick = () => { if (createAddedColorItem({ rgb: rec.rgb })) { state.recommendedColors = state.recommendedColors.filter(c => c.rgb.join(',') !== rec.rgb.join(',')); updateColorRecommendations(); updatePaletteStatus(); triggerConversion(); } else { alert(languageData[state.language].alert_already_added); } };
             item.appendChild(swatch); item.appendChild(info); item.appendChild(addBtn);
             container.appendChild(item);
         });
     };
 
     const updatePaletteStatus = () => { document.querySelectorAll('.palette-status-icon').forEach(icon => { const targetIds = icon.dataset.target.split(','); let isActive = false; for (const id of targetIds) { const container = document.getElementById(id); if (container && (container.querySelector('.color-button[data-on="true"]') || container.querySelector('.added-color-item[data-on="true"]'))) { isActive = true; break; } } icon.classList.toggle('active', isActive); }); };
-    const createColorButton = (colorData, container, startOn = true) => { if (!colorData.rgb) return; const ctn = document.createElement('div'); ctn.className = 'color-container'; const btn = document.createElement('div'); btn.className = 'color-button'; btn.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`; btn.dataset.rgb = JSON.stringify(colorData.rgb); btn.dataset.on = startOn.toString(); if (!startOn) { btn.classList.add('off'); } btn.title = colorData.name || `rgb(${colorData.rgb.join(',')})`; btn.addEventListener('click', () => { btn.classList.toggle('off'); btn.dataset.on = btn.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); }); ctn.appendChild(btn); if (colorData.name) { const lbl = document.createElement('div'); lbl.className = 'color-name'; lbl.textContent = colorData.name; ctn.appendChild(lbl); } container.appendChild(ctn); };
+    const createColorButton = (colorData, container, startOn = true) => {
+        if (!colorData.rgb) return;
+        const ctn = document.createElement('div'); ctn.className = 'color-container';
+        const btn = document.createElement('div'); btn.className = 'color-button';
+        btn.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`;
+        btn.dataset.rgb = JSON.stringify(colorData.rgb);
+        btn.dataset.on = startOn.toString();
+        if (!startOn) { btn.classList.add('off'); }
+        btn.title = colorData.name || `rgb(${colorData.rgb.join(',')})`;
+        btn.addEventListener('click', () => { btn.classList.toggle('off'); btn.dataset.on = btn.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); });
+        ctn.appendChild(btn);
+        if (colorData.name !== null) {
+            const lbl = document.createElement('div');
+            lbl.className = 'color-name';
+            lbl.textContent = (state.language === 'en' && colorData.name) ? colorData.name : `(${colorData.rgb.join(',')})`;
+            ctn.appendChild(lbl);
+        }
+        container.appendChild(ctn);
+    };
     const createAddedColorItem = (colorData, startOn = true) => {
         if (isColorAlreadyAdded(colorData.rgb)) return false;
         const placeholder = elements.addedColorsContainer.querySelector('.placeholder-section');
@@ -152,13 +260,13 @@ document.addEventListener('DOMContentLoaded', () => {
         swatch.addEventListener('click', () => { item.classList.toggle('off'); item.dataset.on = item.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); });
         const info = document.createElement('div'); info.className = 'added-color-info'; info.textContent = colorData.name || `(${colorData.rgb.join(',')})`;
         const deleteBtn = document.createElement('button'); deleteBtn.className = 'delete-color-btn'; deleteBtn.textContent = '−'; deleteBtn.title = '이 색상 삭제';
-        deleteBtn.onclick = () => { item.remove(); if (elements.addedColorsContainer.childElementCount === 0) { elements.addedColorsContainer.innerHTML = '<div class="placeholder-section">아래에서 직접 색상을 추가하세요.</div>'; } updatePaletteStatus(); triggerConversion(); };
+        deleteBtn.onclick = () => { item.remove(); if (elements.addedColorsContainer.childElementCount === 0) { const placeholderDiv = document.createElement('div'); placeholderDiv.className = 'placeholder-section'; placeholderDiv.dataset.langKey = 'placeholder_add_color'; placeholderDiv.innerHTML = languageData[state.language].placeholder_add_color; elements.addedColorsContainer.appendChild(placeholderDiv); } updatePaletteStatus(); triggerConversion(); };
         item.appendChild(swatch); item.appendChild(info); item.appendChild(deleteBtn);
         elements.addedColorsContainer.appendChild(item);
         return true;
     };
 
-    const createMasterToggleButton = (targetId, container) => { if (!container) return; const btn = document.createElement('button'); btn.className = 'toggle-all toggle-all-palette'; btn.dataset.target = targetId; btn.title = '전체 선택/해제'; btn.textContent = 'A'; container.prepend(btn); };
+    const createMasterToggleButton = (targetId, container) => { if (!container) return; const btn = document.createElement('button'); btn.className = 'toggle-all toggle-all-palette'; btn.title = '전체 선택/해제'; btn.textContent = 'A'; btn.addEventListener('click', () => { const targetIds = targetId.split(','); let allItems = []; targetIds.forEach(id => { const cont = document.getElementById(id); if (cont) { allItems.push(...cont.querySelectorAll('.color-button, .added-color-item')); } }); if (allItems.length === 0) return; const onItemsCount = allItems.filter(b => b.dataset.on === 'true').length; const turnOn = onItemsCount < allItems.length; allItems.forEach(item => { const isOn = item.dataset.on === 'true'; if ((turnOn && !isOn) || (!turnOn && isOn)) { const clickable = item.classList.contains('added-color-item') ? item.querySelector('.added-color-swatch') : item; clickable.click(); } }); }); container.prepend(btn); };
     const applyConversion = (imageDataToProcess, activePalette, options) => { if (!imageDataToProcess) return; state.isConverting = true; showLoading(true); state.processId++; conversionWorker.postMessage({ imageData: imageDataToProcess, palette: activePalette, options: options, processId: state.processId }, [imageDataToProcess.data.buffer]); };
     
     conversionWorker.onmessage = (e) => {
@@ -181,13 +289,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     conversionWorker.onerror = (e) => { console.error('워커에서 에러 발생:', e); showLoading(false); state.isConverting = false; alert('변환 엔진(워커)을 시작하는 데 실패했습니다. 페이지를 새로고침 해주세요.'); };
     
-    // [수정] 워커에 보낼 옵션에 새로운 만화 스타일 필터 값 추가
     const getActivePaletteAndOptions = () => {
         let paletteSelectors = [];
         if (state.currentMode === 'geopixels') { paletteSelectors.push( '#geopixels-controls #geoPixelColors .color-button[data-on="true"]', '#user-palette-section .added-color-item[data-on="true"]' ); if (state.useWplaceInGeoMode) { paletteSelectors.push('#geopixels-controls #wplace-palette-in-geo .color-button[data-on="true"]'); } }
         else { paletteSelectors.push('#wplace-controls .color-button[data-on="true"]'); }
         const palette = Array.from(document.querySelectorAll(paletteSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb));
-        
         const options = {
             saturation: parseInt(elements.saturationSlider.value),
             brightness: parseInt(elements.brightnessSlider.value),
@@ -197,7 +303,6 @@ document.addEventListener('DOMContentLoaded', () => {
             highQualityMode: elements.highQualityMode.checked,
             currentMode: state.currentMode,
             highlightSensitivity: parseInt(elements.highlightSensitivitySlider.value),
-            // 만화 스타일 필터 관련 옵션 (접근법 2.0)
             edgeCleanup: elements.edgeCleanup.checked,
             posterizeLevels: parseInt(elements.posterizeLevelsSlider.value),
             showOutline: elements.showOutline.checked,
@@ -239,7 +344,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const triggerConversion = () => { clearTimeout(state.timeoutId); state.timeoutId = setTimeout(() => { if (state.appMode === 'image') { if (state.originalImageObject) processImage(); } else { processText(); } }, CONFIG.DEBOUNCE_DELAY); };
-    const handleFile = async (file) => { if (!file || !file.type.startsWith('image/')) return; elements.metadataInfoDisplay.classList.remove('visible'); updateColorRecommendations([]); try { const settings = await PNGMetadata.extract(file); if (settings) { if (settings.type === 'colors') { if (confirm("이미지에서 '추가한 색상' 목록을 발견했습니다. 현재 목록을 덮어쓰고 불러오시겠습니까?")) { applySettingsData(settings); } } else if (settings.type === 'marker') { elements.metadataInfoDisplay.textContent = "해당 이미지는 NoaDot을 통해 변환된 기록이 있습니다."; elements.metadataInfoDisplay.classList.add('visible'); } } } catch (error) { console.error("메타데이터 읽기 오류:", error); } state.originalFileName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name; const img = new Image(); img.onload = () => { state.originalImageObject = img; state.aspectRatio = img.height / img.width; elements.scaleWidth.value = img.width; elements.scaleHeight.value = img.height; elements.pixelScaleSlider.max = img.width > 1 ? img.width - 1 : 1; elements.pixelScaleSlider.value = 0; elements.scaleControlsFieldset.disabled = false; elements.appContainer.classList.add('image-loaded'); elements.originalDimensions.textContent = `${img.width} x ${img.height} px`; elements.convertedCanvasContainer.classList.add('has-image'); state.panX = 0; state.panY = 0; updateZoom(100); triggerConversion(); }; img.src = URL.createObjectURL(file); };
+    const handleFile = async (file) => { if (!file || !file.type.startsWith('image/')) return; elements.metadataInfoDisplay.classList.remove('visible'); updateColorRecommendations([]); try { const settings = await PNGMetadata.extract(file); if (settings) { if (settings.type === 'colors') { applySettingsData(settings); } else if (settings.type === 'marker') { elements.metadataInfoDisplay.textContent = languageData[state.language].alert_png_metadata_info; elements.metadataInfoDisplay.classList.add('visible'); } } } catch (error) { console.error("메타데이터 읽기 오류:", error); } state.originalFileName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name; const img = new Image(); img.onload = () => { state.originalImageObject = img; state.aspectRatio = img.height / img.width; elements.scaleWidth.value = img.width; elements.scaleHeight.value = img.height; elements.pixelScaleSlider.max = img.width > 1 ? img.width - 1 : 1; elements.pixelScaleSlider.value = 0; elements.scaleControlsFieldset.disabled = false; elements.appContainer.classList.add('image-loaded'); elements.originalDimensions.textContent = `${img.width} x ${img.height} px`; elements.convertedCanvasContainer.classList.add('has-image'); state.panX = 0; state.panY = 0; updateZoom(100); triggerConversion(); }; img.src = URL.createObjectURL(file); };
+    
     const resetAll = () => {
         state.originalImageObject = null;
         state.originalImageData = null;
@@ -254,70 +360,49 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.scaleWidth.value = '';
         elements.scaleHeight.value = '';
         elements.metadataInfoDisplay.classList.remove('visible');
-
-        // ====================== [여기에 한 줄 추가] ======================
-        elements.imageUpload.value = ''; // 파일 입력(input)의 상태를 완전히 초기화합니다.
-        // ================================================================
-
-        // (참고: 이전 수정에서 추가했던 체크박스 초기화 로직도 포함된 완전한 버전)
+        elements.imageUpload.value = '';
         if (elements.highQualityMode) elements.highQualityMode.checked = false;
         if (elements.edgeCleanup) elements.edgeCleanup.checked = false;
         if (elements.showOutline) elements.showOutline.checked = false;
         if (elements.useWplaceInGeoMode) elements.useWplaceInGeoMode.checked = false;
-        
         state.highQualityMode = false;
         state.edgeCleanup = false;
         state.useWplaceInGeoMode = false;
-        
         if (elements.edgeCleanupOptions) elements.edgeCleanupOptions.style.display = 'none';
         if (elements.wplacePaletteInGeo) elements.wplacePaletteInGeo.style.display = 'none';
     };
     
-    // 수정 후 코드
-const setAppMode = (mode) => {
-    if (state.appMode === mode) return;
-    if (state.appMode === 'image' && state.originalImageObject && mode === 'text') { if (!confirm("모드를 전환하시면 업로드한 이미지 내용은 초기화됩니다. 계속하시겠습니까?")) { elements.imageModeBtn.checked = true; return; } } else if (state.appMode === 'text' && state.textState.content && mode === 'image') { if (!confirm("모드를 전환하시면 작성하신 텍스트 내용은 초기화됩니다. 계속하시겠습니까?")) { elements.textModeBtn.checked = true; return; } }
-    
-    resetAll();
-    state.appMode = mode;
-    
-    // ====================== [변경점 시작] ======================
-    // 모드 전환 시 만화 스타일 필터를 강제로 OFF 시키고 상태를 초기화합니다.
-    if (elements.edgeCleanup.checked) {
-        elements.edgeCleanup.checked = false;
-    }
-    state.edgeCleanup = false;
-    // ======================= [변경점 끝] =======================
-
-    elements.appContainer.classList.toggle('text-mode', mode === 'text');
-    elements.imageControls.style.display = mode === 'image' ? 'grid' : 'none';
-    elements.textControls.style.display = mode === 'text' ? 'block' : 'none';
-    const isImageMode = mode === 'image';
-    elements.ditheringAlgorithmGroup.style.display = isImageMode ? 'flex' : 'none';
-    elements.ditheringStrengthGroup.style.display = isImageMode ? 'flex' : 'none';
-    document.getElementById('edgeCleanup').parentElement.style.display = isImageMode ? 'flex' : 'none';
-
-    // ====================== [변경점 시작] ======================
-    // 상세 옵션 UI는 항상 닫힌 상태로 시작하도록 명시적으로 설정합니다.
-    if (elements.edgeCleanupOptions) {
-        elements.edgeCleanupOptions.style.display = 'none'; 
-    }
-    // ======================= [변경점 끝] =======================
-
-    const placeholderText = elements.placeholderUi.querySelector('p');
-    if (isImageMode) { 
-        placeholderText.textContent = "창 클릭 혹은 이미지를 화면으로 드래그"; 
-        elements.convertedDimensionsLabel.textContent = '변환 크기: '; 
-    } else { 
-        placeholderText.textContent = "왼쪽에서 텍스트를 입력하면 여기에 미리보기가 표시됩니다."; 
-        elements.convertedDimensionsLabel.textContent = '생성 크기: '; 
-        triggerConversion(); 
-    }
-};
+    const setAppMode = (mode) => {
+        if (state.appMode === mode) return;
+        const confirmSwitch = () => {
+            if (state.appMode === 'image' && state.originalImageObject && mode === 'text') { return confirm(languageData[state.language].confirm_mode_switch_to_text); } 
+            else if (state.appMode === 'text' && state.textState.content && mode === 'image') { return confirm(languageData[state.language].confirm_mode_switch_to_image); }
+            return true;
+        };
+        if (!confirmSwitch()) { elements.imageModeBtn.checked = state.appMode === 'image'; elements.textModeBtn.checked = state.appMode === 'text'; return; }
+        resetAll();
+        state.appMode = mode;
+        elements.appContainer.classList.toggle('text-mode', mode === 'text');
+        elements.imageControls.style.display = mode === 'image' ? 'grid' : 'none';
+        elements.textControls.style.display = mode === 'text' ? 'block' : 'none';
+        const isImageMode = mode === 'image';
+        elements.ditheringAlgorithmGroup.style.display = isImageMode ? 'flex' : 'none';
+        elements.ditheringStrengthGroup.style.display = isImageMode ? 'flex' : 'none';
+        if (document.getElementById('edgeCleanup')) { document.getElementById('edgeCleanup').parentElement.style.display = isImageMode ? 'flex' : 'none'; }
+        const placeholderText = elements.placeholderUi.querySelector('p');
+        if (isImageMode) { 
+            placeholderText.innerHTML = languageData[state.language].placeholder_image_upload;
+            elements.convertedDimensionsLabel.innerHTML = languageData[state.language].info_converted_size;
+        } else { 
+            placeholderText.innerHTML = languageData[state.language].placeholder_text_preview;
+            elements.convertedDimensionsLabel.innerHTML = languageData[state.language].info_generated_size;
+            triggerConversion(); 
+        }
+    };
 
     const setPaletteMode = (mode) => { state.currentMode = mode; if (mode === 'geopixels') { elements.geopixelsControls.style.display = 'block'; elements.wplaceControls.style.display = 'none'; elements.userPaletteSection.style.display = 'block'; } else { elements.geopixelsControls.style.display = 'none'; elements.wplaceControls.style.display = 'block'; elements.userPaletteSection.style.display = 'none'; document.querySelectorAll('#wplaceFreeColors .color-button.off').forEach(btn => btn.click()); document.querySelectorAll('#wplacePaidColors .color-button[data-on="true"]').forEach(btn => btn.click()); } updatePaletteStatus(); updateColorRecommendations([]); triggerConversion(); };
     const isColorAlreadyAdded = (rgbArray) => { const rgbStr = JSON.stringify(rgbArray); const existingItems = elements.addedColorsContainer.querySelectorAll('.added-color-item'); for (const item of existingItems) { if (item.dataset.rgb === rgbStr) return true; } return false; };
-    const resetAddedColors = () => { if (!elements.addedColorsContainer.querySelector('.added-color-item')) { alert('초기화할 색상이 없습니다.'); return; } if (confirm('정말로 추가한 모든 색상을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) { elements.addedColorsContainer.innerHTML = '<div class="placeholder-section">아래에서 직접 색상을 추가하세요.</div>'; updatePaletteStatus(); triggerConversion(); } };
+    const resetAddedColors = () => { if (!elements.addedColorsContainer.querySelector('.added-color-item')) { alert(languageData[state.language].alert_no_color_to_reset); return; } if (confirm(languageData[state.language].confirm_reset_added_colors)) { const placeholderDiv = document.createElement('div'); placeholderDiv.className = 'placeholder-section'; placeholderDiv.dataset.langKey = 'placeholder_add_color'; placeholderDiv.innerHTML = languageData[state.language].placeholder_add_color; elements.addedColorsContainer.innerHTML = ''; elements.addedColorsContainer.appendChild(placeholderDiv); updatePaletteStatus(); triggerConversion(); } };
     const handleFontUpload = (file) => { if (!file) return; showLoading(true); const reader = new FileReader(); reader.onload = async (e) => { const fontName = file.name.split('.').slice(0, -1).join('.'); try { const fontFace = new FontFace(fontName, e.target.result); await fontFace.load(); document.fonts.add(fontFace); const option = new Option(fontName, fontName); elements.fontSelect.add(option); option.selected = true; state.textState.fontFamily = fontName; triggerConversion(); } catch (err) { console.error("Font loading failed:", err); alert("지원하지 않거나 손상된 폰트 파일입니다."); } finally { showLoading(false); } }; reader.onerror = () => { alert("폰트 파일을 읽는 데 실패했습니다."); showLoading(false); }; reader.readAsArrayBuffer(file); };
     const populateColorSelects = () => { const selects = [elements.textColorSelect, elements.bgColorSelect, elements.strokeColorSelect]; selects.forEach(select => select.innerHTML = ''); const palettes = []; if (state.currentMode === 'geopixels') { palettes.push({ groupName: 'GeoPixels', data: geopixelsColors }); } else { palettes.push({ groupName: 'Wplace 무료', data: wplaceFreeColors }); palettes.push({ groupName: 'Wplace 유료', data: wplacePaidColors }); } selects.forEach(select => { palettes.forEach(palette => { const optgroup = document.createElement('optgroup'); optgroup.label = palette.groupName; palette.data.forEach(color => { if (!color.rgb) return; const option = document.createElement('option'); option.value = color.rgb.join(','); option.textContent = color.name || `rgb(${color.rgb.join(',')})`; option.style.backgroundColor = `rgb(${color.rgb.join(',')})`; option.style.color = getTextColorForBg(color.rgb); optgroup.appendChild(option); }); select.appendChild(optgroup); }); }); elements.textColorSelect.value = state.textState.textColor; elements.bgColorSelect.value = state.textState.bgColor; elements.strokeColorSelect.value = state.textState.strokeColor; };
     const updateScaleUIVisibility = () => { const isRatio = state.scaleMode === 'ratio'; elements.ratioScaleControls.classList.toggle('hidden', !isRatio); elements.pixelScaleControls.classList.toggle('hidden', isRatio); };
@@ -325,6 +410,19 @@ const setAppMode = (mode) => {
     const switchToRatioMode = () => { if (!state.originalImageObject) return; const currentWidth = parseInt(elements.scaleWidth.value, 10); const ratio = state.originalImageObject.width / currentWidth; const newSliderValue = Math.round(ratio * CONFIG.SCALE_FACTOR); const clampedValue = Math.max(parseInt(elements.scaleSlider.min, 10), Math.min(parseInt(elements.scaleSlider.max, 10), newSliderValue)); elements.scaleSlider.value = clampedValue; elements.scaleValue.textContent = (clampedValue / CONFIG.SCALE_FACTOR).toFixed(2); };
     
     const setupEventListeners = () => {
+        document.body.addEventListener('mouseover', showTooltip);
+        document.body.addEventListener('mouseout', hideTooltip);
+        document.body.addEventListener('mousemove', updateTooltipPosition);
+
+        elements.languageSwitcher.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const lang = e.target.dataset.lang;
+                if (lang && lang !== state.language) {
+                    setLanguage(lang);
+                }
+            }
+        });
+        
         elements.imageModeBtn.addEventListener('change', () => setAppMode('image'));
         elements.textModeBtn.addEventListener('change', () => setAppMode('text'));
         elements.geopixelsModeBtn.addEventListener('change', () => { setPaletteMode('geopixels'); populateColorSelects(); });
@@ -332,7 +430,6 @@ const setAppMode = (mode) => {
         elements.useWplaceInGeoMode.addEventListener('change', (e) => { state.useWplaceInGeoMode = e.target.checked; elements.wplacePaletteInGeo.style.display = e.target.checked ? 'block' : 'none'; updatePaletteStatus(); triggerConversion(); });
         elements.highQualityMode.addEventListener('change', (e) => { state.highQualityMode = e.target.checked; triggerConversion(); });
         
-        // [수정] 만화 스타일 필터 이벤트 리스너 (접근법 2.0)
         elements.edgeCleanup.addEventListener('change', (e) => { 
             state.edgeCleanup = e.target.checked; 
             elements.edgeCleanupOptions.style.display = e.target.checked ? 'block' : 'none';
@@ -353,6 +450,7 @@ const setAppMode = (mode) => {
         cont.addEventListener('drop', e => { e.preventDefault(); cont.classList.remove('drag-over'); if (state.appMode === 'image' && e.dataTransfer.files.length > 0) { handleFile(e.dataTransfer.files[0]); } });
         elements.imageUpload.addEventListener('change', e => { if (e.target.files.length > 0) handleFile(e.target.files[0]); });
         ['saturation', 'brightness', 'contrast', 'dithering'].forEach(t => { const s = elements[`${t}Slider`], v = elements[`${t}Value`]; if(s && v) { s.addEventListener('input', () => { v.textContent = s.value; triggerConversion(); }); } });
+        
         document.querySelectorAll('.reset-btn').forEach(btn => {
             const targetId = btn.dataset.target;
             if (elements[targetId]) {
@@ -362,13 +460,14 @@ const setAppMode = (mode) => {
                     const defaultValue = CONFIG.DEFAULTS[targetId];
                     slider.value = defaultValue;
                     if (valueDisplay) valueDisplay.textContent = defaultValue;
-                    // ====================== [변경점] ======================
-                    // if (targetId === 'posterizeLevelsSlider') elements.showOutline.checked = true; // 이 줄을 삭제했습니다.
-                    // ======================================================
+                    if (targetId === 'posterizeLevelsSlider' && elements.showOutline) {
+                        elements.showOutline.checked = false;
+                    }
                     triggerConversion();
                 });
             }
         });
+
         elements.scaleModeSelect.addEventListener('change', e => { const newMode = e.target.value; if (newMode === state.scaleMode) return; if (state.originalImageObject) { if (newMode === 'pixel') switchToPixelMode(); else switchToRatioMode(); } state.scaleMode = newMode; updateScaleUIVisibility(); triggerConversion(); });
         elements.scaleSlider.addEventListener('input', () => { elements.scaleValue.textContent = (elements.scaleSlider.value / CONFIG.SCALE_FACTOR).toFixed(2); triggerConversion(); });
         elements.highlightSensitivitySlider.addEventListener('input', () => { elements.highlightSensitivityValue.textContent = elements.highlightSensitivitySlider.value; triggerConversion(); });
@@ -381,41 +480,48 @@ const setAppMode = (mode) => {
         document.querySelectorAll('.style-btn').forEach(btn => btn.addEventListener('click', e => { const style = e.currentTarget.dataset.style; state.textState[`is${style.charAt(0).toUpperCase() + style.slice(1)}`] = !state.textState[`is${style.charAt(0).toUpperCase() + style.slice(1)}`]; e.currentTarget.classList.toggle('active'); triggerConversion(); }));
         elements.uploadFontBtn.addEventListener('click', () => elements.fontUpload.click()); elements.fontUpload.addEventListener('change', (e) => { if(e.target.files.length > 0) handleFontUpload(e.target.files[0]) });
         const clearAndResetInputFields = () => { elements.addHex.value = ''; elements.addR.value = ''; elements.addG.value = ''; elements.addB.value = ''; elements.hexInputFeedback.textContent = '\u00A0'; elements.rgbInputFeedback.textContent = '\u00A0'; };
-        const tryAddColor = (rgb, name = null) => { if (!rgb) return; if (createAddedColorItem({ rgb, name })) { updatePaletteStatus(); triggerConversion(); clearAndResetInputFields(); } else { alert("이미 추가된 색상입니다."); } };
+        const tryAddColor = (rgb, name = null) => { if (!rgb) return; if (createAddedColorItem({ rgb, name })) { updatePaletteStatus(); triggerConversion(); clearAndResetInputFields(); } else { alert(languageData[state.language].alert_already_added); } };
         elements.addColorBtn.addEventListener('click', () => { const hexValue = elements.addHex.value.trim(); const rVal = elements.addR.value.trim(), gVal = elements.addG.value.trim(), bVal = elements.addB.value.trim(); if (hexValue) { const rgbFromHex = hexToRgb(hexValue); if (rgbFromHex) { tryAddColor([rgbFromHex.r, rgbFromHex.g, rgbFromHex.b], hexValue.toUpperCase()); } else { elements.hexInputFeedback.textContent = '유효하지 않은 HEX 코드입니다.'; } } else if (rVal || gVal || bVal) { const r = parseInt(rVal), g = parseInt(gVal), b = parseInt(bVal); if ([r,g,b].every(v => !isNaN(v) && v >= 0 && v <= 255)) { tryAddColor([r, g, b]); } else { elements.rgbInputFeedback.textContent = 'RGB 값은 0-255 사이의 숫자여야 합니다.'; } } else { alert('추가할 색상 값을 입력해주세요.'); } });
         const handlePaste = (e) => { e.preventDefault(); const pastedText = e.clipboardData.getData('text').trim(); const rgbFromHex = hexToRgb(pastedText); const rgbFromString = parseRgbString(pastedText); if (rgbFromHex) { tryAddColor([rgbFromHex.r, rgbFromHex.g, rgbFromHex.b], pastedText.toUpperCase()); } else if (rgbFromString) { tryAddColor(rgbFromString); } else { alert('붙여넣은 텍스트에서 유효한 색상 코드(HEX 또는 RGB)를 찾을 수 없습니다.'); } };
         [elements.addHex, elements.addR, elements.addG, elements.addB].forEach(input => { input.addEventListener('paste', handlePaste); input.addEventListener('input', () => { elements.hexInputFeedback.textContent = '\u00A0'; elements.rgbInputFeedback.textContent = '\u00A0'; }); });
         elements.addHex.addEventListener('input', () => { if(parseRgbString(elements.addHex.value)) { elements.hexInputFeedback.textContent = 'RGB 값은 아래 입력란을 사용해주세요.'; } });
         [elements.addR, elements.addG, elements.addB].forEach(input => { input.addEventListener('input', () => { if(hexToRgb(input.value)) { elements.rgbInputFeedback.textContent = 'HEX 코드는 위 입력란을 사용해주세요.'; } }); });
         elements.resetAddedColorsBtn.addEventListener('click', resetAddedColors);
-        elements.exportPaletteBtn.addEventListener('click', () => { const colors = Array.from(elements.addedColorsContainer.querySelectorAll('.added-color-item')).map(item => JSON.parse(item.dataset.rgb)); if (colors.length === 0) { alert('내보낼 색상이 없습니다.'); return; } const jsonString = JSON.stringify(colors, null, 2); const blob = new Blob([jsonString], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'noadot_palette.json'; link.click(); URL.revokeObjectURL(url); });
+        elements.exportPaletteBtn.addEventListener('click', () => { const colors = Array.from(elements.addedColorsContainer.querySelectorAll('.added-color-item')).map(item => JSON.parse(item.dataset.rgb)); if (colors.length === 0) { alert(languageData[state.language].alert_no_color_to_export); return; } const jsonString = JSON.stringify(colors, null, 2); const blob = new Blob([jsonString], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'noadot_palette.json'; link.click(); URL.revokeObjectURL(url); });
         elements.importPaletteBtn.addEventListener('click', () => { elements.paletteUpload.click(); });
         elements.paletteUpload.addEventListener('change', (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (event) => { try { const colors = JSON.parse(event.target.result); if (!Array.isArray(colors)) throw new Error('파일 형식이 올바르지 않습니다.'); if (confirm("'추가한 색상' 목록에 불러온 팔레트를 추가하시겠습니까? (기존 목록은 유지됩니다)")) { let addedCount = 0; colors.forEach(rgb => { if (Array.isArray(rgb) && rgb.length === 3 && rgb.every(c => typeof c === 'number' && c >= 0 && c <= 255)) { if (!isColorAlreadyAdded(rgb)) { createAddedColorItem({ rgb }); addedCount++; } } }); if (addedCount > 0) { updatePaletteStatus(); triggerConversion(); alert(`${addedCount}개의 새로운 색상을 불러왔습니다.`); } else { alert("새롭게 추가된 색상이 없습니다. (중복 또는 유효하지 않은 색상 제외)"); } } } catch (err) { alert('유효하지 않은 팔레트 파일입니다. JSON 형식을 확인해주세요.'); console.error("팔레트 불러오기 오류:", err); } finally { e.target.value = ''; } }; reader.readAsText(file); });
-        document.querySelectorAll('.toggle-all').forEach(btn => { btn.addEventListener('click', e => { const targetIds = e.currentTarget.dataset.target.split(','); let allItems = []; targetIds.forEach(id => { const container = document.getElementById(id); if (container) { allItems.push(...container.querySelectorAll('.color-button, .added-color-item')); } }); if (allItems.length === 0) return; const onItemsCount = allItems.filter(b => b.dataset.on === 'true').length; const turnOn = onItemsCount < allItems.length; allItems.forEach(item => { const isOn = item.dataset.on === 'true'; if ((turnOn && !isOn) || (!turnOn && isOn)) { const clickable = item.classList.contains('added-color-item') ? item.querySelector('.added-color-swatch') : item; clickable.click(); } }); }); });
+        
         elements.downloadBtn.addEventListener('click', async () => { if (!state.finalDownloadableData) { alert('다운로드할 이미지가 없습니다.'); return; } showLoading(true); try { const tempCanvas = document.createElement('canvas'); tempCanvas.width = state.finalDownloadableData.width; tempCanvas.height = state.finalDownloadableData.height; tempCanvas.getContext('2d').putImageData(state.finalDownloadableData, 0, 0); const blob = await new Promise(resolve => tempCanvas.toBlob(resolve, 'image/png')); const arrayBuffer = await blob.arrayBuffer(); const settingsData = gatherSettingsData(); const newPngBuffer = PNGMetadata.embed(arrayBuffer, settingsData); const newBlob = new Blob([newPngBuffer], { type: 'image/png' }); const url = URL.createObjectURL(newBlob); const now = new Date(); const ts = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`; const newName = `${state.originalFileName}_NoaDot_${ts}${state.currentMode === 'geopixels' ? '_colors.png' : '_converted.png'}`; const link = document.createElement('a'); link.download = newName; link.href = url; link.click(); URL.revokeObjectURL(url); } catch (error) { console.error("다운로드 중 오류 발생:", error); alert("메타데이터를 포함하여 다운로드하는 중 오류가 발생했습니다."); } finally { showLoading(false); } });
     };
     
     const initialize = () => {
-    elements.ditheringAlgorithmSelect.value = 'atkinson';
-    // ====================== [변경점] ======================
-    // elements.showOutline.checked = true; // 이 줄을 삭제하여 기본값을 OFF로 설정합니다.
-    // ======================================================
-    geopixelsColors.forEach(c => createColorButton(c, elements.geoPixelColorsContainer, true));
-    wplaceFreeColors.forEach(c => createColorButton(c, elements.wplaceFreeColorsContainer, false));
-    wplacePaidColors.forEach(c => createColorButton(c, elements.wplacePaidColorsContainer, false));
-    wplaceFreeColors.forEach(c => createColorButton(c, elements.wplaceFreeColorsInGeo, false));
-    wplacePaidColors.forEach(c => createColorButton(c, elements.wplacePaidColorsInGeo, false));
-    createMasterToggleButton('geoPixelColors', elements.geoPixelColorsContainer);
-    createMasterToggleButton('wplaceFreeColors', elements.wplaceFreeColorsContainer);
-    createMasterToggleButton('wplacePaidColors', elements.wplacePaidColorsContainer);
-    createMasterToggleButton('wplaceFreeColorsInGeo', elements.wplaceFreeColorsInGeo);
-    createMasterToggleButton('wplacePaidColorsInGeo', elements.wplacePaidColorsInGeo);
-    setupEventListeners();
-    updateScaleUIVisibility();
-    setAppMode('image');
-    setPaletteMode('geopixels');
-    populateColorSelects();
-};
+        createTooltip();
+        elements.ditheringAlgorithmSelect.value = 'atkinson';
+        if(elements.showOutline) elements.showOutline.checked = false;
+        
+        geopixelsColors.forEach(c => createColorButton(c, elements.geoPixelColorsContainer, true));
+        wplaceFreeColors.forEach(c => createColorButton(c, elements.wplaceFreeColorsContainer, false));
+        wplacePaidColors.forEach(c => createColorButton(c, elements.wplacePaidColorsContainer, false));
+        wplaceFreeColors.forEach(c => createColorButton(c, elements.wplaceFreeColorsInGeo, false));
+        wplacePaidColors.forEach(c => createColorButton(c, elements.wplacePaidColorsInGeo, false));
+        createMasterToggleButton('geoPixelColors', elements.geoPixelColorsContainer);
+        createMasterToggleButton('wplaceFreeColors', elements.wplaceFreeColorsContainer);
+        createMasterToggleButton('wplacePaidColors', elements.wplacePaidColorsContainer);
+        createMasterToggleButton('wplaceFreeColorsInGeo', elements.wplaceFreeColorsInGeo);
+        createMasterToggleButton('wplacePaidColorsInGeo', elements.wplacePaidColorsInGeo);
+        
+        setupEventListeners();
+        updateScaleUIVisibility();
+        
+        const savedLang = localStorage.getItem('userLanguage');
+        const browserLang = navigator.language.split('-')[0];
+        const initialLang = savedLang || (languageData[browserLang] ? browserLang : 'en');
+        setLanguage(initialLang);
+
+        setAppMode('image');
+        setPaletteMode('geopixels');
+        populateColorSelects();
+    };
     
     initialize();
 });
