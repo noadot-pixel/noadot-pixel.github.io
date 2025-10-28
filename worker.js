@@ -1,4 +1,6 @@
-// worker.js (v3.1 - 접근법 2.0 최종 수정본. 재할당 오류 제거)
+// worker.js (v4.0 - 패턴/디더링 동시 적용 아키텍처 최종본)
+
+import { THRESHOLD_MAPS } from './threshold-maps.js';
 
 // --- 유틸리티 함수 ---
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -39,148 +41,103 @@ const ColorConverter = {
     },
 };
 
-function posterizeWithKMeans(imageData, k) {
-    const { data, width, height } = imageData;
-    const pixels = [];
-    for (let i = 0; i < data.length; i += 4) {
-        if (data[i + 3] > 128) {
-            pixels.push([data[i], data[i + 1], data[i + 2]]);
+function findTwoClosestColors(r, g, b, palette, paletteOklab, useHighQuality) {
+    if (palette.length < 2) { const color = palette[0] || [0, 0, 0]; return { darker: color, brighter: color }; }
+    let firstMinDist = Infinity, firstIndex = -1; let secondMinDist = Infinity, secondIndex = -1;
+    const targetOklab = useHighQuality ? ColorConverter.rgbToOklab([r, g, b]) : null;
+    for (let i = 0; i < palette.length; i++) {
+        const dist = useHighQuality ? ColorConverter.deltaE2000(targetOklab, paletteOklab[i]) : colorDistanceSq([r, g, b], palette[i]);
+        if (dist < firstMinDist) {
+            secondMinDist = firstMinDist; secondIndex = firstIndex;
+            firstMinDist = dist; firstIndex = i;
+        } else if (dist < secondMinDist) {
+            secondMinDist = dist; secondIndex = i;
         }
     }
-    if (pixels.length === 0) return { centroids: [], posterizedData: imageData };
+    const c1 = palette[firstIndex]; const c2 = palette[secondIndex];
+    const lum1 = 0.299 * c1[0] + 0.587 * c1[1] + 0.114 * c1[2];
+    const lum2 = 0.299 * c2[0] + 0.587 * c2[1] + 0.114 * c2[2];
+    return lum1 < lum2 ? { darker: c1, brighter: c2 } : { darker: c2, brighter: c1 };
+}
+
+// [수정] 함수 인자 변경: 원본 명도 계산을 위해 전처리된 이미지를 받음
+function applyPatternDithering(preprocessedImage, convertedImage, palette, options) {
+    const { width, height } = preprocessedImage;
+    const { data: preprocessedData } = preprocessedImage;
+    const { data: convertedData } = convertedImage;
+    const { patternType, highQualityMode, patternSize } = options;
+    const resultImageData = new ImageData(width, height);
+    const resultData = resultImageData.data;
     
-    let centroids = [];
-    const usedIndices = new Set();
-    while (centroids.length < k && centroids.length < pixels.length) {
-        const index = Math.floor(Math.random() * pixels.length);
-        if (!usedIndices.has(index)) {
-            centroids.push(pixels[index]);
-            usedIndices.add(index);
+    const map = THRESHOLD_MAPS[patternType] || THRESHOLD_MAPS.crosshatch;
+    const mapHeight = map.length; const mapWidth = map[0].length;
+    
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 4;
+            // [수정] 명도는 전처리된 이미지에서, 두 색상은 변환된 이미지에서 가져옴
+            const r = preprocessedData[i], g = preprocessedData[i+1], b = preprocessedData[i+2];
+            const grayscale = 0.299 * r + 0.587 * g + 0.114 * b;
+
+            const c1 = [convertedData[i], convertedData[i+1], convertedData[i+2]];
+            const { darker, brighter } = findTwoClosestColors(r, g, b, palette, null, false); // 여기서는 이미 변환된 색상과 가까운 색을 찾아야 함
+            
+            const mapX = Math.floor(x / patternSize) % mapWidth;
+            const mapY = Math.floor(y / patternSize) % mapHeight;
+            const threshold = map[mapY][mapX];
+            
+            // [수정] 이미 변환된 색상(c1)이 밝은색인지 어두운색인지 판단하여, 그 반대 색을 선택
+            const c1Luminance = 0.299 * c1[0] + 0.587 * c1[1] + 0.114 * c1[2];
+            const darkerLuminance = 0.299 * darker[0] + 0.587 * darker[1] + 0.114 * darker[2];
+            
+            const isC1Brighter = Math.abs(c1Luminance - darkerLuminance) > 1;
+            
+            const finalColor = (grayscale > threshold) ? 
+                               (isC1Brighter ? c1 : brighter) : 
+                               (isC1Brighter ? darker : c1);
+
+            resultData[i] = finalColor[0];
+            resultData[i + 1] = finalColor[1];
+            resultData[i + 2] = finalColor[2];
+            resultData[i + 3] = 255;
         }
     }
+    return resultImageData;
+}
 
-    const assignments = new Array(pixels.length);
-    let iterations = 0;
-    let moved = true;
 
+function posterizeWithKMeans(imageData, k) {
+    const { data, width, height } = imageData; const pixels = [];
+    for (let i = 0; i < data.length; i += 4) { if (data[i + 3] > 128) { pixels.push([data[i], data[i + 1], data[i + 2]]); } }
+    if (pixels.length === 0) return { centroids: [], posterizedData: imageData };
+    let centroids = []; const usedIndices = new Set();
+    while (centroids.length < k && centroids.length < pixels.length) { const index = Math.floor(Math.random() * pixels.length); if (!usedIndices.has(index)) { centroids.push(pixels[index]); usedIndices.add(index); } }
+    const assignments = new Array(pixels.length); let iterations = 0; let moved = true;
     while (moved && iterations < 20) {
         moved = false;
-        for (let i = 0; i < pixels.length; i++) {
-            let minDistance = Infinity;
-            let bestCentroid = 0;
-            for (let j = 0; j < centroids.length; j++) {
-                const distance = colorDistanceSq(pixels[i], centroids[j]);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    bestCentroid = j;
-                }
-            }
-            if (assignments[i] !== bestCentroid) {
-                assignments[i] = bestCentroid;
-                moved = true;
-            }
-        }
-        
-        const newCentroids = new Array(k).fill(0).map(() => [0, 0, 0]);
-        const counts = new Array(k).fill(0);
-        for (let i = 0; i < pixels.length; i++) {
-            const centroidIndex = assignments[i];
-            newCentroids[centroidIndex][0] += pixels[i][0];
-            newCentroids[centroidIndex][1] += pixels[i][1];
-            newCentroids[centroidIndex][2] += pixels[i][2];
-            counts[centroidIndex]++;
-        }
-        for (let i = 0; i < centroids.length; i++) {
-            if (counts[i] > 0) {
-                centroids[i] = [
-                    newCentroids[i][0] / counts[i],
-                    newCentroids[i][1] / counts[i],
-                    newCentroids[i][2] / counts[i]
-                ];
-            }
-        }
+        for (let i = 0; i < pixels.length; i++) { let minDistance = Infinity; let bestCentroid = 0; for (let j = 0; j < centroids.length; j++) { const distance = colorDistanceSq(pixels[i], centroids[j]); if (distance < minDistance) { minDistance = distance; bestCentroid = j; } } if (assignments[i] !== bestCentroid) { assignments[i] = bestCentroid; moved = true; } }
+        const newCentroids = new Array(k).fill(0).map(() => [0, 0, 0]); const counts = new Array(k).fill(0);
+        for (let i = 0; i < pixels.length; i++) { const centroidIndex = assignments[i]; newCentroids[centroidIndex][0] += pixels[i][0]; newCentroids[centroidIndex][1] += pixels[i][1]; newCentroids[centroidIndex][2] += pixels[i][2]; counts[centroidIndex]++; }
+        for (let i = 0; i < centroids.length; i++) { if (counts[i] > 0) { centroids[i] = [ newCentroids[i][0] / counts[i], newCentroids[i][1] / counts[i], newCentroids[i][2] / counts[i] ]; } }
         iterations++;
     }
-
-    const posterizedData = new ImageData(width, height);
-    let pixelIndex = 0;
-    for (let i = 0; i < posterizedData.data.length; i += 4) {
-        if (data[i + 3] > 128) {
-            const centroid = centroids[assignments[pixelIndex++]];
-            posterizedData.data[i] = centroid[0];
-            posterizedData.data[i + 1] = centroid[1];
-            posterizedData.data[i + 2] = centroid[2];
-            posterizedData.data[i + 3] = 255;
-        } else {
-            posterizedData.data[i + 3] = 0;
-        }
-    }
-    
+    const posterizedData = new ImageData(width, height); let pixelIndex = 0;
+    for (let i = 0; i < posterizedData.data.length; i += 4) { if (data[i + 3] > 128) { const centroid = centroids[assignments[pixelIndex++]]; posterizedData.data[i] = centroid[0]; posterizedData.data[i + 1] = centroid[1]; posterizedData.data[i + 2] = centroid[2]; posterizedData.data[i + 3] = 255; } else { posterizedData.data[i + 3] = 0; } }
     const finalCentroids = centroids.map(c => [Math.round(c[0]), Math.round(c[1]), Math.round(c[2])]);
     return { centroids: finalCentroids, posterizedData };
 }
 
 function applyCelShadingFilter(imageData, palette, options) {
-    const { width, height } = imageData;
-    const { posterizeLevels, showOutline, highQualityMode } = options;
-    const paletteOklab = highQualityMode && palette.length > 0 ? palette.map(c => ColorConverter.rgbToOklab(c)) : null;
-
+    const { width, height } = imageData; const { posterizeLevels, showOutline, highQualityMode } = options; const paletteOklab = highQualityMode && palette.length > 0 ? palette.map(c => ColorConverter.rgbToOklab(c)) : null;
     const { centroids: posterColors, posterizedData } = posterizeWithKMeans(imageData, posterizeLevels);
-
-    const finalImageData = new ImageData(width, height);
-    const posterMap = new Map();
-
-    if (palette.length > 0) {
-        for (const pColor of posterColors) {
-            const { color: finalColor } = findClosestColor(pColor[0], pColor[1], pColor[2], palette, paletteOklab, highQualityMode);
-            posterMap.set(pColor.join(','), finalColor);
-        }
-    } else {
-        for (const pColor of posterColors) {
-            posterMap.set(pColor.join(','), pColor);
-        }
-    }
-    
-    for (let i = 0; i < posterizedData.data.length; i += 4) {
-        if (posterizedData.data[i + 3] > 0) {
-            const key = [Math.round(posterizedData.data[i]), Math.round(posterizedData.data[i+1]), Math.round(posterizedData.data[i+2])].join(',');
-            const finalColor = posterMap.get(key) || [0,0,0];
-            finalImageData.data[i] = finalColor[0];
-            finalImageData.data[i + 1] = finalColor[1];
-            finalImageData.data[i + 2] = finalColor[2];
-            finalImageData.data[i + 3] = 255;
-        } else {
-             finalImageData.data[i + 3] = 0;
-        }
-    }
-
+    const finalImageData = new ImageData(width, height); const posterMap = new Map();
+    if (palette.length > 0) { for (const pColor of posterColors) { const { color: finalColor } = findClosestColor(pColor[0], pColor[1], pColor[2], palette, paletteOklab, highQualityMode); posterMap.set(pColor.join(','), finalColor); } } else { for (const pColor of posterColors) { posterMap.set(pColor.join(','), pColor); } }
+    for (let i = 0; i < posterizedData.data.length; i += 4) { if (posterizedData.data[i + 3] > 0) { const key = [Math.round(posterizedData.data[i]), Math.round(posterizedData.data[i+1]), Math.round(posterizedData.data[i+2])].join(','); const finalColor = posterMap.get(key) || [0,0,0]; finalImageData.data[i] = finalColor[0]; finalImageData.data[i + 1] = finalColor[1]; finalImageData.data[i + 2] = finalColor[2]; finalImageData.data[i + 3] = 255; } else { finalImageData.data[i + 3] = 0; } }
     if (showOutline) {
-        const sobelX = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
-        const sobelY = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
-        const edgeData = new Uint8ClampedArray(finalImageData.data);
-        
-        for (let y = 1; y < height - 1; y++) {
-            for (let x = 1; x < width - 1; x++) {
-                let gx = 0, gy = 0;
-                for (let ky = -1; ky <= 1; ky++) {
-                    for (let kx = -1; kx <= 1; kx++) {
-                        const idx = ((y + ky) * width + (x + kx)) * 4;
-                        const luminance = edgeData[idx] * 0.299 + edgeData[idx+1] * 0.587 + edgeData[idx+2] * 0.114;
-                        gx += luminance * sobelX[(ky + 1) * 3 + (kx + 1)];
-                        gy += luminance * sobelY[(ky + 1) * 3 + (kx + 1)];
-                    }
-                }
-                const magnitude = Math.sqrt(gx * gx + gy * gy);
-                if (magnitude > 50) {
-                    const mainIdx = (y * width + x) * 4;
-                    finalImageData.data[mainIdx] = 0;
-                    finalImageData.data[mainIdx + 1] = 0;
-                    finalImageData.data[mainIdx + 2] = 0;
-                }
-            }
-        }
+        const sobelX = [-1, 0, 1, -2, 0, 2, -1, 0, 1]; const sobelY = [-1, -2, -1, 0, 0, 0, 1, 2, 1]; const edgeData = new Uint8ClampedArray(finalImageData.data);
+        for (let y = 1; y < height - 1; y++) { for (let x = 1; x < width - 1; x++) { let gx = 0, gy = 0; for (let ky = -1; ky <= 1; ky++) { for (let kx = -1; kx <= 1; kx++) { const idx = ((y + ky) * width + (x + kx)) * 4; const luminance = edgeData[idx] * 0.299 + edgeData[idx+1] * 0.587 + edgeData[idx+2] * 0.114; gx += luminance * sobelX[(ky + 1) * 3 + (kx + 1)]; gy += luminance * sobelY[(ky + 1) * 3 + (kx + 1)]; } }
+            const magnitude = Math.sqrt(gx * gx + gy * gy); if (magnitude > 50) { const mainIdx = (y * width + x) * 4; finalImageData.data[mainIdx] = 0; finalImageData.data[mainIdx + 1] = 0; finalImageData.data[mainIdx + 2] = 0; } } }
     }
-
     return finalImageData;
 }
 
@@ -191,17 +148,13 @@ const findClosestColor = (r1, g1, b1, palette, paletteOklab, useHighQuality) => 
 };
 
 function preprocessImageData(sourceImageData, options) {
-    const { saturation, brightness, contrast } = options;
-    const sat = saturation / 100.0, bri = brightness, con = contrast;
-    const factor = (259 * (con + 255)) / (255 * (259 - con));
-    const data = new Uint8ClampedArray(sourceImageData.data);
+    const { saturation, brightness, contrast } = options; const sat = saturation / 100.0, bri = brightness, con = contrast; const factor = (259 * (con + 255)) / (255 * (259 - con)); const data = new Uint8ClampedArray(sourceImageData.data);
     for (let i = 0; i < data.length; i += 4) { let r = data[i], g = data[i+1], b = data[i+2]; if (bri !== 0) { r = clamp(r + bri, 0, 255); g = clamp(g + bri, 0, 255); b = clamp(b + bri, 0, 255); } if (con !== 0) { r = clamp(factor * (r - 128) + 128, 0, 255); g = clamp(factor * (g - 128) + 128, 0, 255); b = clamp(factor * (b - 128) + 128, 0, 255); } if (sat !== 1.0) { const gray = 0.299 * r + 0.587 * g + 0.114 * b; r = clamp(gray + sat * (r - gray), 0, 255); g = clamp(gray + sat * (g - gray), 0, 255); b = clamp(gray + sat * (b - gray), 0, 255); } data[i] = r; data[i+1] = g; data[i+2] = b; }
     return new ImageData(data, sourceImageData.width, sourceImageData.height);
 }
 
 function calculateRecommendations(imageData, activePalette, options) {
-    const { highlightSensitivity = 0 } = options; if (activePalette.length === 0) return [];
-    const { data, width, height } = imageData; const colorData = new Map(); let totalPixels = 0;
+    const { highlightSensitivity = 0 } = options; if (activePalette.length === 0) return []; const { data, width, height } = imageData; const colorData = new Map(); let totalPixels = 0;
     for (let y = 0; y < height; y++) { for (let x = 0; x < width; x++) { const i = (y * width + x) * 4; if (data[i + 3] < 128) continue; totalPixels++; const r1 = data[i], g1 = data[i+1], b1 = data[i+2]; const key = `${r1},${g1},${b1}`; let volatility = 0; if (highlightSensitivity > 0) { for (let dy = -highlightSensitivity; dy <= highlightSensitivity; dy++) { for (let dx = -highlightSensitivity; dx <= highlightSensitivity; dx++) { if (dx === 0 && dy === 0) continue; if (Math.abs(dx) + Math.abs(dy) > highlightSensitivity) continue; const nx = x + dx, ny = y + dy; if (nx >= 0 && nx < width && ny >= 0 && ny < height) { const ni = (ny * width + nx) * 4; const r2 = data[ni], g2 = data[ni+1], b2 = data[ni+2]; volatility += (r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2; } } } } if (!colorData.has(key)) { colorData.set(key, { count: 0, maxVolatility: 0 }); } const entry = colorData.get(key); entry.count++; if (volatility > entry.maxVolatility) entry.maxVolatility = volatility; } }
     if (totalPixels === 0) return []; const allExistingColors = new Set(activePalette.map(rgb => rgb.join(','))); const candidates = [];
     for (const [rgbStr, stats] of colorData.entries()) { if (allExistingColors.has(rgbStr)) continue; const originalRgb = JSON.parse(`[${rgbStr}]`); const usage = stats.count / totalPixels; if (usage > 0.01) { candidates.push({ rgb: originalRgb, usage, type: '사용량 높은 색상', score: usage }); continue; } const volatilityScore = Math.sqrt(stats.maxVolatility); if (highlightSensitivity > 0 && volatilityScore > 1000) { candidates.push({ rgb: originalRgb, usage, type: '하이라이트 색상', score: volatilityScore }); } }
@@ -211,9 +164,7 @@ function calculateRecommendations(imageData, activePalette, options) {
 
 function applyConversion(imageData, palette, options) {
     const paletteOklab = options.highQualityMode && palette.length > 0 ? palette.map(c => ColorConverter.rgbToOklab(c)) : null; if (palette.length === 0) { const { width, height } = imageData; const blackData = new Uint8ClampedArray(width * height * 4); for (let i = 0; i < blackData.length; i+=4) { blackData[i+3] = 255; } return new ImageData(blackData, width, height); }
-    const { width, height } = imageData;
-    const newData = new ImageData(width, height); const ditherData = new Float32Array(imageData.data);
-    const ditherStr = options.dithering / 100.0; const algorithm = options.algorithm;
+    const { width, height } = imageData; const newData = new ImageData(width, height); const ditherData = new Float32Array(imageData.data); const ditherStr = options.dithering / 100.0; const algorithm = options.algorithm;
     for (let y = 0; y < height; y++) { for (let x = 0; x < width; x++) { const i = (y * width + x) * 4; if (ditherData[i + 3] < 128) { newData.data[i + 3] = 0; continue; }
             const rClamped = clamp(ditherData[i], 0, 255); const gClamped = clamp(ditherData[i+1], 0, 255); const bClamped = clamp(ditherData[i+2], 0, 255);
             const { color: newRgb } = findClosestColor(rClamped, gClamped, bClamped, palette, paletteOklab, options.highQualityMode);
@@ -234,21 +185,38 @@ self.onmessage = (e) => {
     const { imageData, palette, options, processId } = e.data;
     try {
         let finalImageData;
-        
         const preprocessedData = preprocessImageData(imageData, options);
 
         if (options.edgeCleanup) {
             finalImageData = applyCelShadingFilter(preprocessedData, palette, options);
         } else {
-            finalImageData = applyConversion(preprocessedData, palette, options);
+            // 1. 먼저 일반 변환(디더링 포함)을 수행
+            const convertedImage = applyConversion(preprocessedData, palette, options);
+
+            // 2. 사용자가 패턴 적용을 원하면, 그 위에 패턴 디더링을 한 번 더 적용
+            if (options.applyPattern) {
+                // 패턴 디더링은 '원본 명도'를 사용해야 하므로 preprocessedData를 전달
+                finalImageData = applyPatternDithering(preprocessedData, convertedImage, palette, options);
+            } else {
+                finalImageData = convertedImage;
+            }
         }
 
-        const recommendations = (options.currentMode === 'geopixels')
-            ? calculateRecommendations(imageData, palette, options)
+        const recommendations = (options.currentMode === 'geopixels') 
+            ? calculateRecommendations(imageData, palette, options) 
             : [];
         
-        self.postMessage({ status: 'success', imageData: finalImageData, recommendations: recommendations, processId: processId }, [finalImageData.data.buffer]);
+        self.postMessage({ 
+            status: 'success', 
+            imageData: finalImageData, 
+            recommendations: recommendations, 
+            processId: processId 
+        }, [finalImageData.data.buffer]);
     } catch (error) {
-        self.postMessage({ status: 'error', message: error.message + ' at ' + error.stack, processId: processId });
+        self.postMessage({ 
+            status: 'error', 
+            message: error.message + ' at ' + error.stack, 
+            processId: processId 
+        });
     }
 };

@@ -1,9 +1,9 @@
-// language.js
+// language.js (v4.0 최종 버전)
 
 const languageData = {
     ko: {
         app_title: "NoaDot - 이미지/텍스트 변환기",
-        app_header: "🎨 NoaDot v3.2",
+        app_header: "🎨 NoaDot v4.0",
         section_mode: "1. 모드 선택",
         mode_image: "🖼️ 이미지",
         mode_text: "✏️ 텍스트",
@@ -39,6 +39,18 @@ const languageData = {
         dithering_atkinson: "애킨슨",
         dithering_none: "사용 안함",
         option_dithering_strength: "디더링 강도",
+        
+        // [신규] 패턴 적용 관련
+        option_apply_pattern: "패턴 적용 (베타)",
+        pattern_type: "패턴 종류",
+        pattern_size: "패턴 크기",
+        pattern_crosshatch: "격자",
+        pattern_vertical: "수직선",
+        pattern_checkerboard: "체커보드",
+        pattern_diagonal_right: "대각선 (↘)",
+        pattern_diagonal_left: "대각선 (↙)",
+        pattern_brick: "벽돌",
+        
         option_hq_mode: "고품질 색상 계산 (느림)",
         option_cartoon_filter: "만화 스타일 필터",
         cartoon_color_level: "색상 레벨",
@@ -69,13 +81,18 @@ const languageData = {
         placeholder_add_color: "아래에서 직접 색상을 추가하세요.",
         placeholder_hex: "HEX 코드 입력 (예: #FF595E)",
         placeholder_text_preview: "왼쪽에서 텍스트를 입력하면 여기에 미리보기가 표시됩니다.",
+        
+        // 툴팁
         tooltip_dithering: "제한된 색상으로 이미지의 색을 표현할 때, 점을 찍는 방식으로 색상 간의 경계를 부드럽게 만들어 계단 현상을 줄여주는 기법입니다. 이미지의 디테일을 향상시킵니다.",
+        tooltip_pattern: "이미지의 명암과 패턴 지도를 비교하여, 팔레트 내의 가장 가까운 두 색상으로 픽셀을 다시 그립니다. 일반 디더링과 함께 사용하면 더 복합적인 질감을 만들 수 있습니다. (만화 스타일 필터와는 함께 사용할 수 없습니다.)",
         tooltip_hq_mode: "사람의 시각에 더 가깝게 색상 차이를 계산하는 Oklab/CIEDE2000 방식을 사용합니다. 색상의 정확도가 크게 향상되지만, 변환 속도가 느려질 수 있습니다.",
-        tooltip_cartoon_filter: "이미지를 단순한 색상 면으로 재구성하여 만화처럼 만듭니다. 이 기능은 점으로 디테일을 표현하는 '디더링'과 정반대의 원리로 동작하므로, 함께 사용 시 디더링 효과가 대부분 무시될 수 있습니다.",
+        tooltip_cartoon_filter: "이미지를 단순한 색상 면으로 재구성하여 만화처럼 만듭니다. 이 기능은 점으로 디테일을 표현하는 '디더링'이나 '패턴'과 정반대의 원리로 동작하므로, 함께 사용 시 다른 효과가 무시될 수 있습니다.",
         tooltip_highlight_sensitivity: "색상 추천 시, 이미지의 경계선이나 복잡한 패턴 주변의 '하이라이트 색상'을 얼마나 민감하게 찾아낼지 조절합니다. 값이 높을수록 더 미세한 하이라이트도 탐지합니다.",
         tooltip_center_zoom: "화면 중앙 및 확대/축소 초기화",
         tooltip_bold: "굵게",
         tooltip_italic: "기울임",
+
+        // 알림 메시지
         alert_no_color_to_export: "내보낼 색상이 없습니다.",
         alert_no_color_to_reset: "초기화할 색상이 없습니다.",
         confirm_reset_added_colors: "정말로 추가한 모든 색상을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
@@ -84,14 +101,11 @@ const languageData = {
         confirm_mode_switch_to_text: "모드를 전환하시면 업로드한 이미지 내용은 초기화됩니다. 계속하시겠습니까?",
         confirm_mode_switch_to_image: "모드를 전환하시면 작성하신 텍스트 내용은 초기화됩니다. 계속하시겠습니까?",
         alert_already_added: "이미 추가된 색상입니다.",
-        placeholder_no_recommendations: "선택된 모드에 맞는<br>추천 색상이 없습니다.",
-        tooltip_dithering_floyd: "가장 널리 알려진 디더링 알고리즘입니다. 품질이 좋지만 약간의 패턴이 나타날 수 있습니다.",
-        tooltip_dithering_sierra: "플로이드-스타인버그보다 빠르고 부드러운 결과를 보여줍니다.",
-        tooltip_dithering_atkinson: "대비가 강하게 유지되어 선명한 느낌을 줍니다."
+        placeholder_no_recommendations: "선택된 모드에 맞는<br>추천 색상이 없습니다."
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
-        app_header: "🎨 NoaDot v3.2",
+        app_header: "🎨 NoaDot v4.0",
         section_mode: "1. Select Mode",
         mode_image: "🖼️ Image",
         mode_text: "✏️ Text",
@@ -127,6 +141,18 @@ const languageData = {
         dithering_atkinson: "Atkinson",
         dithering_none: "None",
         option_dithering_strength: "Dithering Strength",
+
+        // [New] Pattern related
+        option_apply_pattern: "Apply Pattern (Beta)",
+        pattern_type: "Pattern Type",
+        pattern_size: "Pattern Size",
+        pattern_crosshatch: "Crosshatch",
+        pattern_vertical: "Vertical Lines",
+        pattern_checkerboard: "Checkerboard",
+        pattern_diagonal_right: "Diagonal (↘)",
+        pattern_diagonal_left: "Diagonal (↙)",
+        pattern_brick: "Brick",
+
         option_hq_mode: "High Quality Color Calc (Slow)",
         option_cartoon_filter: "Cartoon Style Filter",
         cartoon_color_level: "Color Levels",
@@ -157,13 +183,18 @@ const languageData = {
         placeholder_add_color: "Add colors from the inputs below.",
         placeholder_hex: "Enter HEX code (e.g., #FF595E)",
         placeholder_text_preview: "Enter text on the left to see a preview here.",
+
+        // Tooltips
         tooltip_dithering: "A technique that uses dots to simulate shades and reduce color banding when using a limited color palette. It improves the detail of the image.",
+        tooltip_pattern: "Compares the image's brightness with a pattern map to redraw pixels using the two closest colors from the palette. Can be combined with standard dithering for more complex textures. (Cannot be used with Cartoon Filter.)",
         tooltip_hq_mode: "Uses Oklab/CIEDE2000 for more perceptually accurate color difference calculations. Greatly improves color accuracy but may slow down conversion.",
-        tooltip_cartoon_filter: "Reconstructs the image with flat color areas for a cartoon-like feel. As this works opposite to dithering, the dithering effect may be mostly ignored.",
+        tooltip_cartoon_filter: "Reconstructs the image with flat color areas for a cartoon-like feel. As this works opposite to dithering or patterns, other effects may be ignored.",
         tooltip_highlight_sensitivity: "Controls how sensitively 'highlight colors' are detected around edges and complex patterns for color recommendation. Higher values detect more subtle highlights.",
         tooltip_center_zoom: "Center view and reset zoom",
         tooltip_bold: "Bold",
         tooltip_italic: "Italic",
+
+        // Alerts
         alert_no_color_to_export: "There are no colors to export.",
         alert_no_color_to_reset: "There are no colors to reset.",
         confirm_reset_added_colors: "Are you sure you want to delete all added colors? This action cannot be undone.",
@@ -172,9 +203,6 @@ const languageData = {
         confirm_mode_switch_to_text: "Switching modes will reset the uploaded image. Continue?",
         confirm_mode_switch_to_image: "Switching modes will reset your text. Continue?",
         alert_already_added: "This color has already been added.",
-        placeholder_no_recommendations: "No recommended colors found<br>for the selected mode.",
-        tooltip_dithering_floyd: "The most well-known dithering algorithm. It provides good quality but may produce some patterns.",
-        tooltip_dithering_sierra: "Faster and produces a smoother result than Floyd-Steinberg.",
-        tooltip_dithering_atkinson: "it preserves high contrast, resulting in a sharper look."
+        placeholder_no_recommendations: "No recommended colors found<br>for the selected mode."
     }
 };

@@ -1,10 +1,8 @@
 <!DOCTYPE html>
-<!-- [수정] lang 속성을 동적으로 변경할 예정이므로 초기값은 ko로 유지 -->
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- [수정] 타이틀도 다국어 처리 대상 -->
     <title data-lang-key="app_title">NoaDot - 이미지/텍스트 변환기</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -14,10 +12,8 @@
     <!-- 왼쪽 패널: 헤더 및 변환 결과 영역 -->
     <div class="left-panel">
         <header class="main-header">
-            <!-- [수정] data-lang-key 추가 -->
-            <h1 data-lang-key="app_header">🎨 NoaDot v3.2</h1>
+            <h1 data-lang-key="app_header">🎨 NoaDot v4.0</h1>
             <div class="external-links">
-                <!-- [추가] 언어 전환 버튼 UI -->
                 <div id="language-switcher" class="language-switcher">
                     <button data-lang="ko" class="active">KR</button>
                     <button data-lang="en">EN</button>
@@ -166,6 +162,8 @@
                 <label for="contrastSlider"><span data-lang-key="option_contrast">대비</span>: <span id="contrastValue">0</span><button class="reset-btn" data-target="contrastSlider" title="초기화">⟳</button></label>
                 <input type="range" id="contrastSlider" min="-100" max="100" value="0">
             </div>
+            
+            <!-- [수정] 디더링과 패턴을 분리 -->
             <div id="dithering-algorithm-group" class="control-group">
                 <label for="ditheringAlgorithmSelect" data-lang-key="option_dithering" data-tooltip-key="tooltip_dithering">디더링</label>
                 <select id="ditheringAlgorithmSelect">
@@ -179,7 +177,31 @@
                 <label for="ditheringSlider"><span data-lang-key="option_dithering_strength">디더링 강도</span>: <span id="ditheringValue">0</span>%<button class="reset-btn" data-target="ditheringSlider" title="초기화">⟳</button></label>
                 <input type="range" id="ditheringSlider" min="0" max="100" value="0">
             </div>
-            <div class="control-group checkbox-group">
+
+            <!-- [신규] 패턴 적용 체크박스와 하위 옵션 -->
+            <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;" data-tooltip-key="tooltip_pattern">
+                <input type="checkbox" id="applyPattern">
+                <label for="applyPattern" data-lang-key="option_apply_pattern">패턴 적용 (베타)</label>
+            </div>
+            <div id="pattern-options" class="sub-options" style="display: none;">
+                <div class="control-group">
+                    <label for="patternTypeSelect" data-lang-key="pattern_type">패턴 종류</label>
+                    <select id="patternTypeSelect">
+                        <option value="crosshatch" data-lang-key="pattern_crosshatch">격자</option>
+                        <option value="vertical" data-lang-key="pattern_vertical">수직선</option>
+                        <option value="checkerboard" data-lang-key="pattern_checkerboard">체커보드</option>
+                        <option value="diagonal_right" data-lang-key="pattern_diagonal_right">대각선 (↘)</option>
+                        <option value="diagonal_left" data-lang-key="pattern_diagonal_left">대각선 (↙)</option>
+                        <option value="brick" data-lang-key="pattern_brick">벽돌</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="patternSizeSlider"><span data-lang-key="pattern_size">패턴 크기</span>: <span id="patternSizeValue">4</span></label>
+                    <input type="range" id="patternSizeSlider" min="2" max="32" value="4">
+                </div>
+            </div>
+            
+            <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
                 <input type="checkbox" id="highQualityMode">
                 <label for="highQualityMode" data-lang-key="option_hq_mode" data-tooltip-key="tooltip_hq_mode">고품질 색상 계산 (느림)</label>
             </div>
@@ -269,9 +291,10 @@
     </div>
 </div>
 
+<!-- [수정] threshold-maps.js는 여기서 로드하지 않음. script.js만 모듈로 로드. -->
 <script src="palette-data.js"></script>
 <script src="language.js"></script>
-<script src="script.js"></script>
+<script type="module" src="script.js"></script>
 
 </body>
 </html>
