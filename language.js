@@ -47,8 +47,8 @@ const languageData = {
         pattern_crosshatch: "격자",
         pattern_vertical: "수직선",
         pattern_checkerboard: "체커보드",
-        pattern_diagonal_right: "대각선 (↘)",
-        pattern_diagonal_left: "대각선 (↙)",
+        pattern_diagonal_right: "대각선 (↙)",
+        pattern_diagonal_left: "대각선 (↘)",
         pattern_brick: "벽돌",
         
         option_hq_mode: "고품질 색상 계산 (느림)",
@@ -149,8 +149,8 @@ const languageData = {
         pattern_crosshatch: "Crosshatch",
         pattern_vertical: "Vertical Lines",
         pattern_checkerboard: "Checkerboard",
-        pattern_diagonal_right: "Diagonal (↘)",
-        pattern_diagonal_left: "Diagonal (↙)",
+        pattern_diagonal_right: "Diagonal (↙)",
+        pattern_diagonal_left: "Diagonal (↘)",
         pattern_brick: "Brick",
 
         option_hq_mode: "High Quality Color Calc (Slow)",
