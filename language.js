@@ -101,6 +101,8 @@ const languageData = {
         confirm_mode_switch_to_text: "모드를 전환하시면 업로드한 이미지 내용은 초기화됩니다. 계속하시겠습니까?",
         confirm_mode_switch_to_image: "모드를 전환하시면 작성하신 텍스트 내용은 초기화됩니다. 계속하시겠습니까?",
         alert_already_added: "이미 추가된 색상입니다.",
+        placeholder_no_recommendations: "선택된 모드에 맞는<br>추천 색상이 없습니다.",
+        alert_some_colors_failed: "일부 색상을 추가하지 못했습니다. (중복 또는 유효하지 않은 형식)",
         placeholder_no_recommendations: "선택된 모드에 맞는<br>추천 색상이 없습니다."
     },
     en: {
@@ -203,6 +205,8 @@ const languageData = {
         confirm_mode_switch_to_text: "Switching modes will reset the uploaded image. Continue?",
         confirm_mode_switch_to_image: "Switching modes will reset your text. Continue?",
         alert_already_added: "This color has already been added.",
+        placeholder_no_recommendations: "No recommended colors found<br>for the selected mode.",
+        alert_some_colors_failed: "Failed to add some colors (duplicates or invalid format).",
         placeholder_no_recommendations: "No recommended colors found<br>for the selected mode."
     }
 };

@@ -1,4 +1,4 @@
-// script.js (v4.1 - 벌크 색상 추가 기능 적용)
+// script.js (v4.2 - 벌크 색상 추가 피드백 개선)
 
 const PNGMetadata = { encode(keyword, content) { const keywordBytes = new TextEncoder().encode(keyword); const contentBytes = new TextEncoder().encode(content); const chunkType = new Uint8Array([116, 69, 88, 116]); const chunkData = new Uint8Array(keywordBytes.length + 1 + contentBytes.length); chunkData.set(keywordBytes); chunkData.set([0], keywordBytes.length); chunkData.set(contentBytes, keywordBytes.length + 1); const length = new Uint8Array(4); new DataView(length.buffer).setUint32(0, chunkData.length, false); const crcData = new Uint8Array(chunkType.length + chunkData.length); crcData.set(chunkType); crcData.set(chunkData, chunkType.length); const crc = new Uint8Array(4); new DataView(crc.buffer).setUint32(0, this.crc32(crcData), false); const chunk = new Uint8Array(length.length + chunkType.length + chunkData.length + crc.length); chunk.set(length); chunk.set(chunkType, 4); chunk.set(chunkData, 8); chunk.set(crc, 8 + chunkData.length); return chunk; }, embed(pngArrayBuffer, metadata) { const pngBytes = new Uint8Array(pngArrayBuffer); const keyword = 'NoaDotSettings'; const content = JSON.stringify(metadata); const metadataChunk = this.encode(keyword, content); const iendIndex = pngBytes.length - 12; const newPngBytes = new Uint8Array(pngBytes.length + metadataChunk.length); newPngBytes.set(pngBytes.subarray(0, iendIndex)); newPngBytes.set(metadataChunk, iendIndex); newPngBytes.set(pngBytes.subarray(iendIndex), iendIndex + metadataChunk.length); return newPngBytes.buffer; }, async extract(file) { const buffer = await file.arrayBuffer(); const bytes = new Uint8Array(buffer); const keyword = 'NoaDotSettings'; let offset = 8; while (offset < bytes.length) { const view = new DataView(bytes.buffer, offset); const length = view.getUint32(0); const type = new TextDecoder().decode(bytes.subarray(offset + 4, offset + 8)); if (type === 'tEXt') { const chunkData = bytes.subarray(offset + 8, offset + 8 + length); let separatorIndex = -1; for(let i=0; i<chunkData.length; i++) { if (chunkData[i] === 0) { separatorIndex = i; break; } } if (separatorIndex !== -1) { const currentKeyword = new TextDecoder().decode(chunkData.subarray(0, separatorIndex)); if (currentKeyword === keyword) { const content = new TextDecoder().decode(chunkData.subarray(separatorIndex + 1)); return JSON.parse(content); } } } offset += 12 + length; } return null; }, crcTable: (() => { let c; const crcTable = []; for (let n = 0; n < 256; n++) { c = n; for (let k = 0; k < 8; k++) { c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1)); } crcTable[n] = c; } return crcTable; })(), crc32(bytes) { let crc = 0 ^ (-1); for (let i = 0; i < bytes.length; i++) { crc = (crc >>> 8) ^ this.crcTable[(crc ^ bytes[i]) & 0xFF]; } return (crc ^ (-1)) >>> 0; } };
 
@@ -107,23 +107,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const rVal = elements.addR.value.trim(), gVal = elements.addG.value.trim(), bVal = elements.addB.value.trim();
             if (hexValue) {
                 const rgbFromHex = hexToRgb(hexValue);
-                if (rgbFromHex) { if (!tryAddColor([rgbFromHex.r, rgbFromHex.g, rgbFromHex.b], hexValue.toUpperCase())) { alert(languageData[state.language].alert_already_added); } else { clearAndResetInputFields(); } }
+                if (rgbFromHex) { if (tryAddColor([rgbFromHex.r, rgbFromHex.g, rgbFromHex.b], hexValue.toUpperCase())) { clearAndResetInputFields(); } else { alert(languageData[state.language].alert_already_added); } }
                 else { elements.hexInputFeedback.textContent = '유효하지 않은 HEX 코드입니다.'; }
             } else if (rVal || gVal || bVal) {
                 const r = parseInt(rVal), g = parseInt(gVal), b = parseInt(bVal);
-                if ([r, g, b].every(v => !isNaN(v) && v >= 0 && v <= 255)) { if (!tryAddColor([r, g, b])) { alert(languageData[state.language].alert_already_added); } else { clearAndResetInputFields(); } }
+                if ([r, g, b].every(v => !isNaN(v) && v >= 0 && v <= 255)) { if (tryAddColor([r, g, b])) { clearAndResetInputFields(); } else { alert(languageData[state.language].alert_already_added); } }
                 else { elements.rgbInputFeedback.textContent = 'RGB 값은 0-255 사이의 숫자여야 합니다.'; }
             } else { alert('추가할 색상 값을 입력해주세요.'); }
         });
         
         const handleHexPaste = (e) => {
-            e.preventDefault(); const pastedText = e.clipboardData.getData('text'); const lines = pastedText.split(/[\n\r\s,;]+/); let addedCount = 0;
+            e.preventDefault(); const pastedText = e.clipboardData.getData('text'); const lines = pastedText.split(/[\n\r\s,;]+/); let addedCount = 0; let failedCount = 0;
+            if (lines.length <= 1 && hexToRgb(lines[0] || '') === null) { elements.addHex.value = pastedText; elements.hexInputFeedback.textContent = '유효하지 않은 HEX 코드입니다.'; return; }
             lines.forEach(line => {
                 const trimmedLine = line.trim(); if (trimmedLine.length === 0) return;
-                const rgb = hexToRgb(trimmedLine); if (rgb) { if (tryAddColor([rgb.r, rgb.g, rgb.b], trimmedLine.toUpperCase())) { addedCount++; } }
+                const rgb = hexToRgb(trimmedLine); if (rgb) { if (tryAddColor([rgb.r, rgb.g, rgb.b], trimmedLine.toUpperCase())) { addedCount++; } else { failedCount++; } } else { failedCount++; }
             });
-            if (addedCount > 0) { clearAndResetInputFields(); }
-            else { if (lines.length > 1) { alert('붙여넣은 텍스트에서 유효한 6자리 HEX 코드를 찾을 수 없습니다.'); } else { const rgb = hexToRgb(pastedText.trim()); if (rgb) { if(!tryAddColor([rgb.r, rgb.g, rgb.b], pastedText.trim().toUpperCase())) { alert(languageData[state.language].alert_already_added); } else { clearAndResetInputFields(); } } else { elements.addHex.value = pastedText; elements.hexInputFeedback.textContent = '유효하지 않은 HEX 코드입니다.'; } } }
+            if (addedCount > 0) { clearAndResetInputFields(); if (failedCount > 0) { alert(languageData[state.language].alert_some_colors_failed); } }
+            else { alert(languageData[state.language].alert_some_colors_failed); elements.addHex.value = pastedText; }
         };
 
         elements.addHex.addEventListener('paste', handleHexPaste);
