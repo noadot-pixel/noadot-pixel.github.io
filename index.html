@@ -179,7 +179,7 @@
 
             <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
                 <input type="checkbox" id="applyPattern">
-                <label for="applyPattern" data-lang-key="option_apply_pattern">패턴 적용 (베타)</label>
+                <label for="applyPattern" data-lang-key="option_apply_pattern"data-tooltip-key="tooltip_pattern">패턴 적용 (베타)</label>
             </div>
             <div id="pattern-options" class="sub-options" style="display: none;">
                 <div class="control-group">
@@ -203,15 +203,15 @@
             <!-- [신규] 투명도 그라데이션 섹션 -->
             <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
                 <input type="checkbox" id="applyGradient">
-                <label for="applyGradient">투명도 그라데이션 적용</label>
+                <label for="applyGradient" data-lang-key="option_apply_gradient" data-tooltip-key="tooltip_gradient">투명도 그라데이션 적용</label>
             </div>
             <div id="gradient-options" class="sub-options" style="display: none;">
                 <div class="control-group">
-                    <label for="gradientAngleSlider"><span>각도</span>: <span id="gradientAngleValue">0</span>°</label>
+                    <label for="gradientAngleSlider"><span data-lang-key="gradient_angle">각도</span>: <span id="gradientAngleValue">0</span>°</label>
                     <input type="range" id="gradientAngleSlider" min="0" max="360" value="0">
                 </div>
                 <div class="control-group">
-                    <label for="gradientStrengthSlider"><span>강도</span>: <span id="gradientStrengthValue">100</span>%</label>
+                    <label for="gradientStrengthSlider"><span data-lang-key="gradient_strength">강도</span>: <span id="gradientStrengthValue">100</span>%</label>
                     <input type="range" id="gradientStrengthSlider" min="0" max="100" value="100">
                 </div>
             </div>

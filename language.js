@@ -103,7 +103,12 @@ const languageData = {
         alert_already_added: "이미 추가된 색상입니다.",
         placeholder_no_recommendations: "선택된 모드에 맞는<br>추천 색상이 없습니다.",
         alert_some_colors_failed: "일부 색상을 추가하지 못했습니다. (중복 또는 유효하지 않은 형식)",
-        placeholder_no_recommendations: "선택된 모드에 맞는<br>추천 색상이 없습니다."
+        placeholder_no_recommendations: "선택된 모드에 맞는<br>추천 색상이 없습니다.",
+
+        option_apply_gradient: "투명도 그라데이션 적용",
+        gradient_angle: "각도",
+        gradient_strength: "강도",
+        tooltip_gradient: "이미지에 선형 그라데이션으로 점차 투명해지는 디더링 효과를 적용합니다. '각도'로 방향을, '강도'로 전체적인 투명도를 조절할 수 있습니다.",
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
@@ -207,6 +212,11 @@ const languageData = {
         alert_already_added: "This color has already been added.",
         placeholder_no_recommendations: "No recommended colors found<br>for the selected mode.",
         alert_some_colors_failed: "Failed to add some colors (duplicates or invalid format).",
-        placeholder_no_recommendations: "No recommended colors found<br>for the selected mode."
+        placeholder_no_recommendations: "No recommended colors found<br>for the selected mode.",
+        
+        option_apply_gradient: "Apply Transparency Gradient",
+        gradient_angle: "Angle",
+        gradient_strength: "Strength",
+        tooltip_gradient: "Applies a dithered transparency effect in a linear gradient. 'Angle' controls the direction, and 'Strength' controls the overall transparency.",
     }
 };
