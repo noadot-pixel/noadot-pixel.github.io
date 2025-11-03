@@ -1,4 +1,4 @@
-// worker.js (v4.0 - 패턴/디더링 동시 적용 아키텍처 최종본)
+// worker.js (v4.3 - 투명도 그라데이션 기능 추가)
 
 import { THRESHOLD_MAPS } from './threshold-maps.js';
 
@@ -60,7 +60,6 @@ function findTwoClosestColors(r, g, b, palette, paletteOklab, useHighQuality) {
     return lum1 < lum2 ? { darker: c1, brighter: c2 } : { darker: c2, brighter: c1 };
 }
 
-// [수정] 함수 인자 변경: 원본 명도 계산을 위해 전처리된 이미지를 받음
 function applyPatternDithering(preprocessedImage, convertedImage, palette, options) {
     const { width, height } = preprocessedImage;
     const { data: preprocessedData } = preprocessedImage;
@@ -68,43 +67,85 @@ function applyPatternDithering(preprocessedImage, convertedImage, palette, optio
     const { patternType, highQualityMode, patternSize } = options;
     const resultImageData = new ImageData(width, height);
     const resultData = resultImageData.data;
-    
     const map = THRESHOLD_MAPS[patternType] || THRESHOLD_MAPS.crosshatch;
     const mapHeight = map.length; const mapWidth = map[0].length;
-    
+    const paletteOklab = highQualityMode && palette.length > 0 ? palette.map(c => ColorConverter.rgbToOklab(c)) : null;
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const i = (y * width + x) * 4;
-            // [수정] 명도는 전처리된 이미지에서, 두 색상은 변환된 이미지에서 가져옴
             const r = preprocessedData[i], g = preprocessedData[i+1], b = preprocessedData[i+2];
             const grayscale = 0.299 * r + 0.587 * g + 0.114 * b;
-
             const c1 = [convertedData[i], convertedData[i+1], convertedData[i+2]];
-            const { darker, brighter } = findTwoClosestColors(r, g, b, palette, null, false); // 여기서는 이미 변환된 색상과 가까운 색을 찾아야 함
-            
+            const { darker, brighter } = findTwoClosestColors(r, g, b, palette, paletteOklab, highQualityMode);
             const mapX = Math.floor(x / patternSize) % mapWidth;
             const mapY = Math.floor(y / patternSize) % mapHeight;
             const threshold = map[mapY][mapX];
-            
-            // [수정] 이미 변환된 색상(c1)이 밝은색인지 어두운색인지 판단하여, 그 반대 색을 선택
             const c1Luminance = 0.299 * c1[0] + 0.587 * c1[1] + 0.114 * c1[2];
             const darkerLuminance = 0.299 * darker[0] + 0.587 * darker[1] + 0.114 * darker[2];
-            
             const isC1Brighter = Math.abs(c1Luminance - darkerLuminance) > 1;
-            
-            const finalColor = (grayscale > threshold) ? 
-                               (isC1Brighter ? c1 : brighter) : 
-                               (isC1Brighter ? darker : c1);
-
-            resultData[i] = finalColor[0];
-            resultData[i + 1] = finalColor[1];
-            resultData[i + 2] = finalColor[2];
-            resultData[i + 3] = 255;
+            const finalColor = (grayscale > threshold) ? (isC1Brighter ? c1 : brighter) : (isC1Brighter ? darker : c1);
+            resultData[i] = finalColor[0]; resultData[i + 1] = finalColor[1]; resultData[i + 2] = finalColor[2]; resultData[i + 3] = 255;
         }
     }
     return resultImageData;
 }
 
+// [신규] 투명도 그라데이션 적용 함수
+function applyGradientTransparency(imageData, options) {
+    const { width, height, data } = imageData;
+    const { gradientAngle, gradientStrength } = options;
+
+    const angle = gradientAngle;
+    const strength = gradientStrength / 100.0;
+    
+    // 투명도 디더링에 사용할 간단한 4x4 베이어 행렬
+    const bayerMatrix = [
+        [ 0,  8,  2, 10],
+        [12,  4, 14,  6],
+        [ 3, 11,  1,  9],
+        [15,  7, 13,  5]
+    ];
+    const bayerFactor = 255 / 16;
+
+    // 그라데이션 계산을 위한 준비
+    const rad = angle * Math.PI / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    const centerX = width / 2;
+    const centerY = height / 2;
+    // 그라데이션의 최대/최소값 계산을 위한 사전 계산
+    const corners = [
+        (0 - centerX) * cos + (0 - centerY) * sin,
+        (width - centerX) * cos + (0 - centerY) * sin,
+        (0 - centerX) * cos + (height - centerY) * sin,
+        (width - centerX) * cos + (height - centerY) * sin,
+    ];
+    const minProj = Math.min(...corners);
+    const maxProj = Math.max(...corners);
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 4;
+            if (data[i+3] === 0) continue; // 이미 투명한 픽셀은 건너뜀
+
+            // 1. 픽셀의 그라데이션 값 계산 (0.0 ~ 1.0)
+            const projected = (x - centerX) * cos + (y - centerY) * sin;
+            let gradientValue = (projected - minProj) / (maxProj - minProj); // 0.0 ~ 1.0
+            
+            // 2. 강도 적용
+            gradientValue = gradientValue * strength;
+
+            // 3. 디더링으로 투명도 결정
+            const bayerThreshold = bayerMatrix[y % 4][x % 4] * bayerFactor;
+            const transparencyThreshold = gradientValue * 255;
+
+            if (bayerThreshold < transparencyThreshold) {
+                data[i + 3] = 0; // 픽셀을 투명하게 만듦
+            }
+        }
+    }
+    return imageData; // 원본 데이터를 직접 수정했으므로 그대로 반환
+}
 
 function posterizeWithKMeans(imageData, k) {
     const { data, width, height } = imageData; const pixels = [];
@@ -186,7 +227,6 @@ self.onmessage = (e) => {
     try {
         let finalImageData;
         const preprocessedData = preprocessImageData(imageData, options);
-
         if (options.edgeCleanup) {
             finalImageData = applyCelShadingFilter(preprocessedData, palette, options);
         } else {
@@ -195,28 +235,22 @@ self.onmessage = (e) => {
 
             // 2. 사용자가 패턴 적용을 원하면, 그 위에 패턴 디더링을 한 번 더 적용
             if (options.applyPattern) {
-                // 패턴 디더링은 '원본 명도'를 사용해야 하므로 preprocessedData를 전달
+                // 패턴 디더링은 '원본 명도'를 사용해야 하므로 preprocessedData를,
+                // 색상 선택의 기준이 될 이미지는 convertedImage를 전달
                 finalImageData = applyPatternDithering(preprocessedData, convertedImage, palette, options);
             } else {
                 finalImageData = convertedImage;
             }
         }
-
-        const recommendations = (options.currentMode === 'geopixels') 
-            ? calculateRecommendations(imageData, palette, options) 
-            : [];
         
-        self.postMessage({ 
-            status: 'success', 
-            imageData: finalImageData, 
-            recommendations: recommendations, 
-            processId: processId 
-        }, [finalImageData.data.buffer]);
+        // [신규] 모든 작업이 끝난 후, 그라데이션 투명도를 마지막으로 적용
+        if (options.applyGradient && options.gradientStrength > 0) {
+            finalImageData = applyGradientTransparency(finalImageData, options);
+        }
+
+        const recommendations = (options.currentMode === 'geopixels') ? calculateRecommendations(imageData, palette, options) : [];
+        self.postMessage({ status: 'success', imageData: finalImageData, recommendations: recommendations, processId: processId }, [finalImageData.data.buffer]);
     } catch (error) {
-        self.postMessage({ 
-            status: 'error', 
-            message: error.message + ' at ' + error.stack, 
-            processId: processId 
-        });
+        self.postMessage({ status: 'error', message: error.message + ' at ' + error.stack, processId: processId });
     }
 };

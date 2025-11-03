@@ -12,7 +12,7 @@
     <!-- 왼쪽 패널: 헤더 및 변환 결과 영역 -->
     <div class="left-panel">
         <header class="main-header">
-            <h1 data-lang-key="app_header">🎨 NoaDot v4.0</h1>
+            <h1 data-lang-key="app_header">🎨 NoaDot v4.x</h1>
             <div class="external-links">
                 <div id="language-switcher" class="language-switcher">
                     <button data-lang="ko" class="active">KR</button>
@@ -163,7 +163,6 @@
                 <input type="range" id="contrastSlider" min="-100" max="100" value="0">
             </div>
             
-            <!-- [수정] 디더링과 패턴을 분리 -->
             <div id="dithering-algorithm-group" class="control-group">
                 <label for="ditheringAlgorithmSelect" data-lang-key="option_dithering" data-tooltip-key="tooltip_dithering">디더링</label>
                 <select id="ditheringAlgorithmSelect">
@@ -178,8 +177,7 @@
                 <input type="range" id="ditheringSlider" min="0" max="100" value="0">
             </div>
 
-            <!-- [신규] 패턴 적용 체크박스와 하위 옵션 -->
-            <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;" data-tooltip-key="tooltip_pattern">
+            <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
                 <input type="checkbox" id="applyPattern">
                 <label for="applyPattern" data-lang-key="option_apply_pattern">패턴 적용 (베타)</label>
             </div>
@@ -187,6 +185,7 @@
                 <div class="control-group">
                     <label for="patternTypeSelect" data-lang-key="pattern_type">패턴 종류</label>
                     <select id="patternTypeSelect">
+                        <option value="bayer8x8">점묘화 (베이어 8x8)</option>
                         <option value="crosshatch" data-lang-key="pattern_crosshatch">격자</option>
                         <option value="vertical" data-lang-key="pattern_vertical">수직선</option>
                         <option value="checkerboard" data-lang-key="pattern_checkerboard">체커보드</option>
@@ -201,6 +200,22 @@
                 </div>
             </div>
             
+            <!-- [신규] 투명도 그라데이션 섹션 -->
+            <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
+                <input type="checkbox" id="applyGradient">
+                <label for="applyGradient">투명도 그라데이션 적용</label>
+            </div>
+            <div id="gradient-options" class="sub-options" style="display: none;">
+                <div class="control-group">
+                    <label for="gradientAngleSlider"><span>각도</span>: <span id="gradientAngleValue">0</span>°</label>
+                    <input type="range" id="gradientAngleSlider" min="0" max="360" value="0">
+                </div>
+                <div class="control-group">
+                    <label for="gradientStrengthSlider"><span>강도</span>: <span id="gradientStrengthValue">100</span>%</label>
+                    <input type="range" id="gradientStrengthSlider" min="0" max="100" value="100">
+                </div>
+            </div>
+
             <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
                 <input type="checkbox" id="highQualityMode">
                 <label for="highQualityMode" data-lang-key="option_hq_mode" data-tooltip-key="tooltip_hq_mode">고품질 색상 계산 (느림)</label>
