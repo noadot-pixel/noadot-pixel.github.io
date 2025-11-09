@@ -112,6 +112,8 @@ const languageData = {
         tooltip_gradient: "이미지에 선형 그라데이션으로 점차 투명해지는 디더링 효과를 적용합니다. '각도'로 방향을, '강도'로 전체적인 투명도를 조절할 수 있습니다.",
         extract_mode_smh : "명암 대표색",
         placeholder_no_new_recommendations: "현재 모드에 대한 새로운 추천 색상이 없거나, 모든 색상이 이미 추가되었습니다.",
+        option_pixelated_scaling: "선명한 리사이징 (픽셀 아트용)",
+        tooltip_pixelated_scaling: "체크 시, 이미지 크기 조절 시 픽셀 경계를 유지하여 선명하게 만듭니다. 일반 사진의 경우 체크를 해제하면 더 부드러운 결과물을 얻을 수 있습니다.",
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
@@ -224,5 +226,7 @@ const languageData = {
         tooltip_gradient: "Applies a dithered transparency effect in a linear gradient. 'Angle' controls the direction, and 'Strength' controls the overall transparency.",
         extract_mode_smh : "Tonal Range",
         placeholder_no_new_recommendations: "No new recommendations for this mode, or all have been added.",
+        option_pixelated_scaling: "Pixel-perfect Scaling (for Pixel Art)",
+        tooltip_pixelated_scaling: "When checked, keeps pixel edges sharp during resizing. For regular photos, uncheck this for a smoother result.",
     }
 };
