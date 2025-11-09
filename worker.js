@@ -1,4 +1,4 @@
-// worker.js (v4.3 - 투명도 그라데이션 기능 추가)
+// worker.js (v4.4 - '명암 대표색' 추천 기능 추가)
 
 import { THRESHOLD_MAPS } from './threshold-maps.js';
 
@@ -90,61 +90,23 @@ function applyPatternDithering(preprocessedImage, convertedImage, palette, optio
     return resultImageData;
 }
 
-// [신규] 투명도 그라데이션 적용 함수
 function applyGradientTransparency(imageData, options) {
     const { width, height, data } = imageData;
     const { gradientAngle, gradientStrength } = options;
-
-    const angle = gradientAngle;
-    const strength = gradientStrength / 100.0;
-    
-    // 투명도 디더링에 사용할 간단한 4x4 베이어 행렬
-    const bayerMatrix = [
-        [ 0,  8,  2, 10],
-        [12,  4, 14,  6],
-        [ 3, 11,  1,  9],
-        [15,  7, 13,  5]
-    ];
+    const angle = gradientAngle; const strength = gradientStrength / 100.0;
+    const bayerMatrix = [ [ 0, 8, 2, 10 ], [ 12, 4, 14, 6 ], [ 3, 11, 1, 9 ], [ 15, 7, 13, 5 ] ];
     const bayerFactor = 255 / 16;
-
-    // 그라데이션 계산을 위한 준비
-    const rad = angle * Math.PI / 180;
-    const cos = Math.cos(rad);
-    const sin = Math.sin(rad);
-    const centerX = width / 2;
-    const centerY = height / 2;
-    // 그라데이션의 최대/최소값 계산을 위한 사전 계산
-    const corners = [
-        (0 - centerX) * cos + (0 - centerY) * sin,
-        (width - centerX) * cos + (0 - centerY) * sin,
-        (0 - centerX) * cos + (height - centerY) * sin,
-        (width - centerX) * cos + (height - centerY) * sin,
-    ];
-    const minProj = Math.min(...corners);
-    const maxProj = Math.max(...corners);
-
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            const i = (y * width + x) * 4;
-            if (data[i+3] === 0) continue; // 이미 투명한 픽셀은 건너뜀
-
-            // 1. 픽셀의 그라데이션 값 계산 (0.0 ~ 1.0)
-            const projected = (x - centerX) * cos + (y - centerY) * sin;
-            let gradientValue = (projected - minProj) / (maxProj - minProj); // 0.0 ~ 1.0
-            
-            // 2. 강도 적용
+    const rad = angle * Math.PI / 180; const cos = Math.cos(rad); const sin = Math.sin(rad); const centerX = width / 2; const centerY = height / 2;
+    const corners = [ (0 - centerX) * cos + (0 - centerY) * sin, (width - centerX) * cos + (0 - centerY) * sin, (0 - centerX) * cos + (height - centerY) * sin, (width - centerX) * cos + (height - centerY) * sin, ];
+    const minProj = Math.min(...corners); const maxProj = Math.max(...corners);
+    for (let y = 0; y < height; y++) { for (let x = 0; x < width; x++) { const i = (y * width + x) * 4; if (data[i+3] === 0) continue;
+            const projected = (x - centerX) * cos + (y - centerY) * sin; let gradientValue = (projected - minProj) / (maxProj - minProj);
             gradientValue = gradientValue * strength;
-
-            // 3. 디더링으로 투명도 결정
-            const bayerThreshold = bayerMatrix[y % 4][x % 4] * bayerFactor;
-            const transparencyThreshold = gradientValue * 255;
-
-            if (bayerThreshold < transparencyThreshold) {
-                data[i + 3] = 0; // 픽셀을 투명하게 만듦
-            }
+            const bayerThreshold = bayerMatrix[y % 4][x % 4] * bayerFactor; const transparencyThreshold = gradientValue * 255;
+            if (bayerThreshold < transparencyThreshold) { data[i + 3] = 0; }
         }
     }
-    return imageData; // 원본 데이터를 직접 수정했으므로 그대로 반환
+    return imageData;
 }
 
 function posterizeWithKMeans(imageData, k) {
@@ -195,12 +157,88 @@ function preprocessImageData(sourceImageData, options) {
 }
 
 function calculateRecommendations(imageData, activePalette, options) {
-    const { highlightSensitivity = 0 } = options; if (activePalette.length === 0) return []; const { data, width, height } = imageData; const colorData = new Map(); let totalPixels = 0;
-    for (let y = 0; y < height; y++) { for (let x = 0; x < width; x++) { const i = (y * width + x) * 4; if (data[i + 3] < 128) continue; totalPixels++; const r1 = data[i], g1 = data[i+1], b1 = data[i+2]; const key = `${r1},${g1},${b1}`; let volatility = 0; if (highlightSensitivity > 0) { for (let dy = -highlightSensitivity; dy <= highlightSensitivity; dy++) { for (let dx = -highlightSensitivity; dx <= highlightSensitivity; dx++) { if (dx === 0 && dy === 0) continue; if (Math.abs(dx) + Math.abs(dy) > highlightSensitivity) continue; const nx = x + dx, ny = y + dy; if (nx >= 0 && nx < width && ny >= 0 && ny < height) { const ni = (ny * width + nx) * 4; const r2 = data[ni], g2 = data[ni+1], b2 = data[ni+2]; volatility += (r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2; } } } } if (!colorData.has(key)) { colorData.set(key, { count: 0, maxVolatility: 0 }); } const entry = colorData.get(key); entry.count++; if (volatility > entry.maxVolatility) entry.maxVolatility = volatility; } }
-    if (totalPixels === 0) return []; const allExistingColors = new Set(activePalette.map(rgb => rgb.join(','))); const candidates = [];
-    for (const [rgbStr, stats] of colorData.entries()) { if (allExistingColors.has(rgbStr)) continue; const originalRgb = JSON.parse(`[${rgbStr}]`); const usage = stats.count / totalPixels; if (usage > 0.01) { candidates.push({ rgb: originalRgb, usage, type: '사용량 높은 색상', score: usage }); continue; } const volatilityScore = Math.sqrt(stats.maxVolatility); if (highlightSensitivity > 0 && volatilityScore > 1000) { candidates.push({ rgb: originalRgb, usage, type: '하이라이트 색상', score: volatilityScore }); } }
-    const highUsage = candidates.filter(c => c.type === '사용량 높은 색상').sort((a,b) => b.score - a.score); const highlights = candidates.filter(c => c.type === '하이라이트 색상').sort((a,b) => b.score - a.score);
-    return [...highUsage.slice(0, 5), ...highlights.slice(0, 5)];
+    const { highlightSensitivity = 0 } = options;
+    const { data, width, height } = imageData;
+
+    const allExistingColors = new Set(activePalette.map(rgb => rgb.join(',')));
+    const colorStats = new Map();
+    let totalPixels = 0;
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 4;
+            if (data[i + 3] < 128) continue;
+            totalPixels++;
+            
+            const r = data[i], g = data[i+1], b = data[i+2];
+            const key = `${r},${g},${b}`;
+            
+            if (allExistingColors.has(key)) continue;
+
+            if (!colorStats.has(key)) {
+                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+                colorStats.set(key, { rgb: [r, g, b], count: 0, luminance, maxVolatility: 0 });
+            }
+
+            const entry = colorStats.get(key);
+            entry.count++;
+
+            if (highlightSensitivity > 0) {
+                let volatility = 0;
+                for (let dy = -highlightSensitivity; dy <= highlightSensitivity; dy++) {
+                    for (let dx = -highlightSensitivity; dx <= highlightSensitivity; dx++) {
+                        if ((dx === 0 && dy === 0) || (Math.abs(dx) + Math.abs(dy) > highlightSensitivity)) continue;
+                        const nx = x + dx, ny = y + dy;
+                        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                            const ni = (ny * width + nx) * 4;
+                            volatility += (r - data[ni])**2 + (g - data[ni+1])**2 + (b - data[ni+2])**2;
+                        }
+                    }
+                }
+                if (volatility > entry.maxVolatility) entry.maxVolatility = volatility;
+            }
+        }
+    }
+    
+    if (totalPixels === 0 || colorStats.size === 0) return [];
+
+    const candidates = Array.from(colorStats.values());
+
+    const highUsage = [];
+    const highlights = [];
+    candidates.forEach(stats => {
+        const usage = stats.count / totalPixels;
+        if (usage > 0.01) {
+            highUsage.push({ ...stats, type: '고비율 색상', score: usage });
+        }
+        const volatilityScore = Math.sqrt(stats.maxVolatility);
+        if (highlightSensitivity > 0 && volatilityScore > 1000) {
+            highlights.push({ ...stats, type: '하이라이트 색상', score: volatilityScore });
+        }
+    });
+
+    const shadows = candidates.filter(c => c.luminance < 85);
+    const midtones = candidates.filter(c => c.luminance >= 85 && c.luminance < 170);
+    const highlightsRange = candidates.filter(c => c.luminance >= 170);
+
+    const getMostUsed = (group) => group.sort((a, b) => b.count - a.count)[0];
+    
+    const smhRecommendations = [];
+    const shadowRep = getMostUsed(shadows);
+    const midtoneRep = getMostUsed(midtones);
+    const highlightRep = getMostUsed(highlightsRange);
+
+    if (shadowRep) smhRecommendations.push({ ...shadowRep, type: '명암 대표색', subType: '어두운 영역' });
+    if (midtoneRep) smhRecommendations.push({ ...midtoneRep, type: '명암 대표색', subType: '중간 영역' });
+    if (highlightRep) smhRecommendations.push({ ...highlightRep, type: '명암 대표색', subType: '밝은 영역' });
+
+    const finalSmh = smhRecommendations.filter((v, i, a) => a.findIndex(t => (t.rgb.join(',') === v.rgb.join(','))) === i);
+
+    return [
+        ...highUsage.sort((a,b) => b.score - a.score).slice(0, 5),
+        ...highlights.sort((a,b) => b.score - a.score).slice(0, 5),
+        ...finalSmh
+    ];
 }
 
 function applyConversion(imageData, palette, options) {
@@ -230,20 +268,14 @@ self.onmessage = (e) => {
         if (options.edgeCleanup) {
             finalImageData = applyCelShadingFilter(preprocessedData, palette, options);
         } else {
-            // 1. 먼저 일반 변환(디더링 포함)을 수행
             const convertedImage = applyConversion(preprocessedData, palette, options);
-
-            // 2. 사용자가 패턴 적용을 원하면, 그 위에 패턴 디더링을 한 번 더 적용
             if (options.applyPattern) {
-                // 패턴 디더링은 '원본 명도'를 사용해야 하므로 preprocessedData를,
-                // 색상 선택의 기준이 될 이미지는 convertedImage를 전달
                 finalImageData = applyPatternDithering(preprocessedData, convertedImage, palette, options);
             } else {
                 finalImageData = convertedImage;
             }
         }
         
-        // [신규] 모든 작업이 끝난 후, 그라데이션 투명도를 마지막으로 적용
         if (options.applyGradient && options.gradientStrength > 0) {
             finalImageData = applyGradientTransparency(finalImageData, options);
         }

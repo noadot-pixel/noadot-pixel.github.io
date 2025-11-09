@@ -304,3 +304,73 @@ fieldset:disabled { opacity: 0.6; pointer-events: none; }
     font-size: 11px;
     color: #666;
 }
+
+/* [v4.5] 종합 분석 리포트 스타일 */
+.analyze-button {
+    width: 100%;
+    padding: 10px;
+    font-size: 15px;
+    font-weight: bold;
+    color: white;
+    background-color: #5cb85c; /* 초록색 계열 */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin: 15px 0 10px 0;
+}
+
+.analyze-button:hover:not(:disabled) {
+    background-color: #4cae4c;
+}
+
+.analyze-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.recommendation-report-area {
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* 각 추천 그룹 사이의 간격 */
+    margin-top: 15px;
+}
+
+.recommendation-group {
+    border: 1px solid #eee;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #fcfcfc;
+}
+
+.recommendation-group h4 {
+    margin: 0 0 12px 0;
+    padding: 0 0 8px 0;
+    border-bottom: 1px solid #ddd;
+    font-size: 14px;
+}
+
+.recommendation-group-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.recommendation-item .recommendation-info {
+    display: flex;
+    align-items: center; /* 세로 중앙 정렬 */
+    gap: 8px; /* 내부 아이템 간 간격 */
+}
+
+/* 추천 이유 태그 스타일 */
+.recommendation-tag {
+    font-size: 10px;
+    padding: 2px 5px;
+    background-color: #e9ecef;
+    border-radius: 3px;
+    color: #495057;
+    white-space: nowrap; /* 태그가 줄바꿈되지 않도록 */
+}

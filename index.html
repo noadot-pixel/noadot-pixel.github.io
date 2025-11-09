@@ -86,8 +86,8 @@
                     </div>
                     <div id="ratio-scale-controls" class="hidden">
                         <div class="control-group">
-                            <label for="scaleSlider"><span data-lang-key="resize_scale_ratio">축소 비율</span>: <span id="scaleValue">1.00</span></label>
-                            <input type="range" id="scaleSlider" min="1" max="100" value="4">
+                            <label for="scaleSlider"><span data-lang-key="resize_scale_ratio">축소 배율</span>: <span id="scaleValue">1.00x</span></label>
+                            <input type="range" id="scaleSlider" min="0" max="76" value="0" step="1">
                         </div>
                     </div>
                     <div id="pixel-scale-controls">
@@ -200,7 +200,6 @@
                 </div>
             </div>
             
-            <!-- [신규] 투명도 그라데이션 섹션 -->
             <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
                 <input type="checkbox" id="applyGradient">
                 <label for="applyGradient" data-lang-key="option_apply_gradient" data-tooltip-key="tooltip_gradient">투명도 그라데이션 적용</label>
@@ -257,21 +256,24 @@
 
         <details open class="palette-category user-palette" id="user-palette-section">
             <summary><span class="palette-status-icon" data-target="addedColors"></span><span data-lang-key="palette_user">사용자 팔레트</span></summary>
+            
+            <!-- [v4.5] 수정된 색상 추출 추천 섹션 -->
             <div id="recommendation-section" class="palette-section">
                 <h2 data-lang-key="section_color_extract">색상 추출 추천</h2>
                 <div class="control-group">
                     <label for="highlightSensitivitySlider" data-tooltip-key="tooltip_highlight_sensitivity"><span data-lang-key="extract_highlight_sensitivity">하이라이트 탐지 감도</span>: <span id="highlightSensitivityValue">0</span></label>
                     <input type="range" id="highlightSensitivitySlider" min="0" max="5" value="0">
                 </div>
-                <section id="recommendation-toggle-container" class="mode-switcher" style="display: none; margin-top: 15px; padding: 0; background: none; border: none; margin-bottom: 10px;">
-                    <div class="radio-toggle">
-                        <input type="radio" id="highUsageMode" name="recommendMode" value="highUsage" checked><label for="highUsageMode" data-lang-key="extract_mode_high_usage">고비율 색상</label>
-                        <input type="radio" id="highlightMode" name="recommendMode" value="highlight"><label for="highlightMode" data-lang-key="extract_mode_highlight">하이라이트</label>
-                    </div>
-                </section>
-                <div id="recommendation-list-container" class="recommendation-list-area" style="margin-top: 10px;"></div>
+                
+                <button id="analyzeColorsBtn" class="analyze-button" disabled data-lang-key="btn_analyze_colors">색상 분석</button>
+    
+                <div id="recommendation-report-container" class="recommendation-report-area" style="display: none;">
+                    <!-- 자바스크립트가 동적으로 리포트 내용을 채울 공간 -->
+                </div>
+                
                 <div id="recommendedColorsPlaceholder" class="placeholder-section" style="margin-top: 15px;" data-lang-key="placeholder_recommend">이미지를 업로드하면<br>추천 색상이 표시됩니다.</div>
             </div>
+
             <div id="user-defined-palette" class="palette-section">
                 <h2 data-lang-key="palette_added_colors">추가한 색상</h2>
                 <div class="palette-buttons" id="addedColors">
@@ -306,7 +308,6 @@
     </div>
 </div>
 
-<!-- [수정] threshold-maps.js는 여기서 로드하지 않음. script.js만 모듈로 로드. -->
 <script src="palette-data.js"></script>
 <script src="language.js"></script>
 <script type="module" src="script.js"></script>

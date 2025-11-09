@@ -1,20 +1,19 @@
-// script.js (v4.3 - 진짜 최종 완성본: 모든 Task 및 버그 수정 완료)
+// script.js (v4.5 - 디버깅 완료 최종본)
 
 const PNGMetadata = { encode(keyword, content) { const keywordBytes = new TextEncoder().encode(keyword); const contentBytes = new TextEncoder().encode(content); const chunkType = new Uint8Array([116, 69, 88, 116]); const chunkData = new Uint8Array(keywordBytes.length + 1 + contentBytes.length); chunkData.set(keywordBytes); chunkData.set([0], keywordBytes.length); chunkData.set(contentBytes, keywordBytes.length + 1); const length = new Uint8Array(4); new DataView(length.buffer).setUint32(0, chunkData.length, false); const crcData = new Uint8Array(chunkType.length + chunkData.length); crcData.set(chunkType); crcData.set(chunkData, chunkType.length); const crc = new Uint8Array(4); new DataView(crc.buffer).setUint32(0, this.crc32(crcData), false); const chunk = new Uint8Array(length.length + chunkType.length + chunkData.length + crc.length); chunk.set(length); chunk.set(chunkType, 4); chunk.set(chunkData, 8); chunk.set(crc, 8 + chunkData.length); return chunk; }, embed(pngArrayBuffer, metadata) { const pngBytes = new Uint8Array(pngArrayBuffer); const keyword = 'NoaDotSettings'; const content = JSON.stringify(metadata); const metadataChunk = this.encode(keyword, content); const iendIndex = pngBytes.length - 12; const newPngBytes = new Uint8Array(pngBytes.length + metadataChunk.length); newPngBytes.set(pngBytes.subarray(0, iendIndex)); newPngBytes.set(metadataChunk, iendIndex); newPngBytes.set(pngBytes.subarray(iendIndex), iendIndex + metadataChunk.length); return newPngBytes.buffer; }, async extract(file) { const buffer = await file.arrayBuffer(); const bytes = new Uint8Array(buffer); const keyword = 'NoaDotSettings'; let offset = 8; while (offset < bytes.length) { const view = new DataView(bytes.buffer, offset); const length = view.getUint32(0); const type = new TextDecoder().decode(bytes.subarray(offset + 4, offset + 8)); if (type === 'tEXt') { const chunkData = bytes.subarray(offset + 8, offset + 8 + length); let separatorIndex = -1; for(let i=0; i<chunkData.length; i++) { if (chunkData[i] === 0) { separatorIndex = i; break; } } if (separatorIndex !== -1) { const currentKeyword = new TextDecoder().decode(chunkData.subarray(0, separatorIndex)); if (currentKeyword === keyword) { const content = new TextDecoder().decode(chunkData.subarray(separatorIndex + 1)); return JSON.parse(content); } } } offset += 12 + length; } return null; }, crcTable: (() => { let c; const crcTable = []; for (let n = 0; n < 256; n++) { c = n; for (let k = 0; k < 8; k++) { c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1)); } crcTable[n] = c; } return crcTable; })(), crc32(bytes) { let crc = 0 ^ (-1); for (let i = 0; i < bytes.length; i++) { crc = (crc >>> 8) ^ this.crcTable[(crc ^ bytes[i]) & 0xFF]; } return (crc ^ (-1)) >>> 0; } };
 
 document.addEventListener('DOMContentLoaded', () => {
     const CONFIG = { DEBOUNCE_DELAY: 150, DEFAULTS: { saturationSlider: 100, brightnessSlider: 0, contrastSlider: 0, ditheringSlider: 0, posterizeLevelsSlider: 8 } };
-    const state = { language: 'ko', appMode: 'image', isConverting: false, processId: 0, originalImageData: null, originalImageObject: null, originalFileName: 'image', currentZoom: 100, isDragging: false, panX: 0, panY: 0, startPanX: 0, startPanY: 0, startDragX: 0, startDragY: 0, finalDownloadableData: null, currentMode: 'geopixels', useWplaceInGeoMode: false, highQualityMode: false, edgeCleanup: false, scaleMode: 'pixel', aspectRatio: 1, textState: { content: '', fontFamily: 'Malgun Gothic', fontSize: 15, isBold: false, isItalic: false, letterSpacing: 0, padding: 10, textColor: '0,0,0', bgColor: '255,255,255', strokeColor: '0,0,0', strokeWidth: 0 }, recommendedColors: [], recommendMode: 'highUsage' };
+    const state = { language: 'ko', appMode: 'image', isConverting: false, processId: 0, originalImageData: null, originalImageObject: null, originalFileName: 'image', currentZoom: 100, isDragging: false, panX: 0, panY: 0, startPanX: 0, startPanY: 0, startDragX: 0, startDragY: 0, finalDownloadableData: null, currentMode: 'geopixels', useWplaceInGeoMode: false, highQualityMode: false, edgeCleanup: false, scaleMode: 'pixel', aspectRatio: 1, textState: { content: '', fontFamily: 'Malgun Gothic', fontSize: 15, isBold: false, isItalic: false, letterSpacing: 0, padding: 10, textColor: '0,0,0', bgColor: '255,255,255', strokeColor: '0,0,0', strokeWidth: 0 }, recommendedColors: [] };
     
     const elements = {
-        languageSwitcher: document.getElementById('language-switcher'), tooltip: null, loadingIndicator: document.getElementById('loading-indicator'), appContainer: document.querySelector('.app-container'), imageModeBtn: document.getElementById('imageMode'), textModeBtn: document.getElementById('textMode'), imageControls: document.getElementById('image-controls'), textControls: document.getElementById('text-controls'), textEditorPanel: document.getElementById('text-editor-panel'), imageUpload: document.getElementById('imageUpload'), downloadBtn: document.getElementById('downloadBtn'), convertedCanvas: document.getElementById('convertedCanvas'), convertedCanvasContainer: document.getElementById('convertedCanvasContainer'), centerBtn: document.getElementById('centerBtn'), zoomLevelDisplay: document.getElementById('zoomLevelDisplay'), imageDimensionsDisplay: document.getElementById('imageDimensionsDisplay'), originalDimensions: document.getElementById('originalDimensions'), convertedDimensions: document.getElementById('convertedDimensions'), convertedDimensionsLabel: document.getElementById('convertedDimensionsLabel'), saturationSlider: document.getElementById('saturationSlider'), saturationValue: document.getElementById('saturationValue'), brightnessSlider: document.getElementById('brightnessSlider'), brightnessValue: document.getElementById('brightnessValue'), contrastSlider: document.getElementById('contrastSlider'), contrastValue: document.getElementById('contrastValue'), highQualityMode: document.getElementById('highQualityMode'), ditheringAlgorithmSelect: document.getElementById('ditheringAlgorithmSelect'), ditheringSlider: document.getElementById('ditheringSlider'), ditheringValue: document.getElementById('ditheringValue'), ditheringAlgorithmGroup: document.getElementById('dithering-algorithm-group'), ditheringStrengthGroup: document.getElementById('dithering-strength-group'), edgeCleanup: document.getElementById('edgeCleanup'), edgeCleanupOptions: document.getElementById('edgeCleanupOptions'), posterizeLevelsSlider: document.getElementById('posterizeLevelsSlider'), posterizeLevelsValue: document.getElementById('posterizeLevelsValue'), showOutline: document.getElementById('showOutline'), scaleControlsFieldset: document.getElementById('scaleControlsFieldset'), scaleModeSelect: document.getElementById('scaleModeSelect'), ratioScaleControls: document.getElementById('ratio-scale-controls'), pixelScaleControls: document.getElementById('pixel-scale-controls'), scaleSlider: document.getElementById('scaleSlider'), scaleValue: document.getElementById('scaleValue'), scaleWidth: document.getElementById('scaleWidth'), scaleHeight: document.getElementById('scaleHeight'), pixelScaleSlider: document.getElementById('pixelScaleSlider'), recommendationSection: document.getElementById('recommendation-section'), recommendedColorsPlaceholder: document.getElementById('recommendedColorsPlaceholder'), highlightSensitivitySlider: document.getElementById('highlightSensitivitySlider'), highlightSensitivityValue: document.getElementById('highlightSensitivityValue'), recommendationToggleContainer: document.getElementById('recommendation-toggle-container'), recommendationListContainer: document.getElementById('recommendation-list-container'), highUsageModeBtn: document.getElementById('highUsageMode'), highlightModeBtn: document.getElementById('highlightMode'), wplaceFreeColorsContainer: document.getElementById('wplaceFreeColors'), wplacePaidColorsContainer: document.getElementById('wplacePaidColors'), geoPixelColorsContainer: document.getElementById('geoPixelColors'), addedColorsContainer: document.getElementById('addedColors'), addColorBtn: document.getElementById('addColorBtn'), addHex: document.getElementById('addHex'), addR: document.getElementById('addR'), addG: document.getElementById('addG'), addB: document.getElementById('addB'), hexInputFeedback: document.getElementById('hexInputFeedback'), rgbInputFeedback: document.getElementById('rgbInputFeedback'), exportPaletteBtn: document.getElementById('exportPaletteBtn'), importPaletteBtn: document.getElementById('importPaletteBtn'), paletteUpload: document.getElementById('paletteUpload'), resetAddedColorsBtn: document.getElementById('resetAddedColorsBtn'), geopixelsModeBtn: document.getElementById('geopixelsMode'), wplaceModeBtn: document.getElementById('wplaceMode'), geopixelsControls: document.getElementById('geopixels-controls'), wplaceControls: document.getElementById('wplace-controls'), useWplaceInGeoMode: document.getElementById('useWplaceInGeoMode'), wplacePaletteInGeo: document.getElementById('wplace-palette-in-geo'), wplaceFreeColorsInGeo: document.getElementById('wplaceFreeColorsInGeo'), wplacePaidColorsInGeo: document.getElementById('wplacePaidColorsInGeo'), placeholderUi: document.getElementById('placeholder-ui'), editorTextarea: document.getElementById('editor-textarea'), fontSelect: document.getElementById('fontSelect'), fontSizeSlider: document.getElementById('fontSizeSlider'), fontSizeValue: document.getElementById('fontSizeValue'), letterSpacingSlider: document.getElementById('letterSpacingSlider'), letterSpacingValue: document.getElementById('letterSpacingValue'), paddingSlider: document.getElementById('paddingSlider'), paddingValue: document.getElementById('paddingValue'), uploadFontBtn: document.getElementById('uploadFontBtn'), fontUpload: document.getElementById('fontUpload'), textColorSelect: document.getElementById('textColorSelect'), bgColorSelect: document.getElementById('bgColorSelect'), strokeColorSelect: document.getElementById('strokeColorSelect'), strokeWidthSlider: document.getElementById('strokeWidthSlider'), strokeWidthValue: document.getElementById('strokeWidthValue'), metadataInfoDisplay: document.getElementById('metadata-info-display'), userPaletteSection: document.getElementById('user-palette-section'),
+        languageSwitcher: document.getElementById('language-switcher'), tooltip: null, loadingIndicator: document.getElementById('loading-indicator'), appContainer: document.querySelector('.app-container'), imageModeBtn: document.getElementById('imageMode'), textModeBtn: document.getElementById('textMode'), imageControls: document.getElementById('image-controls'), textControls: document.getElementById('text-controls'), textEditorPanel: document.getElementById('text-editor-panel'), imageUpload: document.getElementById('imageUpload'), downloadBtn: document.getElementById('downloadBtn'), convertedCanvas: document.getElementById('convertedCanvas'), convertedCanvasContainer: document.getElementById('convertedCanvasContainer'), centerBtn: document.getElementById('centerBtn'), zoomLevelDisplay: document.getElementById('zoomLevelDisplay'), imageDimensionsDisplay: document.getElementById('imageDimensionsDisplay'), originalDimensions: document.getElementById('originalDimensions'), convertedDimensions: document.getElementById('convertedDimensions'), convertedDimensionsLabel: document.getElementById('convertedDimensionsLabel'), saturationSlider: document.getElementById('saturationSlider'), saturationValue: document.getElementById('saturationValue'), brightnessSlider: document.getElementById('brightnessSlider'), brightnessValue: document.getElementById('brightnessValue'), contrastSlider: document.getElementById('contrastSlider'), contrastValue: document.getElementById('contrastValue'), highQualityMode: document.getElementById('highQualityMode'), ditheringAlgorithmSelect: document.getElementById('ditheringAlgorithmSelect'), ditheringSlider: document.getElementById('ditheringSlider'), ditheringValue: document.getElementById('ditheringValue'), ditheringAlgorithmGroup: document.getElementById('dithering-algorithm-group'), ditheringStrengthGroup: document.getElementById('dithering-strength-group'), edgeCleanup: document.getElementById('edgeCleanup'), edgeCleanupOptions: document.getElementById('edgeCleanupOptions'), posterizeLevelsSlider: document.getElementById('posterizeLevelsSlider'), posterizeLevelsValue: document.getElementById('posterizeLevelsValue'), showOutline: document.getElementById('showOutline'), scaleControlsFieldset: document.getElementById('scaleControlsFieldset'), scaleModeSelect: document.getElementById('scaleModeSelect'), ratioScaleControls: document.getElementById('ratio-scale-controls'), pixelScaleControls: document.getElementById('pixel-scale-controls'), scaleSlider: document.getElementById('scaleSlider'), scaleValue: document.getElementById('scaleValue'), scaleWidth: document.getElementById('scaleWidth'), scaleHeight: document.getElementById('scaleHeight'), pixelScaleSlider: document.getElementById('pixelScaleSlider'), recommendationSection: document.getElementById('recommendation-section'), 
+        analyzeColorsBtn: document.getElementById('analyzeColorsBtn'),
+        recommendationReportContainer: document.getElementById('recommendation-report-container'),
+        recommendedColorsPlaceholder: document.getElementById('recommendedColorsPlaceholder'), 
+        highlightSensitivitySlider: document.getElementById('highlightSensitivitySlider'), highlightSensitivityValue: document.getElementById('highlightSensitivityValue'), wplaceFreeColorsContainer: document.getElementById('wplaceFreeColors'), wplacePaidColorsContainer: document.getElementById('wplacePaidColors'), geoPixelColorsContainer: document.getElementById('geoPixelColors'), addedColorsContainer: document.getElementById('addedColors'), addColorBtn: document.getElementById('addColorBtn'), addHex: document.getElementById('addHex'), addR: document.getElementById('addR'), addG: document.getElementById('addG'), addB: document.getElementById('addB'), hexInputFeedback: document.getElementById('hexInputFeedback'), rgbInputFeedback: document.getElementById('rgbInputFeedback'), exportPaletteBtn: document.getElementById('exportPaletteBtn'), importPaletteBtn: document.getElementById('importPaletteBtn'), paletteUpload: document.getElementById('paletteUpload'), resetAddedColorsBtn: document.getElementById('resetAddedColorsBtn'), geopixelsModeBtn: document.getElementById('geopixelsMode'), wplaceModeBtn: document.getElementById('wplaceMode'), geopixelsControls: document.getElementById('geopixels-controls'), wplaceControls: document.getElementById('wplace-controls'), useWplaceInGeoMode: document.getElementById('useWplaceInGeoMode'), wplacePaletteInGeo: document.getElementById('wplace-palette-in-geo'), wplaceFreeColorsInGeo: document.getElementById('wplaceFreeColorsInGeo'), wplacePaidColorsInGeo: document.getElementById('wplacePaidColorsInGeo'), placeholderUi: document.getElementById('placeholder-ui'), editorTextarea: document.getElementById('editor-textarea'), fontSelect: document.getElementById('fontSelect'), fontSizeSlider: document.getElementById('fontSizeSlider'), fontSizeValue: document.getElementById('fontSizeValue'), letterSpacingSlider: document.getElementById('letterSpacingSlider'), letterSpacingValue: document.getElementById('letterSpacingValue'), paddingSlider: document.getElementById('paddingSlider'), paddingValue: document.getElementById('paddingValue'), uploadFontBtn: document.getElementById('uploadFontBtn'), fontUpload: document.getElementById('fontUpload'), textColorSelect: document.getElementById('textColorSelect'), bgColorSelect: document.getElementById('bgColorSelect'), strokeColorSelect: document.getElementById('strokeColorSelect'), strokeWidthSlider: document.getElementById('strokeWidthSlider'), strokeWidthValue: document.getElementById('strokeWidthValue'), metadataInfoDisplay: document.getElementById('metadata-info-display'), userPaletteSection: document.getElementById('user-palette-section'),
         applyPattern: document.getElementById('applyPattern'), patternOptions: document.getElementById('pattern-options'), patternTypeSelect: document.getElementById('patternTypeSelect'), patternSizeSlider: document.getElementById('patternSizeSlider'), patternSizeValue: document.getElementById('patternSizeValue'),
-        applyGradient: document.getElementById('applyGradient'),
-        gradientOptions: document.getElementById('gradient-options'),
-        gradientAngleSlider: document.getElementById('gradientAngleSlider'),
-        gradientAngleValue: document.getElementById('gradientAngleValue'),
-        gradientStrengthSlider: document.getElementById('gradientStrengthSlider'),
-        gradientStrengthValue: document.getElementById('gradientStrengthValue'),
+        applyGradient: document.getElementById('applyGradient'), gradientOptions: document.getElementById('gradient-options'), gradientAngleSlider: document.getElementById('gradientAngleSlider'), gradientAngleValue: document.getElementById('gradientAngleValue'), gradientStrengthSlider: document.getElementById('gradientStrengthSlider'), gradientStrengthValue: document.getElementById('gradientStrengthValue'),
     };
     
     const cCtx = elements.convertedCanvas.getContext('2d');
@@ -33,144 +32,103 @@ document.addEventListener('DOMContentLoaded', () => {
     const applySettingsData = (settings) => { if (!settings || settings.type !== 'colors' || !Array.isArray(settings.data)) return; if (confirm(languageData[state.language].confirm_load_palette_from_png)) { elements.addedColorsContainer.innerHTML = ''; settings.data.forEach(rgb => createAddedColorItem({ rgb }, true)); updatePaletteStatus(); triggerConversion(); } };
     const hexToRgb = (hex) => { let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); if (!result) { const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i; const shorthandResult = shorthandRegex.exec(hex); if (shorthandResult) { result = [ shorthandResult[0], shorthandResult[1] + shorthandResult[1], shorthandResult[2] + shorthandResult[2], shorthandResult[3] + shorthandResult[3] ]; } } return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null; };
     const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => { const hex = x.toString(16); return hex.length === 1 ? '0' + hex : hex; }).join('').toUpperCase();
-    const parseRgbString = (str) => { const numbers = str.match(/\d+/g); if (numbers && numbers.length === 3) { const rgb = numbers.map(numStr => parseInt(numStr, 10)); if (rgb.every(num => num >= 0 && num <= 255)) return rgb; } return null; };
     
-    // [마지막 수정] 추천 색상 목록 업데이트 로직
-    const updateColorRecommendations = (newRecommendations = null) => {
-        if (newRecommendations) { state.recommendedColors = newRecommendations; }
-        const container = elements.recommendationListContainer;
-        container.innerHTML = '';
-        
-        const noRecommendations = state.recommendedColors.length === 0;
-        elements.recommendationToggleContainer.style.display = noRecommendations ? 'none' : 'flex';
-        elements.recommendationListContainer.style.display = noRecommendations ? 'none' : 'block';
-        elements.recommendedColorsPlaceholder.style.display = noRecommendations ? 'block' : 'none';
-        if (noRecommendations) return;
-
-        let colorsToRender;
-        if (state.recommendMode === 'highUsage') {
-            colorsToRender = state.recommendedColors.filter(c => c.type === '사용량 높은 색상').sort((a, b) => b.score - a.score);
-        } else {
-            colorsToRender = state.recommendedColors.filter(c => c.type === '하이라이트 색상').sort((a, b) => b.score - a.score);
+    const updateColorRecommendations = (newRecommendations) => {
+        if (newRecommendations) {
+            state.recommendedColors = newRecommendations;
         }
 
-        // 이미 '추가한 색상' 목록에 있는 색은 추천 목록에서 제외합니다.
-        colorsToRender = colorsToRender.filter(rec => !isColorAlreadyAdded(rec.rgb));
-
-        if (colorsToRender.length === 0) {
-            container.innerHTML = `<div class="placeholder-section" style="padding:10px; font-size:12px;" data-lang-key="placeholder_no_recommendations">${languageData[state.language].placeholder_no_recommendations}</div>`;
+        const reportContainer = elements.recommendationReportContainer;
+        reportContainer.innerHTML = '';
+        
+        if (!state.recommendedColors || state.recommendedColors.length === 0) {
+            elements.recommendedColorsPlaceholder.style.display = 'block';
+            reportContainer.style.display = 'none';
             return;
         }
 
-        colorsToRender.forEach(rec => {
-            const item = document.createElement('div');
-            item.className = 'recommendation-item';
-            const swatch = document.createElement('div');
-            swatch.className = 'recommendation-swatch';
-            swatch.style.backgroundColor = `rgb(${rec.rgb.join(',')})`;
-            const info = document.createElement('div');
-            info.className = 'recommendation-info';
-            const rgbLabel = document.createElement('span');
-            rgbLabel.textContent = `(${rec.rgb.join(',')})`;
-            info.appendChild(rgbLabel);
-            if (rec.type === '사용량 높은 색상') {
-                const percentLabel = document.createElement('span');
-                percentLabel.textContent = `(${(rec.usage * 100).toFixed(1)}%)`;
-                info.appendChild(percentLabel);
-            }
-            const addBtn = document.createElement('button');
-            addBtn.className = 'recommendation-add-btn';
-            addBtn.textContent = '+';
-            addBtn.title = '이 색상 추가하기';
-            addBtn.onclick = () => {
-                if (createAddedColorItem({ rgb: rec.rgb, name: rec.name })) {
-                    // 추천 목록에서 즉시 제거되도록 UI만 업데이트
-                    item.remove();
-                    updatePaletteStatus();
-                    triggerConversion();
-                } else {
-                    alert(languageData[state.language].alert_already_added);
-                }
-            };
-            item.appendChild(swatch);
-            item.appendChild(info);
-            item.appendChild(addBtn);
-            container.appendChild(item);
-        });
+        elements.recommendedColorsPlaceholder.style.display = 'none';
+        reportContainer.style.display = 'flex';
+
+        const createGroup = (titleKey, colors, tagGenerator) => {
+            const filteredColors = colors.filter(rec => !isColorAlreadyAdded(rec.rgb));
+            if (filteredColors.length === 0) return;
+
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'recommendation-group';
+
+            const title = document.createElement('h4');
+            title.dataset.langKey = titleKey;
+            title.textContent = languageData[state.language][titleKey] || titleKey;
+            groupDiv.appendChild(title);
+
+            const itemsContainer = document.createElement('div');
+            itemsContainer.className = 'recommendation-group-items';
+            
+            filteredColors.forEach(rec => {
+                const item = document.createElement('div');
+                item.className = 'recommendation-item';
+                const swatch = document.createElement('div');
+                swatch.className = 'recommendation-swatch';
+                swatch.style.backgroundColor = `rgb(${rec.rgb.join(',')})`;
+                const info = document.createElement('div');
+                info.className = 'recommendation-info';
+                const rgbLabel = document.createElement('span');
+                rgbLabel.textContent = `(${rec.rgb.join(',')})`;
+                info.appendChild(rgbLabel);
+
+                const tag = document.createElement('span');
+                tag.className = 'recommendation-tag';
+                tag.textContent = tagGenerator(rec);
+                info.appendChild(tag);
+
+                const addBtn = document.createElement('button');
+                addBtn.className = 'recommendation-add-btn';
+                addBtn.textContent = '+';
+                addBtn.title = '이 색상 추가하기';
+                addBtn.onclick = () => {
+                    if (createAddedColorItem({ rgb: rec.rgb, name: rec.name })) {
+                        item.remove();
+                        if (itemsContainer.childElementCount === 0) {
+                           groupDiv.remove();
+                        }
+                        updatePaletteStatus();
+                        triggerConversion();
+                    } else {
+                        alert(languageData[state.language].alert_already_added);
+                    }
+                };
+                item.appendChild(swatch);
+                item.appendChild(info);
+                item.appendChild(addBtn);
+                itemsContainer.appendChild(item);
+            });
+            groupDiv.appendChild(itemsContainer);
+            reportContainer.appendChild(groupDiv);
+        };
+        
+        createGroup('extract_mode_smh', state.recommendedColors.filter(c => c.type === '명암 대표색'), rec => rec.subType);
+        createGroup('extract_mode_high_usage', state.recommendedColors.filter(c => c.type === '고비율 색상'), rec => `${(rec.usage * 100).toFixed(1)}%`);
+        createGroup('extract_mode_highlight', state.recommendedColors.filter(c => c.type === '하이라이트 색상'), () => `하이라이트`);
+
+        if (reportContainer.childElementCount === 0) {
+             reportContainer.innerHTML = `<div class="placeholder-section" style="padding:10px; font-size:12px;" data-lang-key="placeholder_no_new_recommendations">${languageData[state.language].placeholder_no_new_recommendations || "No new recommendations."}</div>`;
+        }
     };
 
     const updatePaletteStatus = () => { document.querySelectorAll('.palette-status-icon').forEach(icon => { const targetIds = icon.dataset.target.split(','); let isActive = false; for (const id of targetIds) { const container = document.getElementById(id); if (container && (container.querySelector('.color-button[data-on="true"]') || container.querySelector('.added-color-item[data-on="true"]'))) { isActive = true; break; } } icon.classList.toggle('active', isActive); }); };
     const createColorButton = (colorData, container, startOn = true) => { if (!colorData.rgb) return; const ctn = document.createElement('div'); ctn.className = 'color-container'; const btn = document.createElement('div'); btn.className = 'color-button'; btn.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`; btn.dataset.rgb = JSON.stringify(colorData.rgb); btn.dataset.on = startOn.toString(); if (!startOn) { btn.classList.add('off'); } btn.title = colorData.name || `rgb(${colorData.rgb.join(',')})`; btn.addEventListener('click', () => { btn.classList.toggle('off'); btn.dataset.on = btn.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); }); ctn.appendChild(btn); if (colorData.name !== null) { const lbl = document.createElement('div'); lbl.className = 'color-name'; lbl.textContent = colorData.name || `(${colorData.rgb.join(',')})`; ctn.appendChild(lbl); } container.appendChild(ctn); };
-    
-    const createAddedColorItem = (colorData, startOn = true) => {
-        if (isColorAlreadyAdded(colorData.rgb)) return false;
-        const placeholder = elements.addedColorsContainer.querySelector('.placeholder-section');
-        if (placeholder) placeholder.remove();
-        const item = document.createElement('div');
-        item.className = 'added-color-item';
-        item.dataset.rgb = JSON.stringify(colorData.rgb);
-        item.dataset.on = startOn.toString();
-        if (!startOn) item.classList.add('off');
-        const swatch = document.createElement('div');
-        swatch.className = 'added-color-swatch';
-        swatch.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`;
-        swatch.addEventListener('click', () => { item.classList.toggle('off'); item.dataset.on = item.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); });
-        const infoContainer = document.createElement('div');
-        infoContainer.className = 'added-color-info';
-        const hexInfo = document.createElement('span');
-        hexInfo.className = 'color-info-hex';
-        hexInfo.textContent = colorData.name || rgbToHex(colorData.rgb[0], colorData.rgb[1], colorData.rgb[2]);
-        const rgbInfo = document.createElement('span');
-        rgbInfo.className = 'color-info-rgb';
-        rgbInfo.textContent = `(${colorData.rgb.join(',')})`;
-        infoContainer.appendChild(hexInfo);
-        infoContainer.appendChild(rgbInfo);
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-color-btn';
-        deleteBtn.textContent = '−';
-        deleteBtn.title = '이 색상 삭제';
-        deleteBtn.onclick = () => { item.remove(); if (elements.addedColorsContainer.childElementCount === 0) { const placeholderDiv = document.createElement('div'); placeholderDiv.className = 'placeholder-section'; placeholderDiv.dataset.langKey = 'placeholder_add_color'; placeholderDiv.innerHTML = languageData[state.language].placeholder_add_color; elements.addedColorsContainer.appendChild(placeholderDiv); } updatePaletteStatus(); triggerConversion(); };
-        item.appendChild(swatch);
-        item.appendChild(infoContainer);
-        item.appendChild(deleteBtn);
-        elements.addedColorsContainer.appendChild(item);
-        return true;
-    };
-
+    const createAddedColorItem = (colorData, startOn = true) => { if (isColorAlreadyAdded(colorData.rgb)) return false; const placeholder = elements.addedColorsContainer.querySelector('.placeholder-section'); if (placeholder) placeholder.remove(); const item = document.createElement('div'); item.className = 'added-color-item'; item.dataset.rgb = JSON.stringify(colorData.rgb); item.dataset.on = startOn.toString(); if (!startOn) item.classList.add('off'); const swatch = document.createElement('div'); swatch.className = 'added-color-swatch'; swatch.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`; swatch.addEventListener('click', () => { item.classList.toggle('off'); item.dataset.on = item.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); }); const infoContainer = document.createElement('div'); infoContainer.className = 'added-color-info'; const hexInfo = document.createElement('span'); hexInfo.className = 'color-info-hex'; hexInfo.textContent = colorData.name || rgbToHex(colorData.rgb[0], colorData.rgb[1], colorData.rgb[2]); const rgbInfo = document.createElement('span'); rgbInfo.className = 'color-info-rgb'; rgbInfo.textContent = `(${colorData.rgb.join(',')})`; infoContainer.appendChild(hexInfo); infoContainer.appendChild(rgbInfo); const deleteBtn = document.createElement('button'); deleteBtn.className = 'delete-color-btn'; deleteBtn.textContent = '−'; deleteBtn.title = '이 색상 삭제'; deleteBtn.onclick = () => { item.remove(); if (elements.addedColorsContainer.childElementCount === 0) { const placeholderDiv = document.createElement('div'); placeholderDiv.className = 'placeholder-section'; placeholderDiv.dataset.langKey = 'placeholder_add_color'; placeholderDiv.innerHTML = languageData[state.language].placeholder_add_color; elements.addedColorsContainer.appendChild(placeholderDiv); } updatePaletteStatus(); triggerConversion(); }; item.appendChild(swatch); item.appendChild(infoContainer); item.appendChild(deleteBtn); elements.addedColorsContainer.appendChild(item); return true; };
     const createMasterToggleButton = (targetId, container) => { if (!container) return; const btn = document.createElement('button'); btn.className = 'toggle-all toggle-all-palette'; btn.title = '전체 선택/해제'; btn.textContent = 'A'; btn.addEventListener('click', () => { const targetIds = targetId.split(','); let allItems = []; targetIds.forEach(id => { const cont = document.getElementById(id); if (cont) { allItems.push(...cont.querySelectorAll('.color-button, .added-color-item')); } }); if (allItems.length === 0) return; const onItemsCount = allItems.filter(b => b.dataset.on === 'true').length; const turnOn = onItemsCount < allItems.length; allItems.forEach(item => { const isOn = item.dataset.on === 'true'; if ((turnOn && !isOn) || (!turnOn && isOn)) { const clickable = item.classList.contains('added-color-item') ? item.querySelector('.added-color-swatch') : item; clickable.click(); } }); }); container.prepend(btn); };
     const applyConversion = (imageDataToProcess, activePalette, options) => { if (!imageDataToProcess) return; state.isConverting = true; showLoading(true); state.processId++; conversionWorker.postMessage({ imageData: imageDataToProcess, palette: activePalette, options: options, processId: state.processId }, [imageDataToProcess.data.buffer]); };
     conversionWorker.onmessage = (e) => { const { status, imageData, recommendations, processId, message } = e.data; if (processId !== state.processId) return; if (status === 'success') { state.finalDownloadableData = imageData; const tempCanvas = document.createElement('canvas'); tempCanvas.width = imageData.width; tempCanvas.height = imageData.height; tempCanvas.getContext('2d').putImageData(imageData, 0, 0); const displayWidth = (state.appMode === 'image' && state.originalImageObject) ? state.originalImageObject.width : imageData.width; const displayHeight = (state.appMode === 'image' && state.originalImageObject) ? state.originalImageObject.height : imageData.height; elements.convertedCanvas.width = displayWidth; elements.convertedCanvas.height = displayHeight; cCtx.imageSmoothingEnabled = false; cCtx.drawImage(tempCanvas, 0, 0, displayWidth, displayHeight); elements.downloadBtn.disabled = false; updateTransform(); if (recommendations) { updateColorRecommendations(recommendations); } } else { console.error("워커 오류:", message); alert("이미지 변환 중 오류가 발생했습니다."); } state.isConverting = false; showLoading(false); };
     conversionWorker.onerror = (e) => { console.error('워커에서 에러 발생:', e); showLoading(false); state.isConverting = false; alert('변환 엔진(워커)을 시작하는 데 실패했습니다. 페이지를 새로고침 해주세요.'); };
     const getActivePaletteAndOptions = () => { let paletteSelectors = []; if (state.currentMode === 'geopixels') { paletteSelectors.push('#geopixels-controls #geoPixelColors .color-button[data-on="true"]', '#user-palette-section .added-color-item[data-on="true"]'); if (state.useWplaceInGeoMode) { paletteSelectors.push('#geopixels-controls #wplace-palette-in-geo .color-button[data-on="true"]'); } } else { paletteSelectors.push('#wplace-controls .color-button[data-on="true"]'); } const palette = Array.from(document.querySelectorAll(paletteSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb)); const options = { saturation: parseInt(elements.saturationSlider.value), brightness: parseInt(elements.brightnessSlider.value), contrast: parseInt(elements.contrastSlider.value), dithering: parseFloat(elements.ditheringSlider.value), algorithm: elements.ditheringAlgorithmSelect.value, highQualityMode: elements.highQualityMode.checked, currentMode: state.currentMode, highlightSensitivity: parseInt(elements.highlightSensitivitySlider.value), edgeCleanup: elements.edgeCleanup.checked, posterizeLevels: parseInt(elements.posterizeLevelsSlider.value), showOutline: elements.showOutline.checked, applyPattern: elements.applyPattern.checked, patternType: elements.patternTypeSelect.value, patternSize: parseInt(elements.patternSizeSlider.value, 10), applyGradient: elements.applyGradient.checked, gradientAngle: parseInt(elements.gradientAngleSlider.value, 10), gradientStrength: parseInt(elements.gradientStrengthSlider.value, 10) }; return { palette, options }; };
-
-    const processImage = () => {
-        if (!state.originalImageObject) return;
-        let newWidth, newHeight;
-        if (state.scaleMode === 'ratio') {
-            const sliderValue = parseInt(elements.scaleSlider.value, 10);
-            const scaleFactor = 1.0 + (sliderValue * 0.25);
-            newWidth = Math.max(1, Math.round(state.originalImageObject.width / scaleFactor));
-            newHeight = Math.max(1, Math.round(state.originalImageObject.height / scaleFactor));
-        } else {
-            newWidth = Math.max(1, parseInt(elements.scaleWidth.value, 10) || state.originalImageObject.width);
-            newHeight = Math.max(1, parseInt(elements.scaleHeight.value, 10) || state.originalImageObject.height);
-        }
-        elements.convertedDimensions.textContent = `${newWidth} x ${newHeight} px`;
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = newWidth;
-        tempCanvas.height = newHeight;
-        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
-        tempCtx.imageSmoothingEnabled = false;
-        tempCtx.drawImage(state.originalImageObject, 0, 0, newWidth, newHeight);
-        const imageDataForWorker = tempCtx.getImageData(0, 0, newWidth, newHeight);
-        const { palette, options } = getActivePaletteAndOptions();
-        applyConversion(imageDataForWorker, palette, options);
-    };
-    
+    const processImage = () => { if (!state.originalImageObject) return; let newWidth, newHeight; if (state.scaleMode === 'ratio') { const sliderValue = parseInt(elements.scaleSlider.value, 10); const scaleFactor = 1.0 + (sliderValue * 0.25); newWidth = Math.max(1, Math.round(state.originalImageObject.width / scaleFactor)); newHeight = Math.max(1, Math.round(state.originalImageObject.height / scaleFactor)); } else { newWidth = Math.max(1, parseInt(elements.scaleWidth.value, 10) || state.originalImageObject.width); newHeight = Math.max(1, parseInt(elements.scaleHeight.value, 10) || state.originalImageObject.height); } elements.convertedDimensions.textContent = `${newWidth} x ${newHeight} px`; const tempCanvas = document.createElement('canvas'); tempCanvas.width = newWidth; tempCanvas.height = newHeight; const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true }); tempCtx.imageSmoothingEnabled = false; tempCtx.drawImage(state.originalImageObject, 0, 0, newWidth, newHeight); const imageDataForWorker = tempCtx.getImageData(0, 0, newWidth, newHeight); const { palette, options } = getActivePaletteAndOptions(); applyConversion(imageDataForWorker, palette, options); };
     const processText = () => { const { content, fontFamily, fontSize, isBold, isItalic, letterSpacing, padding, textColor, bgColor, strokeColor, strokeWidth } = state.textState; if (!content) { elements.convertedCanvasContainer.classList.remove('has-image'); return; } const tempCtx = document.createElement('canvas').getContext('2d'); let fontStyle = ''; if (isItalic) fontStyle += 'italic '; if (isBold) fontStyle += 'bold '; tempCtx.font = `${fontStyle} ${fontSize * 2}px "${fontFamily}"`; tempCtx.letterSpacing = `${letterSpacing}px`; const lines = content.split('\n'); let maxWidth = 0; let totalHeight = 0; const lineMetrics = lines.map(line => { const metrics = tempCtx.measureText(line || ' '); maxWidth = Math.max(maxWidth, metrics.width); totalHeight += (metrics.actualBoundingBoxAscent || fontSize * 2) + (metrics.actualBoundingBoxDescent || 0); return metrics; }); const canvasWidth = Math.ceil(maxWidth + padding * 2); const canvasHeight = Math.ceil(totalHeight + padding * 2); elements.convertedDimensions.textContent = `${canvasWidth} x ${canvasHeight} px`; const textCanvas = document.createElement('canvas'); textCanvas.width = canvasWidth; textCanvas.height = canvasHeight; const ctx = textCanvas.getContext('2d', { willReadFrequently: true }); ctx.fillStyle = `rgb(${bgColor})`; ctx.fillRect(0, 0, canvasWidth, canvasHeight); ctx.font = tempCtx.font; ctx.letterSpacing = tempCtx.letterSpacing; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; let currentY = padding; lines.forEach((line, index) => { if (strokeWidth > 0) { ctx.strokeStyle = `rgb(${strokeColor})`; ctx.lineWidth = strokeWidth; ctx.strokeText(line, padding, currentY); } ctx.fillStyle = `rgb(${textColor})`; ctx.fillText(line, padding, currentY); currentY += (lineMetrics[index].actualBoundingBoxAscent || fontSize * 2) + (lineMetrics[index].actualBoundingBoxDescent || 0); }); const textImageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight); const { palette, options } = getActivePaletteAndOptions(); options.dithering = 0; options.algorithm = 'none'; options.edgeCleanup = false; options.applyPattern = false; options.applyGradient = false; elements.convertedCanvasContainer.classList.add('has-image'); applyConversion(textImageData, palette, options); };
     const triggerConversion = () => { clearTimeout(state.timeoutId); state.timeoutId = setTimeout(() => { if (state.appMode === 'image') { if (state.originalImageObject) processImage(); } else { processText(); } }, CONFIG.DEBOUNCE_DELAY); };
-    const handleFile = async (file) => { if (!file || !file.type.startsWith('image/')) return; elements.metadataInfoDisplay.classList.remove('visible'); updateColorRecommendations([]); try { const settings = await PNGMetadata.extract(file); if (settings) { if (settings.type === 'colors') { applySettingsData(settings); } else if (settings.type === 'marker') { elements.metadataInfoDisplay.textContent = languageData[state.language].alert_png_metadata_info; elements.metadataInfoDisplay.classList.add('visible'); } } } catch (error) { console.error("메타데이터 읽기 오류:", error); } state.originalFileName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name; const img = new Image(); img.onload = () => { state.originalImageObject = img; state.aspectRatio = img.height / img.width; elements.scaleWidth.value = img.width; elements.scaleHeight.value = img.height; elements.pixelScaleSlider.max = img.width > 1 ? img.width - 1 : 1; elements.pixelScaleSlider.value = 0; elements.scaleControlsFieldset.disabled = false; elements.appContainer.classList.add('image-loaded'); elements.originalDimensions.textContent = `${img.width} x ${img.height} px`; elements.convertedCanvasContainer.classList.add('has-image'); state.panX = 0; state.panY = 0; updateZoom(100); triggerConversion(); }; img.src = URL.createObjectURL(file); };
-    const resetAll = () => { state.originalImageObject = null; state.originalImageData = null; state.textState.content = ''; elements.editorTextarea.value = ''; elements.appContainer.classList.remove('image-loaded'); elements.convertedCanvasContainer.classList.remove('has-image'); cCtx.clearRect(0, 0, elements.convertedCanvas.width, elements.convertedCanvas.height); updateColorRecommendations([]); document.querySelectorAll('.reset-btn').forEach(btn => btn.click()); elements.scaleControlsFieldset.disabled = true; elements.scaleWidth.value = ''; elements.scaleHeight.value = ''; elements.metadataInfoDisplay.classList.remove('visible'); elements.imageUpload.value = ''; if (elements.highQualityMode) elements.highQualityMode.checked = false; if (elements.edgeCleanup) elements.edgeCleanup.checked = false; if (elements.showOutline) elements.showOutline.checked = false; if (elements.useWplaceInGeoMode) elements.useWplaceInGeoMode.checked = false; if (elements.applyPattern) elements.applyPattern.checked = false; if (elements.patternOptions) elements.patternOptions.style.display = 'none'; if (elements.applyGradient) elements.applyGradient.checked = false; if (elements.gradientOptions) elements.gradientOptions.style.display = 'none'; state.highQualityMode = false; state.edgeCleanup = false; state.useWplaceInGeoMode = false; if (elements.edgeCleanupOptions) elements.edgeCleanupOptions.style.display = 'none'; if (elements.wplacePaletteInGeo) elements.wplacePaletteInGeo.style.display = 'none'; };
+    const handleFile = async (file) => { if (!file || !file.type.startsWith('image/')) return; elements.metadataInfoDisplay.classList.remove('visible'); elements.recommendedColorsPlaceholder.style.display = 'none'; elements.analyzeColorsBtn.disabled = false; updateColorRecommendations([]); try { const settings = await PNGMetadata.extract(file); if (settings) { if (settings.type === 'colors') { applySettingsData(settings); } else if (settings.type === 'marker') { elements.metadataInfoDisplay.textContent = languageData[state.language].alert_png_metadata_info; elements.metadataInfoDisplay.classList.add('visible'); } } } catch (error) { console.error("메타데이터 읽기 오류:", error); } state.originalFileName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name; const img = new Image(); img.onload = () => { state.originalImageObject = img; state.aspectRatio = img.height / img.width; elements.scaleWidth.value = img.width; elements.scaleHeight.value = img.height; elements.pixelScaleSlider.max = img.width > 1 ? img.width - 1 : 1; elements.pixelScaleSlider.value = 0; elements.scaleControlsFieldset.disabled = false; elements.appContainer.classList.add('image-loaded'); elements.originalDimensions.textContent = `${img.width} x ${img.height} px`; elements.convertedCanvasContainer.classList.add('has-image'); state.panX = 0; state.panY = 0; updateZoom(100); triggerConversion(); }; img.src = URL.createObjectURL(file); };
+    const resetAll = () => { state.originalImageObject = null; state.originalImageData = null; state.textState.content = ''; elements.editorTextarea.value = ''; elements.appContainer.classList.remove('image-loaded'); elements.convertedCanvasContainer.classList.remove('has-image'); cCtx.clearRect(0, 0, elements.convertedCanvas.width, elements.convertedCanvas.height); updateColorRecommendations([]); elements.analyzeColorsBtn.disabled = true; elements.recommendationReportContainer.style.display = 'none'; elements.recommendedColorsPlaceholder.style.display = 'block'; document.querySelectorAll('.reset-btn').forEach(btn => btn.click()); elements.scaleControlsFieldset.disabled = true; elements.scaleWidth.value = ''; elements.scaleHeight.value = ''; elements.metadataInfoDisplay.classList.remove('visible'); elements.imageUpload.value = ''; if (elements.highQualityMode) elements.highQualityMode.checked = false; if (elements.edgeCleanup) elements.edgeCleanup.checked = false; if (elements.showOutline) elements.showOutline.checked = false; if (elements.useWplaceInGeoMode) elements.useWplaceInGeoMode.checked = false; if (elements.applyPattern) elements.applyPattern.checked = false; if (elements.patternOptions) elements.patternOptions.style.display = 'none'; if (elements.applyGradient) elements.applyGradient.checked = false; if (elements.gradientOptions) elements.gradientOptions.style.display = 'none'; state.highQualityMode = false; state.edgeCleanup = false; state.useWplaceInGeoMode = false; if (elements.edgeCleanupOptions) elements.edgeCleanupOptions.style.display = 'none'; if (elements.wplacePaletteInGeo) elements.wplacePaletteInGeo.style.display = 'none'; };
     const setAppMode = (mode) => { if (state.appMode === mode) return; const confirmSwitch = () => { if (state.appMode === 'image' && state.originalImageObject && mode === 'text') { return confirm(languageData[state.language].confirm_mode_switch_to_text); } else if (state.appMode === 'text' && state.textState.content && mode === 'image') { return confirm(languageData[state.language].confirm_mode_switch_to_image); } return true; }; if (!confirmSwitch()) { elements.imageModeBtn.checked = state.appMode === 'image'; elements.textModeBtn.checked = state.appMode === 'text'; return; } resetAll(); state.appMode = mode; elements.appContainer.classList.toggle('text-mode', mode === 'text'); elements.imageControls.style.display = mode === 'image' ? 'grid' : 'none'; elements.textControls.style.display = mode === 'text' ? 'block' : 'none'; const isImageMode = mode === 'image'; const imageOnlyControls = [ elements.ditheringAlgorithmGroup, elements.ditheringStrengthGroup, elements.edgeCleanup.parentElement, elements.applyPattern.parentElement, elements.applyGradient.parentElement ]; imageOnlyControls.forEach(el => { if (el) el.style.display = isImageMode ? 'flex' : 'none'; }); const placeholderText = elements.placeholderUi.querySelector('p'); if (isImageMode) { placeholderText.innerHTML = languageData[state.language].placeholder_image_upload; elements.convertedDimensionsLabel.innerHTML = languageData[state.language].info_converted_size; } else { placeholderText.innerHTML = languageData[state.language].placeholder_text_preview; elements.convertedDimensionsLabel.innerHTML = languageData[state.language].info_generated_size; triggerConversion(); } };
     const setPaletteMode = (mode) => { state.currentMode = mode; if (mode === 'geopixels') { elements.geopixelsControls.style.display = 'block'; elements.wplaceControls.style.display = 'none'; elements.userPaletteSection.style.display = 'block'; } else { elements.geopixelsControls.style.display = 'none'; elements.wplaceControls.style.display = 'block'; elements.userPaletteSection.style.display = 'none'; document.querySelectorAll('#wplaceFreeColors .color-button.off').forEach(btn => btn.click()); document.querySelectorAll('#wplacePaidColors .color-button[data-on="true"]').forEach(btn => btn.click()); } updatePaletteStatus(); updateColorRecommendations([]); triggerConversion(); };
     const isColorAlreadyAdded = (rgbArray) => { const rgbStr = JSON.stringify(rgbArray); const existingItems = elements.addedColorsContainer.querySelectorAll('.added-color-item'); for (const item of existingItems) { if (item.dataset.rgb === rgbStr) return true; } return false; };
@@ -178,27 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleFontUpload = (file) => { if (!file) return; showLoading(true); const reader = new FileReader(); reader.onload = async (e) => { const fontName = file.name.split('.').slice(0, -1).join('.'); try { const fontFace = new FontFace(fontName, e.target.result); await fontFace.load(); document.fonts.add(fontFace); const option = new Option(fontName, fontName); elements.fontSelect.add(option); option.selected = true; state.textState.fontFamily = fontName; triggerConversion(); } catch (err) { console.error("Font loading failed:", err); alert("지원하지 않거나 손상된 폰트 파일입니다."); } finally { showLoading(false); } }; reader.onerror = () => { alert("폰트 파일을 읽는 데 실패했습니다."); showLoading(false); }; reader.readAsArrayBuffer(file); };
     const populateColorSelects = () => { const selects = [elements.textColorSelect, elements.bgColorSelect, elements.strokeColorSelect]; selects.forEach(select => select.innerHTML = ''); const palettes = []; if (state.currentMode === 'geopixels') { palettes.push({ groupName: 'GeoPixels', data: geopixelsColors }); } else { palettes.push({ groupName: 'Wplace 무료', data: wplaceFreeColors }); palettes.push({ groupName: 'Wplace 유료', data: wplacePaidColors }); } selects.forEach(select => { palettes.forEach(palette => { const optgroup = document.createElement('optgroup'); optgroup.label = palette.groupName; palette.data.forEach(color => { if (!color.rgb) return; const option = document.createElement('option'); option.value = color.rgb.join(','); option.textContent = color.name || `rgb(${color.rgb.join(',')})`; option.style.backgroundColor = `rgb(${color.rgb.join(',')})`; option.style.color = getTextColorForBg(color.rgb); optgroup.appendChild(option); }); select.appendChild(optgroup); }); }); elements.textColorSelect.value = state.textState.textColor; elements.bgColorSelect.value = state.textState.bgColor; elements.strokeColorSelect.value = state.textState.strokeColor; };
     const updateScaleUIVisibility = () => { const isRatio = state.scaleMode === 'ratio'; elements.ratioScaleControls.classList.toggle('hidden', !isRatio); elements.pixelScaleControls.classList.toggle('hidden', isRatio); };
-    
-    const switchToPixelMode = () => {
-        if (!state.originalImageObject) return;
-        const sliderValue = parseInt(elements.scaleSlider.value, 10);
-        const scaleFactor = 1.0 + (sliderValue * 0.25);
-        const newWidth = Math.max(1, Math.round(state.originalImageObject.width / scaleFactor));
-        elements.scaleWidth.value = newWidth;
-        elements.scaleHeight.value = Math.max(1, Math.round(newWidth * state.aspectRatio));
-        elements.pixelScaleSlider.value = state.originalImageObject.width - newWidth;
-    };
-    
-    const switchToRatioMode = () => {
-        if (!state.originalImageObject) return;
-        const currentWidth = parseInt(elements.scaleWidth.value, 10);
-        const targetRatio = state.originalImageObject.width / currentWidth;
-        const newSliderValue = Math.round((targetRatio - 1.0) / 0.25);
-        const clampedValue = Math.max(0, Math.min(parseInt(elements.scaleSlider.max, 10), newSliderValue));
-        elements.scaleSlider.value = clampedValue;
-        const displayFactor = 1.0 + (clampedValue * 0.25);
-        elements.scaleValue.textContent = `${displayFactor.toFixed(2)}x`;
-    };
+    const switchToPixelMode = () => { if (!state.originalImageObject) return; const sliderValue = parseInt(elements.scaleSlider.value, 10); const scaleFactor = 1.0 + (sliderValue * 0.25); const newWidth = Math.max(1, Math.round(state.originalImageObject.width / scaleFactor)); elements.scaleWidth.value = newWidth; elements.scaleHeight.value = Math.max(1, Math.round(newWidth * state.aspectRatio)); elements.pixelScaleSlider.value = state.originalImageObject.width - newWidth; };
+    const switchToRatioMode = () => { if (!state.originalImageObject) return; const currentWidth = parseInt(elements.scaleWidth.value, 10); const targetRatio = state.originalImageObject.width / currentWidth; const newSliderValue = Math.round((targetRatio - 1.0) / 0.25); const clampedValue = Math.max(0, Math.min(parseInt(elements.scaleSlider.max, 10), newSliderValue)); elements.scaleSlider.value = clampedValue; const displayFactor = 1.0 + (clampedValue * 0.25); elements.scaleValue.textContent = `${displayFactor.toFixed(2)}x`; };
     
     const setupEventListeners = () => {
         document.body.addEventListener('mouseover', showTooltip); document.body.addEventListener('mouseout', hideTooltip); document.body.addEventListener('mousemove', updateTooltipPosition);
@@ -227,17 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
         ['saturation', 'brightness', 'contrast', 'dithering'].forEach(t => { const s = elements[`${t}Slider`], v = elements[`${t}Value`]; if(s && v) { s.addEventListener('input', () => { v.textContent = s.value; triggerConversion(); }); } });
         document.querySelectorAll('.reset-btn').forEach(btn => { const targetId = btn.dataset.target; if (elements[targetId]) { btn.addEventListener('click', () => { const slider = elements[targetId]; const valueDisplay = elements[`${targetId.replace('Slider', '')}Value`]; const defaultValue = CONFIG.DEFAULTS[targetId]; slider.value = defaultValue; if (valueDisplay) valueDisplay.textContent = defaultValue; if (targetId === 'posterizeLevelsSlider' && elements.showOutline) { elements.showOutline.checked = false; } triggerConversion(); }); } });
         elements.scaleModeSelect.addEventListener('change', e => { const newMode = e.target.value; if (newMode === state.scaleMode) return; if (state.originalImageObject) { if (newMode === 'pixel') switchToPixelMode(); else switchToRatioMode(); } state.scaleMode = newMode; updateScaleUIVisibility(); triggerConversion(); });
-        
-        elements.scaleSlider.addEventListener('input', () => {
-            const sliderValue = parseInt(elements.scaleSlider.value, 10);
-            const scaleFactor = 1.0 + (sliderValue * 0.25);
-            elements.scaleValue.textContent = `${scaleFactor.toFixed(2)}x`;
-            triggerConversion();
-        });
-
+        elements.scaleSlider.addEventListener('input', () => { const sliderValue = parseInt(elements.scaleSlider.value, 10); const scaleFactor = 1.0 + (sliderValue * 0.25); elements.scaleValue.textContent = `${scaleFactor.toFixed(2)}x`; triggerConversion(); });
         elements.highlightSensitivitySlider.addEventListener('input', () => { elements.highlightSensitivityValue.textContent = elements.highlightSensitivitySlider.value; triggerConversion(); });
-        elements.highUsageModeBtn.addEventListener('change', () => { state.recommendMode = 'highUsage'; updateColorRecommendations(); });
-        elements.highlightModeBtn.addEventListener('change', () => { state.recommendMode = 'highlight'; updateColorRecommendations(); });
+        elements.analyzeColorsBtn.addEventListener('click', triggerConversion);
         let isUpdatingScale = false; const updatePixelInputs = (source) => { if (isUpdatingScale || !state.originalImageObject) return; isUpdatingScale = true; let width, height; if (source === 'width') { width = parseInt(elements.scaleWidth.value, 10) || 0; if (width > state.originalImageObject.width) width = state.originalImageObject.width; width = Math.max(1, width); height = Math.round(width * state.aspectRatio); elements.scaleWidth.value = width; elements.scaleHeight.value = height; } else if (source === 'height') { height = parseInt(elements.scaleHeight.value, 10) || 0; if (height > state.originalImageObject.height) height = state.originalImageObject.height; height = Math.max(1, height); width = Math.round(height / state.aspectRatio); elements.scaleWidth.value = width; elements.scaleHeight.value = height; } else { const sliderValue = parseInt(elements.pixelScaleSlider.value, 10); width = state.originalImageObject.width - sliderValue; width = Math.max(1, width); height = Math.round(width * state.aspectRatio); elements.scaleWidth.value = width; elements.scaleHeight.value = height; } elements.pixelScaleSlider.value = state.originalImageObject.width - width; triggerConversion(); isUpdatingScale = false; };
         elements.scaleWidth.addEventListener('input', () => updatePixelInputs('width')); elements.scaleHeight.addEventListener('input', () => updatePixelInputs('height')); elements.pixelScaleSlider.addEventListener('input', () => updatePixelInputs('slider'));
         document.querySelectorAll('.scale-mod-btn').forEach(btn => { btn.addEventListener('click', () => { if (!state.originalImageObject) return; const targetInput = elements[btn.dataset.target]; const amount = parseInt(btn.dataset.amount, 10); const oldValue = parseInt(targetInput.value, 10); targetInput.value = Math.max(1, oldValue + amount); targetInput.dispatchEvent(new Event('input', { bubbles: true })); }); });
@@ -262,13 +193,11 @@ document.addEventListener('DOMContentLoaded', () => {
         createTooltip();
         elements.ditheringAlgorithmSelect.value = 'atkinson';
         if(elements.showOutline) elements.showOutline.checked = false;
-        
         elements.scaleSlider.min = '0';
         elements.scaleSlider.max = '76';
         elements.scaleSlider.value = '0';
         elements.scaleSlider.step = '1';
         elements.scaleValue.textContent = '1.00x';
-
         geopixelsColors.forEach(c => createColorButton(c, elements.geoPixelColorsContainer, true));
         wplaceFreeColors.forEach(c => createColorButton(c, elements.wplaceFreeColorsContainer, false));
         wplacePaidColors.forEach(c => createColorButton(c, elements.wplacePaidColorsContainer, false));
