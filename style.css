@@ -284,3 +284,23 @@ fieldset:disabled { opacity: 0.6; pointer-events: none; }
     opacity: 1;
     transform: translateY(0);
 }
+
+/* [Task-3 최종 수정] 추가한 색상 정보 표시 스타일 */
+.added-color-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column; /* 아이템을 세로로 쌓음 */
+    justify-content: center;
+    gap: 2px; /* HEX와 RGB 사이의 간격 */
+}
+
+.color-info-hex {
+    font-weight: bold;
+    font-size: 13px;
+    font-family: 'Courier New', Courier, monospace; /* 고정폭 글꼴로 가독성 향상 */
+}
+
+.color-info-rgb {
+    font-size: 11px;
+    color: #666;
+}
