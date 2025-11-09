@@ -1,4 +1,4 @@
-// script.js (v4.5 - 디버깅 완료 최종본)
+// script.js (v4.6 - 팔레트 사용량 분석 기능 추가)
 
 const PNGMetadata = { encode(keyword, content) { const keywordBytes = new TextEncoder().encode(keyword); const contentBytes = new TextEncoder().encode(content); const chunkType = new Uint8Array([116, 69, 88, 116]); const chunkData = new Uint8Array(keywordBytes.length + 1 + contentBytes.length); chunkData.set(keywordBytes); chunkData.set([0], keywordBytes.length); chunkData.set(contentBytes, keywordBytes.length + 1); const length = new Uint8Array(4); new DataView(length.buffer).setUint32(0, chunkData.length, false); const crcData = new Uint8Array(chunkType.length + chunkData.length); crcData.set(chunkType); crcData.set(chunkData, chunkType.length); const crc = new Uint8Array(4); new DataView(crc.buffer).setUint32(0, this.crc32(crcData), false); const chunk = new Uint8Array(length.length + chunkType.length + chunkData.length + crc.length); chunk.set(length); chunk.set(chunkType, 4); chunk.set(chunkData, 8); chunk.set(crc, 8 + chunkData.length); return chunk; }, embed(pngArrayBuffer, metadata) { const pngBytes = new Uint8Array(pngArrayBuffer); const keyword = 'NoaDotSettings'; const content = JSON.stringify(metadata); const metadataChunk = this.encode(keyword, content); const iendIndex = pngBytes.length - 12; const newPngBytes = new Uint8Array(pngBytes.length + metadataChunk.length); newPngBytes.set(pngBytes.subarray(0, iendIndex)); newPngBytes.set(metadataChunk, iendIndex); newPngBytes.set(pngBytes.subarray(iendIndex), iendIndex + metadataChunk.length); return newPngBytes.buffer; }, async extract(file) { const buffer = await file.arrayBuffer(); const bytes = new Uint8Array(buffer); const keyword = 'NoaDotSettings'; let offset = 8; while (offset < bytes.length) { const view = new DataView(bytes.buffer, offset); const length = view.getUint32(0); const type = new TextDecoder().decode(bytes.subarray(offset + 4, offset + 8)); if (type === 'tEXt') { const chunkData = bytes.subarray(offset + 8, offset + 8 + length); let separatorIndex = -1; for(let i=0; i<chunkData.length; i++) { if (chunkData[i] === 0) { separatorIndex = i; break; } } if (separatorIndex !== -1) { const currentKeyword = new TextDecoder().decode(chunkData.subarray(0, separatorIndex)); if (currentKeyword === keyword) { const content = new TextDecoder().decode(chunkData.subarray(separatorIndex + 1)); return JSON.parse(content); } } } offset += 12 + length; } return null; }, crcTable: (() => { let c; const crcTable = []; for (let n = 0; n < 256; n++) { c = n; for (let k = 0; k < 8; k++) { c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1)); } crcTable[n] = c; } return crcTable; })(), crc32(bytes) { let crc = 0 ^ (-1); for (let i = 0; i < bytes.length; i++) { crc = (crc >>> 8) ^ this.crcTable[(crc ^ bytes[i]) & 0xFF]; } return (crc ^ (-1)) >>> 0; } };
 
@@ -33,38 +33,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const hexToRgb = (hex) => { let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); if (!result) { const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i; const shorthandResult = shorthandRegex.exec(hex); if (shorthandResult) { result = [ shorthandResult[0], shorthandResult[1] + shorthandResult[1], shorthandResult[2] + shorthandResult[2], shorthandResult[3] + shorthandResult[3] ]; } } return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null; };
     const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => { const hex = x.toString(16); return hex.length === 1 ? '0' + hex : hex; }).join('').toUpperCase();
     
-    const updateColorRecommendations = (newRecommendations) => {
-        if (newRecommendations) {
-            state.recommendedColors = newRecommendations;
-        }
+    const updatePaletteUsage = (usageMap) => {
+        if (!usageMap) return;
 
+        document.querySelectorAll('.palette-buttons .color-button').forEach(btn => {
+            btn.classList.remove('unused');
+            const existingCount = btn.querySelector('.usage-count');
+            if (existingCount) existingCount.remove();
+            
+            const rgbArray = JSON.parse(btn.dataset.rgb);
+            const key = rgbArray.join(',');
+
+            if (usageMap.hasOwnProperty(key)) {
+                const count = usageMap[key];
+                const isOn = btn.dataset.on === 'true';
+
+                if (isOn) {
+                    if (count > 0) {
+                        const countEl = document.createElement('span');
+                        countEl.className = 'usage-count';
+                        countEl.textContent = count > 999 ? `${(count/1000).toFixed(1)}k` : count;
+                        btn.appendChild(countEl);
+                    } else {
+                        btn.classList.add('unused');
+                    }
+                }
+            }
+        });
+    };
+
+    const updateColorRecommendations = (newRecommendations) => {
+        if (newRecommendations) { state.recommendedColors = newRecommendations; }
         const reportContainer = elements.recommendationReportContainer;
         reportContainer.innerHTML = '';
-        
-        if (!state.recommendedColors || state.recommendedColors.length === 0) {
-            elements.recommendedColorsPlaceholder.style.display = 'block';
-            reportContainer.style.display = 'none';
-            return;
-        }
-
+        if (!state.recommendedColors || state.recommendedColors.length === 0) { elements.recommendedColorsPlaceholder.style.display = 'block'; reportContainer.style.display = 'none'; return; }
         elements.recommendedColorsPlaceholder.style.display = 'none';
         reportContainer.style.display = 'flex';
-
         const createGroup = (titleKey, colors, tagGenerator) => {
             const filteredColors = colors.filter(rec => !isColorAlreadyAdded(rec.rgb));
             if (filteredColors.length === 0) return;
-
             const groupDiv = document.createElement('div');
             groupDiv.className = 'recommendation-group';
-
             const title = document.createElement('h4');
             title.dataset.langKey = titleKey;
             title.textContent = languageData[state.language][titleKey] || titleKey;
             groupDiv.appendChild(title);
-
             const itemsContainer = document.createElement('div');
             itemsContainer.className = 'recommendation-group-items';
-            
             filteredColors.forEach(rec => {
                 const item = document.createElement('div');
                 item.className = 'recommendation-item';
@@ -76,28 +91,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rgbLabel = document.createElement('span');
                 rgbLabel.textContent = `(${rec.rgb.join(',')})`;
                 info.appendChild(rgbLabel);
-
                 const tag = document.createElement('span');
                 tag.className = 'recommendation-tag';
                 tag.textContent = tagGenerator(rec);
                 info.appendChild(tag);
-
                 const addBtn = document.createElement('button');
                 addBtn.className = 'recommendation-add-btn';
                 addBtn.textContent = '+';
                 addBtn.title = '이 색상 추가하기';
-                addBtn.onclick = () => {
-                    if (createAddedColorItem({ rgb: rec.rgb, name: rec.name })) {
-                        item.remove();
-                        if (itemsContainer.childElementCount === 0) {
-                           groupDiv.remove();
-                        }
-                        updatePaletteStatus();
-                        triggerConversion();
-                    } else {
-                        alert(languageData[state.language].alert_already_added);
-                    }
-                };
+                addBtn.onclick = () => { if (createAddedColorItem({ rgb: rec.rgb, name: rec.name })) { item.remove(); if (itemsContainer.childElementCount === 0) { groupDiv.remove(); } updatePaletteStatus(); triggerConversion(); } else { alert(languageData[state.language].alert_already_added); } };
                 item.appendChild(swatch);
                 item.appendChild(info);
                 item.appendChild(addBtn);
@@ -106,22 +108,17 @@ document.addEventListener('DOMContentLoaded', () => {
             groupDiv.appendChild(itemsContainer);
             reportContainer.appendChild(groupDiv);
         };
-        
         createGroup('extract_mode_smh', state.recommendedColors.filter(c => c.type === '명암 대표색'), rec => rec.subType);
         createGroup('extract_mode_high_usage', state.recommendedColors.filter(c => c.type === '고비율 색상'), rec => `${(rec.usage * 100).toFixed(1)}%`);
         createGroup('extract_mode_highlight', state.recommendedColors.filter(c => c.type === '하이라이트 색상'), () => `하이라이트`);
-
-        if (reportContainer.childElementCount === 0) {
-             reportContainer.innerHTML = `<div class="placeholder-section" style="padding:10px; font-size:12px;" data-lang-key="placeholder_no_new_recommendations">${languageData[state.language].placeholder_no_new_recommendations || "No new recommendations."}</div>`;
-        }
+        if (reportContainer.childElementCount === 0) { reportContainer.innerHTML = `<div class="placeholder-section" style="padding:10px; font-size:12px;" data-lang-key="placeholder_no_new_recommendations">${languageData[state.language].placeholder_no_new_recommendations || "No new recommendations."}</div>`; }
     };
-
     const updatePaletteStatus = () => { document.querySelectorAll('.palette-status-icon').forEach(icon => { const targetIds = icon.dataset.target.split(','); let isActive = false; for (const id of targetIds) { const container = document.getElementById(id); if (container && (container.querySelector('.color-button[data-on="true"]') || container.querySelector('.added-color-item[data-on="true"]'))) { isActive = true; break; } } icon.classList.toggle('active', isActive); }); };
     const createColorButton = (colorData, container, startOn = true) => { if (!colorData.rgb) return; const ctn = document.createElement('div'); ctn.className = 'color-container'; const btn = document.createElement('div'); btn.className = 'color-button'; btn.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`; btn.dataset.rgb = JSON.stringify(colorData.rgb); btn.dataset.on = startOn.toString(); if (!startOn) { btn.classList.add('off'); } btn.title = colorData.name || `rgb(${colorData.rgb.join(',')})`; btn.addEventListener('click', () => { btn.classList.toggle('off'); btn.dataset.on = btn.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); }); ctn.appendChild(btn); if (colorData.name !== null) { const lbl = document.createElement('div'); lbl.className = 'color-name'; lbl.textContent = colorData.name || `(${colorData.rgb.join(',')})`; ctn.appendChild(lbl); } container.appendChild(ctn); };
     const createAddedColorItem = (colorData, startOn = true) => { if (isColorAlreadyAdded(colorData.rgb)) return false; const placeholder = elements.addedColorsContainer.querySelector('.placeholder-section'); if (placeholder) placeholder.remove(); const item = document.createElement('div'); item.className = 'added-color-item'; item.dataset.rgb = JSON.stringify(colorData.rgb); item.dataset.on = startOn.toString(); if (!startOn) item.classList.add('off'); const swatch = document.createElement('div'); swatch.className = 'added-color-swatch'; swatch.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`; swatch.addEventListener('click', () => { item.classList.toggle('off'); item.dataset.on = item.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); }); const infoContainer = document.createElement('div'); infoContainer.className = 'added-color-info'; const hexInfo = document.createElement('span'); hexInfo.className = 'color-info-hex'; hexInfo.textContent = colorData.name || rgbToHex(colorData.rgb[0], colorData.rgb[1], colorData.rgb[2]); const rgbInfo = document.createElement('span'); rgbInfo.className = 'color-info-rgb'; rgbInfo.textContent = `(${colorData.rgb.join(',')})`; infoContainer.appendChild(hexInfo); infoContainer.appendChild(rgbInfo); const deleteBtn = document.createElement('button'); deleteBtn.className = 'delete-color-btn'; deleteBtn.textContent = '−'; deleteBtn.title = '이 색상 삭제'; deleteBtn.onclick = () => { item.remove(); if (elements.addedColorsContainer.childElementCount === 0) { const placeholderDiv = document.createElement('div'); placeholderDiv.className = 'placeholder-section'; placeholderDiv.dataset.langKey = 'placeholder_add_color'; placeholderDiv.innerHTML = languageData[state.language].placeholder_add_color; elements.addedColorsContainer.appendChild(placeholderDiv); } updatePaletteStatus(); triggerConversion(); }; item.appendChild(swatch); item.appendChild(infoContainer); item.appendChild(deleteBtn); elements.addedColorsContainer.appendChild(item); return true; };
     const createMasterToggleButton = (targetId, container) => { if (!container) return; const btn = document.createElement('button'); btn.className = 'toggle-all toggle-all-palette'; btn.title = '전체 선택/해제'; btn.textContent = 'A'; btn.addEventListener('click', () => { const targetIds = targetId.split(','); let allItems = []; targetIds.forEach(id => { const cont = document.getElementById(id); if (cont) { allItems.push(...cont.querySelectorAll('.color-button, .added-color-item')); } }); if (allItems.length === 0) return; const onItemsCount = allItems.filter(b => b.dataset.on === 'true').length; const turnOn = onItemsCount < allItems.length; allItems.forEach(item => { const isOn = item.dataset.on === 'true'; if ((turnOn && !isOn) || (!turnOn && isOn)) { const clickable = item.classList.contains('added-color-item') ? item.querySelector('.added-color-swatch') : item; clickable.click(); } }); }); container.prepend(btn); };
-    const applyConversion = (imageDataToProcess, activePalette, options) => { if (!imageDataToProcess) return; state.isConverting = true; showLoading(true); state.processId++; conversionWorker.postMessage({ imageData: imageDataToProcess, palette: activePalette, options: options, processId: state.processId }, [imageDataToProcess.data.buffer]); };
-    conversionWorker.onmessage = (e) => { const { status, imageData, recommendations, processId, message } = e.data; if (processId !== state.processId) return; if (status === 'success') { state.finalDownloadableData = imageData; const tempCanvas = document.createElement('canvas'); tempCanvas.width = imageData.width; tempCanvas.height = imageData.height; tempCanvas.getContext('2d').putImageData(imageData, 0, 0); const displayWidth = (state.appMode === 'image' && state.originalImageObject) ? state.originalImageObject.width : imageData.width; const displayHeight = (state.appMode === 'image' && state.originalImageObject) ? state.originalImageObject.height : imageData.height; elements.convertedCanvas.width = displayWidth; elements.convertedCanvas.height = displayHeight; cCtx.imageSmoothingEnabled = false; cCtx.drawImage(tempCanvas, 0, 0, displayWidth, displayHeight); elements.downloadBtn.disabled = false; updateTransform(); if (recommendations) { updateColorRecommendations(recommendations); } } else { console.error("워커 오류:", message); alert("이미지 변환 중 오류가 발생했습니다."); } state.isConverting = false; showLoading(false); };
+    const applyConversion = (imageDataToProcess, activePalette, options) => { if (!imageDataToProcess) return; state.isConverting = true; showLoading(true); state.processId++; const allPaletteColors = Array.from(document.querySelectorAll('.palette-buttons .color-button')).map(btn => JSON.parse(btn.dataset.rgb).join(',')); conversionWorker.postMessage({ imageData: imageDataToProcess, palette: activePalette, allPaletteColors: allPaletteColors, options: options, processId: state.processId }, [imageDataToProcess.data.buffer]); };
+    conversionWorker.onmessage = (e) => { const { status, imageData, recommendations, usageMap, processId, message } = e.data; if (processId !== state.processId) return; if (status === 'success') { state.finalDownloadableData = imageData; const tempCanvas = document.createElement('canvas'); tempCanvas.width = imageData.width; tempCanvas.height = imageData.height; tempCanvas.getContext('2d').putImageData(imageData, 0, 0); const displayWidth = (state.appMode === 'image' && state.originalImageObject) ? state.originalImageObject.width : imageData.width; const displayHeight = (state.appMode === 'image' && state.originalImageObject) ? state.originalImageObject.height : imageData.height; elements.convertedCanvas.width = displayWidth; elements.convertedCanvas.height = displayHeight; cCtx.imageSmoothingEnabled = false; cCtx.drawImage(tempCanvas, 0, 0, displayWidth, displayHeight); elements.downloadBtn.disabled = false; updateTransform(); if (recommendations) { updateColorRecommendations(recommendations); } if (usageMap) { updatePaletteUsage(usageMap); } } else { console.error("워커 오류:", message); alert("이미지 변환 중 오류가 발생했습니다."); } state.isConverting = false; showLoading(false); };
     conversionWorker.onerror = (e) => { console.error('워커에서 에러 발생:', e); showLoading(false); state.isConverting = false; alert('변환 엔진(워커)을 시작하는 데 실패했습니다. 페이지를 새로고침 해주세요.'); };
     const getActivePaletteAndOptions = () => { let paletteSelectors = []; if (state.currentMode === 'geopixels') { paletteSelectors.push('#geopixels-controls #geoPixelColors .color-button[data-on="true"]', '#user-palette-section .added-color-item[data-on="true"]'); if (state.useWplaceInGeoMode) { paletteSelectors.push('#geopixels-controls #wplace-palette-in-geo .color-button[data-on="true"]'); } } else { paletteSelectors.push('#wplace-controls .color-button[data-on="true"]'); } const palette = Array.from(document.querySelectorAll(paletteSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb)); const options = { saturation: parseInt(elements.saturationSlider.value), brightness: parseInt(elements.brightnessSlider.value), contrast: parseInt(elements.contrastSlider.value), dithering: parseFloat(elements.ditheringSlider.value), algorithm: elements.ditheringAlgorithmSelect.value, highQualityMode: elements.highQualityMode.checked, currentMode: state.currentMode, highlightSensitivity: parseInt(elements.highlightSensitivitySlider.value), edgeCleanup: elements.edgeCleanup.checked, posterizeLevels: parseInt(elements.posterizeLevelsSlider.value), showOutline: elements.showOutline.checked, applyPattern: elements.applyPattern.checked, patternType: elements.patternTypeSelect.value, patternSize: parseInt(elements.patternSizeSlider.value, 10), applyGradient: elements.applyGradient.checked, gradientAngle: parseInt(elements.gradientAngleSlider.value, 10), gradientStrength: parseInt(elements.gradientStrengthSlider.value, 10) }; return { palette, options }; };
     const processImage = () => { if (!state.originalImageObject) return; let newWidth, newHeight; if (state.scaleMode === 'ratio') { const sliderValue = parseInt(elements.scaleSlider.value, 10); const scaleFactor = 1.0 + (sliderValue * 0.25); newWidth = Math.max(1, Math.round(state.originalImageObject.width / scaleFactor)); newHeight = Math.max(1, Math.round(state.originalImageObject.height / scaleFactor)); } else { newWidth = Math.max(1, parseInt(elements.scaleWidth.value, 10) || state.originalImageObject.width); newHeight = Math.max(1, parseInt(elements.scaleHeight.value, 10) || state.originalImageObject.height); } elements.convertedDimensions.textContent = `${newWidth} x ${newHeight} px`; const tempCanvas = document.createElement('canvas'); tempCanvas.width = newWidth; tempCanvas.height = newHeight; const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true }); tempCtx.imageSmoothingEnabled = false; tempCtx.drawImage(state.originalImageObject, 0, 0, newWidth, newHeight); const imageDataForWorker = tempCtx.getImageData(0, 0, newWidth, newHeight); const { palette, options } = getActivePaletteAndOptions(); applyConversion(imageDataForWorker, palette, options); };

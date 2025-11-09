@@ -50,6 +50,7 @@ const languageData = {
         pattern_diagonal_right: "대각선 (↙)",
         pattern_diagonal_left: "대각선 (↘)",
         pattern_brick: "벽돌",
+        pattern_bayer: "점묘화 (베이어8*8)",
         
         option_hq_mode: "고품질 색상 계산 (느림)",
         option_cartoon_filter: "만화 스타일 필터",
@@ -161,6 +162,7 @@ const languageData = {
         pattern_diagonal_right: "Diagonal (↙)",
         pattern_diagonal_left: "Diagonal (↘)",
         pattern_brick: "Brick",
+        pattern_bayer: "pointage (bayer8*8)",
 
         option_hq_mode: "High Quality Color Calc (Slow)",
         option_cartoon_filter: "Cartoon Style Filter",
@@ -220,7 +222,7 @@ const languageData = {
         gradient_angle: "Angle",
         gradient_strength: "Strength",
         tooltip_gradient: "Applies a dithered transparency effect in a linear gradient. 'Angle' controls the direction, and 'Strength' controls the overall transparency.",
-         extract_mode_smh : "Tonal Range",
+        extract_mode_smh : "Tonal Range",
         placeholder_no_new_recommendations: "No new recommendations for this mode, or all have been added.",
     }
 };

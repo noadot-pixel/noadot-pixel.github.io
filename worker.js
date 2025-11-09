@@ -261,28 +261,55 @@ function applyConversion(imageData, palette, options) {
 }
 
 self.onmessage = (e) => {
-    const { imageData, palette, options, processId } = e.data;
-    try {
-        let finalImageData;
-        const preprocessedData = preprocessImageData(imageData, options);
-        if (options.edgeCleanup) {
-            finalImageData = applyCelShadingFilter(preprocessedData, palette, options);
-        } else {
-            const convertedImage = applyConversion(preprocessedData, palette, options);
-            if (options.applyPattern) {
-                finalImageData = applyPatternDithering(preprocessedData, convertedImage, palette, options);
-            } else {
-                finalImageData = convertedImage;
-            }
-        }
-        
-        if (options.applyGradient && options.gradientStrength > 0) {
-            finalImageData = applyGradientTransparency(finalImageData, options);
-        }
+    const { imageData, palette, allPaletteColors, options, processId } = e.data;
+        try {
+            let finalImageData;
+            const preprocessedData = preprocessImageData(imageData, options);
 
-        const recommendations = (options.currentMode === 'geopixels') ? calculateRecommendations(imageData, palette, options) : [];
-        self.postMessage({ status: 'success', imageData: finalImageData, recommendations: recommendations, processId: processId }, [finalImageData.data.buffer]);
-    } catch (error) {
-        self.postMessage({ status: 'error', message: error.message + ' at ' + error.stack, processId: processId });
-    }
-};
+            if (options.edgeCleanup) {
+                finalImageData = applyCelShadingFilter(preprocessedData, palette, options);
+            } else {
+                const convertedImage = applyConversion(preprocessedData, palette, options);
+                if (options.applyPattern) {
+                    finalImageData = applyPatternDithering(preprocessedData, convertedImage, palette, options);
+                } else {
+                    finalImageData = convertedImage;
+                }
+            }
+            
+            if (options.applyGradient && options.gradientStrength > 0) {
+                finalImageData = applyGradientTransparency(finalImageData, options);
+            }
+
+            // 2. 색상 추천과 사용량 계산을 병렬로 수행합니다.
+            const recommendations = (options.currentMode === 'geopixels') ? calculateRecommendations(imageData, palette, options) : [];
+            
+            const usageMap = new Map();
+            if (allPaletteColors) {
+                allPaletteColors.forEach(colorStr => usageMap.set(colorStr, 0));
+
+                const finalData = finalImageData.data;
+                for (let i = 0; i < finalData.length; i += 4) {
+                    if (finalData[i + 3] > 128) {
+                        const key = `${finalData[i]},${finalData[i+1]},${finalData[i+2]}`;
+                        if (usageMap.has(key)) {
+                            usageMap.set(key, usageMap.get(key) + 1);
+                        }
+                    }
+                }
+            }
+            const usageMapObject = Object.fromEntries(usageMap);
+
+            // 3. 모든 결과를 한 번에 메인 스레드로 보냅니다.
+            self.postMessage({ 
+                status: 'success', 
+                imageData: finalImageData, 
+                recommendations: recommendations, 
+                usageMap: usageMapObject,
+                processId: processId 
+            }, [finalImageData.data.buffer]);
+
+        } catch (error) {
+            self.postMessage({ status: 'error', message: error.message + ' at ' + error.stack, processId: processId });
+        }
+    };
