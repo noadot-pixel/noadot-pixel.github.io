@@ -35,7 +35,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const applySettingsData = (settings) => { if (!settings || settings.type !== 'colors' || !Array.isArray(settings.data)) return; if (confirm(languageData[state.language].confirm_load_palette_from_png)) { elements.addedColorsContainer.innerHTML = ''; settings.data.forEach(rgb => createAddedColorItem({ rgb }, true)); updatePaletteStatus(); triggerConversion(); } };
     const hexToRgb = (hex) => { let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); if (!result) { const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i; const shorthandResult = shorthandRegex.exec(hex); if (shorthandResult) { result = [ shorthandResult[0], shorthandResult[1] + shorthandResult[1], shorthandResult[2] + shorthandResult[2], shorthandResult[3] + shorthandResult[3] ]; } } return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null; };
     const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => { const hex = x.toString(16); return hex.length === 1 ? '0' + hex : hex; }).join('').toUpperCase();
-    const updatePaletteUsage = (usageMap) => { if (!usageMap) return; document.querySelectorAll('.palette-buttons .color-button, .palette-buttons .added-color-swatch').forEach(btn => { const parent = btn.classList.contains('added-color-swatch') ? btn.parentElement : btn; btn.classList.remove('unused'); const existingCount = parent.querySelector('.usage-count'); if (existingCount) existingCount.remove(); const rgbArray = JSON.parse(parent.dataset.rgb); const key = rgbArray.join(','); if (usageMap.hasOwnProperty(key)) { const count = usageMap[key]; const isOn = parent.dataset.on === 'true'; if (isOn) { if (count > 0) { const countEl = document.createElement('span'); countEl.className = 'usage-count'; countEl.textContent = count > 999 ? `${(count/1000).toFixed(1)}k` : count; parent.appendChild(countEl); } else { btn.classList.add('unused'); } } } }); };
+    const updatePaletteUsage = (usageMap) => {
+        if (!usageMap) return;
+
+        // 대상을 모든 종류의 팔레트 아이템으로 확장
+        document.querySelectorAll('.palette-buttons .color-button, .palette-buttons .added-color-item').forEach(item => {
+            const isAddedItem = item.classList.contains('added-color-item');
+            const swatch = isAddedItem ? item.querySelector('.added-color-swatch') : item;
+            
+            // 이전에 추가된 사용량 표시나 스타일을 초기화
+            swatch.classList.remove('unused');
+            const existingCount = item.querySelector('.usage-count');
+            if (existingCount) existingCount.remove();
+            
+            const rgbArray = JSON.parse(item.dataset.rgb);
+            const key = rgbArray.join(',');
+
+            if (usageMap.hasOwnProperty(key)) {
+                const count = usageMap[key];
+                const isOn = item.dataset.on === 'true';
+
+                if (isOn) {
+                    if (count > 0) {
+                        const countEl = document.createElement('span');
+                        countEl.className = 'usage-count';
+                        countEl.textContent = count > 999 ? `${(count/1000).toFixed(1)}k` : count;
+                        
+                        // ▼▼▼ 이 부분이 핵심 수정 사항입니다 ▼▼▼
+                        // '추가한 색상' 항목의 경우, 색상 정보(info) 컨테이너 옆에 붙입니다.
+                        if (isAddedItem) {
+                            const deleteBtn = item.querySelector('.delete-color-btn');
+                            item.insertBefore(countEl, deleteBtn);
+                        } else {
+                            item.appendChild(countEl);
+                        }
+                    } else {
+                        swatch.classList.add('unused');
+                    }
+                }
+            }
+        });
+    };
     const updateColorRecommendations = (newRecommendations) => { if (newRecommendations) { state.recommendedColors = newRecommendations; } const reportContainer = elements.recommendationReportContainer; reportContainer.innerHTML = ''; if (!state.recommendedColors || state.recommendedColors.length === 0) { elements.recommendedColorsPlaceholder.style.display = 'block'; reportContainer.style.display = 'none'; return; } elements.recommendedColorsPlaceholder.style.display = 'none'; reportContainer.style.display = 'flex'; const createGroup = (titleKey, colors, tagGenerator) => { const filteredColors = colors.filter(rec => !isColorAlreadyAdded(rec.rgb)); if (filteredColors.length === 0) return; const groupDiv = document.createElement('div'); groupDiv.className = 'recommendation-group'; const title = document.createElement('h4'); title.dataset.langKey = titleKey; title.textContent = languageData[state.language][titleKey] || titleKey; groupDiv.appendChild(title); const itemsContainer = document.createElement('div'); itemsContainer.className = 'recommendation-group-items'; filteredColors.forEach(rec => { const item = document.createElement('div'); item.className = 'recommendation-item'; const swatch = document.createElement('div'); swatch.className = 'recommendation-swatch'; swatch.style.backgroundColor = `rgb(${rec.rgb.join(',')})`; const info = document.createElement('div'); info.className = 'recommendation-info'; const rgbLabel = document.createElement('span'); rgbLabel.textContent = `(${rec.rgb.join(',')})`; info.appendChild(rgbLabel); const tag = document.createElement('span'); tag.className = 'recommendation-tag'; tag.textContent = tagGenerator(rec); info.appendChild(tag); const addBtn = document.createElement('button'); addBtn.className = 'recommendation-add-btn'; addBtn.textContent = '+'; addBtn.title = '이 색상 추가하기'; addBtn.onclick = () => { if (createAddedColorItem({ rgb: rec.rgb, name: rec.name })) { item.remove(); if (itemsContainer.childElementCount === 0) { groupDiv.remove(); } updatePaletteStatus(); triggerConversion(); } else { alert(languageData[state.language].alert_already_added); } }; item.appendChild(swatch); item.appendChild(info); item.appendChild(addBtn); itemsContainer.appendChild(item); }); groupDiv.appendChild(itemsContainer); reportContainer.appendChild(groupDiv); }; createGroup('extract_mode_smh', state.recommendedColors.filter(c => c.type === '명암 대표색'), rec => rec.subType); createGroup('extract_mode_high_usage', state.recommendedColors.filter(c => c.type === '고비율 색상'), rec => `${(rec.usage * 100).toFixed(1)}%`); createGroup('extract_mode_highlight', state.recommendedColors.filter(c => c.type === '하이라이트 색상'), () => `하이라이트`); if (reportContainer.childElementCount === 0) { reportContainer.innerHTML = `<div class="placeholder-section" style="padding:10px; font-size:12px;" data-lang-key="placeholder_no_new_recommendations">${languageData[state.language].placeholder_no_new_recommendations || "No new recommendations."}</div>`; } };
     const updatePaletteStatus = () => { document.querySelectorAll('.palette-status-icon').forEach(icon => { const targetIds = icon.dataset.target.split(','); let isActive = false; for (const id of targetIds) { const container = document.getElementById(id); if (container && (container.querySelector('.color-button[data-on="true"]') || container.querySelector('.added-color-item[data-on="true"]'))) { isActive = true; break; } } icon.classList.toggle('active', isActive); }); };
     const createColorButton = (colorData, container, startOn = true) => { if (!colorData.rgb) return; const ctn = document.createElement('div'); ctn.className = 'color-container'; const btn = document.createElement('div'); btn.className = 'color-button'; btn.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`; btn.dataset.rgb = JSON.stringify(colorData.rgb); btn.dataset.on = startOn.toString(); if (!startOn) { btn.classList.add('off'); } btn.title = colorData.name || `rgb(${colorData.rgb.join(',')})`; btn.addEventListener('click', () => { btn.classList.toggle('off'); btn.dataset.on = btn.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); }); ctn.appendChild(btn); if (colorData.name !== null) { const lbl = document.createElement('div'); lbl.className = 'color-name'; lbl.textContent = colorData.name || `(${colorData.rgb.join(',')})`; ctn.appendChild(lbl); } container.appendChild(ctn); };
