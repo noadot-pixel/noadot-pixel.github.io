@@ -660,10 +660,10 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.celShadingApply.checked = false; // 새로운 만화 필터 초기화
         // ... (나머지 초기화는 동일) ...
         geopixelsColors.forEach(c => createColorButton(c, elements.geoPixelColorsContainer, true));
-        wplaceFreeColors.forEach(c => createColorButton(c, elements.wplaceFreeColorsContainer, false));
-        wplacePaidColors.forEach(c => createColorButton(c, elements.wplacePaidColorsContainer, false));
-        wplaceFreeColors.forEach(c => createColorButton(c, elements.wplaceFreeColorsInGeo, false));
-        wplacePaidColors.forEach(c => createColorButton(c, elements.wplacePaidColorsInGeo, false));
+        wplaceFreeColors.forEach(c => createColorButton(c, elements.wplaceFreeColorsContainer, true));
+        wplacePaidColors.forEach(c => createColorButton(c, elements.wplacePaidColorsContainer, true));
+        wplaceFreeColors.forEach(c => createColorButton(c, elements.wplaceFreeColorsInGeo, true));
+        wplacePaidColors.forEach(c => createColorButton(c, elements.wplacePaidColorsInGeo, true));
         createMasterToggleButton('geoPixelColors', elements.geoPixelColorsContainer);
         createMasterToggleButton('wplaceFreeColors', elements.wplaceFreeColorsContainer);
         createMasterToggleButton('wplacePaidColors', elements.wplacePaidColorsContainer); 
