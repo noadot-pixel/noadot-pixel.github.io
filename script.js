@@ -1,27 +1,275 @@
-// script.js (v4.7 - '선명한 리사이징' 옵션 추가 최종본)
+// script.js (v5.10 - 만화 필터 스튜디오 적용 최종본)
 
-const PNGMetadata = { encode(keyword, content) { const keywordBytes = new TextEncoder().encode(keyword); const contentBytes = new TextEncoder().encode(content); const chunkType = new Uint8Array([116, 69, 88, 116]); const chunkData = new Uint8Array(keywordBytes.length + 1 + contentBytes.length); chunkData.set(keywordBytes); chunkData.set([0], keywordBytes.length); chunkData.set(contentBytes, keywordBytes.length + 1); const length = new Uint8Array(4); new DataView(length.buffer).setUint32(0, chunkData.length, false); const crcData = new Uint8Array(chunkType.length + chunkData.length); crcData.set(chunkType); crcData.set(chunkData, chunkType.length); const crc = new Uint8Array(4); new DataView(crc.buffer).setUint32(0, this.crc32(crcData), false); const chunk = new Uint8Array(length.length + chunkType.length + chunkData.length + crc.length); chunk.set(length); chunk.set(chunkType, 4); chunk.set(chunkData, 8); chunk.set(crc, 8 + chunkData.length); return chunk; }, embed(pngArrayBuffer, metadata) { const pngBytes = new Uint8Array(pngArrayBuffer); const keyword = 'NoaDotSettings'; const content = JSON.stringify(metadata); const metadataChunk = this.encode(keyword, content); const iendIndex = pngBytes.length - 12; const newPngBytes = new Uint8Array(pngBytes.length + metadataChunk.length); newPngBytes.set(pngBytes.subarray(0, iendIndex)); newPngBytes.set(metadataChunk, iendIndex); newPngBytes.set(pngBytes.subarray(iendIndex), iendIndex + metadataChunk.length); return newPngBytes.buffer; }, async extract(file) { const buffer = await file.arrayBuffer(); const bytes = new Uint8Array(buffer); const keyword = 'NoaDotSettings'; let offset = 8; while (offset < bytes.length) { const view = new DataView(bytes.buffer, offset); const length = view.getUint32(0); const type = new TextDecoder().decode(bytes.subarray(offset + 4, offset + 8)); if (type === 'tEXt') { const chunkData = bytes.subarray(offset + 8, offset + 8 + length); let separatorIndex = -1; for(let i=0; i<chunkData.length; i++) { if (chunkData[i] === 0) { separatorIndex = i; break; } } if (separatorIndex !== -1) { const currentKeyword = new TextDecoder().decode(chunkData.subarray(0, separatorIndex)); if (currentKeyword === keyword) { const content = new TextDecoder().decode(chunkData.subarray(separatorIndex + 1)); return JSON.parse(content); } } } offset += 12 + length; } return null; }, crcTable: (() => { let c; const crcTable = []; for (let n = 0; n < 256; n++) { c = n; for (let k = 0; k < 8; k++) { c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1)); } crcTable[n] = c; } return crcTable; })(), crc32(bytes) { let crc = 0 ^ (-1); for (let i = 0; i < bytes.length; i++) { crc = (crc >>> 8) ^ this.crcTable[(crc ^ bytes[i]) & 0xFF]; } return (crc ^ (-1)) >>> 0; } };
+const PNGMetadata = { /* ... (생략) ... */ encode(keyword, content) { const keywordBytes = new TextEncoder().encode(keyword); const contentBytes = new TextEncoder().encode(content); const chunkType = new Uint8Array([116, 69, 88, 116]); const chunkData = new Uint8Array(keywordBytes.length + 1 + contentBytes.length); chunkData.set(keywordBytes); chunkData.set([0], keywordBytes.length); chunkData.set(contentBytes, keywordBytes.length + 1); const length = new Uint8Array(4); new DataView(length.buffer).setUint32(0, chunkData.length, false); const crcData = new Uint8Array(chunkType.length + chunkData.length); crcData.set(chunkType); crcData.set(chunkData, chunkType.length); const crc = new Uint8Array(4); new DataView(crc.buffer).setUint32(0, this.crc32(crcData), false); const chunk = new Uint8Array(length.length + chunkType.length + chunkData.length + crc.length); chunk.set(length); chunk.set(chunkType, 4); chunk.set(chunkData, 8); chunk.set(crc, 8 + chunkData.length); return chunk; }, embed(pngArrayBuffer, metadata) { const pngBytes = new Uint8Array(pngArrayBuffer); const keyword = 'NoaDotSettings'; const content = JSON.stringify(metadata); const metadataChunk = this.encode(keyword, content); const iendIndex = pngBytes.length - 12; const newPngBytes = new Uint8Array(pngBytes.length + metadataChunk.length); newPngBytes.set(pngBytes.subarray(0, iendIndex)); newPngBytes.set(metadataChunk, iendIndex); newPngBytes.set(pngBytes.subarray(iendIndex), iendIndex + metadataChunk.length); return newPngBytes.buffer; }, async extract(file) { const buffer = await file.arrayBuffer(); const bytes = new Uint8Array(buffer); const keyword = 'NoaDotSettings'; let offset = 8; while (offset < bytes.length) { const view = new DataView(bytes.buffer, offset); const length = view.getUint32(0); const type = new TextDecoder().decode(bytes.subarray(offset + 4, offset + 8)); if (type === 'tEXt') { const chunkData = bytes.subarray(offset + 8, offset + 8 + length); let separatorIndex = -1; for(let i=0; i<chunkData.length; i++) { if (chunkData[i] === 0) { separatorIndex = i; break; } } if (separatorIndex !== -1) { const currentKeyword = new TextDecoder().decode(chunkData.subarray(0, separatorIndex)); if (currentKeyword === keyword) { const content = new TextDecoder().decode(chunkData.subarray(separatorIndex + 1)); return JSON.parse(content); } } } offset += 12 + length; } return null; }, crcTable: (() => { let c; const crcTable = []; for (let n = 0; n < 256; n++) { c = n; for (let k = 0; k < 8; k++) { c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1)); } crcTable[n] = c; } return crcTable; })(), crc32(bytes) { let crc = 0 ^ (-1); for (let i = 0; i < bytes.length; i++) { crc = (crc >>> 8) ^ this.crcTable[(crc ^ bytes[i]) & 0xFF]; } return (crc ^ (-1)) >>> 0; } };
 
 document.addEventListener('DOMContentLoaded', () => {
-    const CONFIG = { DEBOUNCE_DELAY: 150, DEFAULTS: { saturationSlider: 100, brightnessSlider: 0, contrastSlider: 0, ditheringSlider: 0, posterizeLevelsSlider: 8 } };
-    const state = { language: 'ko', appMode: 'image', isConverting: false, processId: 0, originalImageData: null, originalImageObject: null, originalFileName: 'image', currentZoom: 100, isDragging: false, panX: 0, panY: 0, startPanX: 0, startPanY: 0, startDragX: 0, startDragY: 0, finalDownloadableData: null, currentMode: 'geopixels', useWplaceInGeoMode: false, highQualityMode: false, edgeCleanup: false, scaleMode: 'pixel', aspectRatio: 1, textState: { content: '', fontFamily: 'Malgun Gothic', fontSize: 15, isBold: false, isItalic: false, letterSpacing: 0, padding: 10, textColor: '0,0,0', bgColor: '255,255,255', strokeColor: '0,0,0', strokeWidth: 0 }, recommendedColors: [] };
+    const CONFIG = { DEBOUNCE_DELAY: 150, DEFAULTS: { saturationSlider: 100, brightnessSlider: 0, contrastSlider: 0, ditheringSlider: 0 } };
+    const state = { isApplyingPreset: false, language: 'ko', appMode: 'image', isConverting: false, processId: 0, originalImageData: null, originalImageObject: null, originalFileName: 'image', currentZoom: 100, isDragging: false, panX: 0, panY: 0, startPanX: 0, startPanY: 0, startDragX: 0, startDragY: 0, finalDownloadableData: null, currentMode: 'geopixels', useWplaceInGeoMode: false, highQualityMode: false, scaleMode: 'pixel', aspectRatio: 1, textState: { content: '', fontFamily: 'Malgun Gothic', fontSize: 15, isBold: false, isItalic: false, letterSpacing: 0, padding: 10, textColor: '0,0,0', bgColor: '255,255,255', strokeColor: '0,0,0', strokeWidth: 0 }, recommendedColors: [] };
     
+    // --- ▼ elements 객체에 새로운 UI 요소 ID들 추가 ▼ ---
     const elements = {
         languageSwitcher: document.getElementById('language-switcher'), tooltip: null, loadingIndicator: document.getElementById('loading-indicator'), appContainer: document.querySelector('.app-container'), imageModeBtn: document.getElementById('imageMode'), textModeBtn: document.getElementById('textMode'), imageControls: document.getElementById('image-controls'), textControls: document.getElementById('text-controls'), textEditorPanel: document.getElementById('text-editor-panel'), imageUpload: document.getElementById('imageUpload'), downloadBtn: document.getElementById('downloadBtn'), convertedCanvas: document.getElementById('convertedCanvas'), convertedCanvasContainer: document.getElementById('convertedCanvasContainer'), centerBtn: document.getElementById('centerBtn'), zoomLevelDisplay: document.getElementById('zoomLevelDisplay'), imageDimensionsDisplay: document.getElementById('imageDimensionsDisplay'), originalDimensions: document.getElementById('originalDimensions'), convertedDimensions: document.getElementById('convertedDimensions'), convertedDimensionsLabel: document.getElementById('convertedDimensionsLabel'), saturationSlider: document.getElementById('saturationSlider'), saturationValue: document.getElementById('saturationValue'), brightnessSlider: document.getElementById('brightnessSlider'), brightnessValue: document.getElementById('brightnessValue'), contrastSlider: document.getElementById('contrastSlider'), contrastValue: document.getElementById('contrastValue'),
         pixelatedScaling: document.getElementById('pixelatedScaling'),
         highQualityMode: document.getElementById('highQualityMode'), 
-        ditheringAlgorithmSelect: document.getElementById('ditheringAlgorithmSelect'), ditheringSlider: document.getElementById('ditheringSlider'), ditheringValue: document.getElementById('ditheringValue'), ditheringAlgorithmGroup: document.getElementById('dithering-algorithm-group'), ditheringStrengthGroup: document.getElementById('dithering-strength-group'), edgeCleanup: document.getElementById('edgeCleanup'), edgeCleanupOptions: document.getElementById('edgeCleanupOptions'), posterizeLevelsSlider: document.getElementById('posterizeLevelsSlider'), posterizeLevelsValue: document.getElementById('posterizeLevelsValue'), showOutline: document.getElementById('showOutline'), scaleControlsFieldset: document.getElementById('scaleControlsFieldset'), scaleModeSelect: document.getElementById('scaleModeSelect'), ratioScaleControls: document.getElementById('ratio-scale-controls'), pixelScaleControls: document.getElementById('pixel-scale-controls'), scaleSlider: document.getElementById('scaleSlider'), scaleValue: document.getElementById('scaleValue'), scaleWidth: document.getElementById('scaleWidth'), scaleHeight: document.getElementById('scaleHeight'), pixelScaleSlider: document.getElementById('pixelScaleSlider'), recommendationSection: document.getElementById('recommendation-section'), 
+        ditheringAlgorithmSelect: document.getElementById('ditheringAlgorithmSelect'), ditheringSlider: document.getElementById('ditheringSlider'), ditheringValue: document.getElementById('ditheringValue'), ditheringAlgorithmGroup: document.getElementById('dithering-algorithm-group'), ditheringStrengthGroup: document.getElementById('dithering-strength-group'),
+        scaleControlsFieldset: document.getElementById('scaleControlsFieldset'), scaleModeSelect: document.getElementById('scaleModeSelect'), ratioScaleControls: document.getElementById('ratio-scale-controls'), pixelScaleControls: document.getElementById('pixel-scale-controls'), scaleSlider: document.getElementById('scaleSlider'), scaleValue: document.getElementById('scaleValue'), scaleWidth: document.getElementById('scaleWidth'), scaleHeight: document.getElementById('scaleHeight'), pixelScaleSlider: document.getElementById('pixelScaleSlider'),
+        aiPresetSection: document.getElementById('ai-preset-section'),
+        getStyleRecommendationsBtn: document.getElementById('getStyleRecommendationsBtn'),
+        recommendationSection: document.getElementById('recommendation-section'), 
         analyzeColorsBtn: document.getElementById('analyzeColorsBtn'),
         recommendationReportContainer: document.getElementById('recommendation-report-container'),
         recommendedColorsPlaceholder: document.getElementById('recommendedColorsPlaceholder'), 
         highlightSensitivitySlider: document.getElementById('highlightSensitivitySlider'), highlightSensitivityValue: document.getElementById('highlightSensitivityValue'), wplaceFreeColorsContainer: document.getElementById('wplaceFreeColors'), wplacePaidColorsContainer: document.getElementById('wplacePaidColors'), geoPixelColorsContainer: document.getElementById('geoPixelColors'), addedColorsContainer: document.getElementById('addedColors'), addColorBtn: document.getElementById('addColorBtn'), addHex: document.getElementById('addHex'), addR: document.getElementById('addR'), addG: document.getElementById('addG'), addB: document.getElementById('addB'), hexInputFeedback: document.getElementById('hexInputFeedback'), rgbInputFeedback: document.getElementById('rgbInputFeedback'), exportPaletteBtn: document.getElementById('exportPaletteBtn'), importPaletteBtn: document.getElementById('importPaletteBtn'), paletteUpload: document.getElementById('paletteUpload'), resetAddedColorsBtn: document.getElementById('resetAddedColorsBtn'), geopixelsModeBtn: document.getElementById('geopixelsMode'), wplaceModeBtn: document.getElementById('wplaceMode'), geopixelsControls: document.getElementById('geopixels-controls'), wplaceControls: document.getElementById('wplace-controls'), useWplaceInGeoMode: document.getElementById('useWplaceInGeoMode'), wplacePaletteInGeo: document.getElementById('wplace-palette-in-geo'), wplaceFreeColorsInGeo: document.getElementById('wplaceFreeColorsInGeo'), wplacePaidColorsInGeo: document.getElementById('wplacePaidColorsInGeo'), placeholderUi: document.getElementById('placeholder-ui'), editorTextarea: document.getElementById('editor-textarea'), fontSelect: document.getElementById('fontSelect'), fontSizeSlider: document.getElementById('fontSizeSlider'), fontSizeValue: document.getElementById('fontSizeValue'), letterSpacingSlider: document.getElementById('letterSpacingSlider'), letterSpacingValue: document.getElementById('letterSpacingValue'), paddingSlider: document.getElementById('paddingSlider'), paddingValue: document.getElementById('paddingValue'), uploadFontBtn: document.getElementById('uploadFontBtn'), fontUpload: document.getElementById('fontUpload'), textColorSelect: document.getElementById('textColorSelect'), bgColorSelect: document.getElementById('bgColorSelect'), strokeColorSelect: document.getElementById('strokeColorSelect'), strokeWidthSlider: document.getElementById('strokeWidthSlider'), strokeWidthValue: document.getElementById('strokeWidthValue'), metadataInfoDisplay: document.getElementById('metadata-info-display'), userPaletteSection: document.getElementById('user-palette-section'),
         applyPattern: document.getElementById('applyPattern'), patternOptions: document.getElementById('pattern-options'), patternTypeSelect: document.getElementById('patternTypeSelect'), patternSizeSlider: document.getElementById('patternSizeSlider'), patternSizeValue: document.getElementById('patternSizeValue'),
         applyGradient: document.getElementById('applyGradient'), gradientOptions: document.getElementById('gradient-options'), gradientAngleSlider: document.getElementById('gradientAngleSlider'), gradientAngleValue: document.getElementById('gradientAngleValue'), gradientStrengthSlider: document.getElementById('gradientStrengthSlider'), gradientStrengthValue: document.getElementById('gradientStrengthValue'),
+        // 신규 만화 필터 UI 요소들
+        celShadingApply: document.getElementById('celShadingApply'),
+        celShadingOptions: document.getElementById('celShadingOptions'),
+        celShadingLevelsSlider: document.getElementById('celShadingLevelsSlider'),
+        celShadingLevelsValue: document.getElementById('celShadingLevelsValue'),
+        celShadingQuantMethodSelect: document.getElementById('celShadingQuantMethodSelect'),
+        celShadingColorSpaceSelect: document.getElementById('celShadingColorSpaceSelect'),
+        celShadingMappingModeSelect: document.getElementById('celShadingMappingModeSelect'),
+        celShadingOutline: document.getElementById('celShadingOutline'),
+        celShadingOutlineThresholdSlider: document.getElementById('celShadingOutlineThresholdSlider'),
+        celShadingOutlineThresholdValue: document.getElementById('celShadingOutlineThresholdValue'),
+        presetPopupContainer: document.getElementById('preset-popup-container'),
+        closePresetPopupBtn: document.getElementById('close-preset-popup-btn'),
+        presetScrollWrapper: document.querySelector('.preset-scroll-wrapper'),
     };
-    
+    // --- ▲ elements 객체 수정 끝 ▲ ---
+
     const cCtx = elements.convertedCanvas.getContext('2d');
+    const displayRecommendedPresetsInPopup = (presets) => {
+        elements.presetScrollWrapper.innerHTML = ''; // 기존 내용 비우기
+
+        if (!presets || presets.length === 0) {
+            elements.presetScrollWrapper.innerHTML = `<p data-lang-key="popup_no_recommendations">${languageData[state.language].popup_no_recommendations || "추천할 프리셋이 없습니다."}</p>`;
+            return;
+        }
+
+        const rankClassMap = { 'fixed': 'fixed', 'high': 'high', 'normal': 'normal' };
+        const rankTextMap = { 'fixed': '고정', 'high': '강력 추천', 'normal': '' };
+
+        presets.forEach(preset => {
+            const item = document.createElement('div');
+            item.className = 'preset-item';
+
+            const { name: presetName, thumbnailData, ranking } = preset;
+
+            const thumbCanvas = new OffscreenCanvas(thumbnailData.width, thumbnailData.height);
+            thumbCanvas.getContext('2d').putImageData(thumbnailData, 0, 0);
+
+            const rankClass = rankClassMap[ranking] || 'normal';
+            const rankText = rankTextMap[ranking] || '';
+
+            item.innerHTML = `
+                <div class="preset-thumbnail-wrapper">
+                    <img src="" alt="${presetName} 프리셋 미리보기">
+                    ${rankText ? `<div class="preset-rank-badge ${rankClass}">${rankText}</div>` : ''}
+                </div>
+                <span class="preset-title">${presetName}</span>
+            `;
+
+            const img = item.querySelector('img');
+            thumbCanvas.convertToBlob().then(blob => {
+                img.src = URL.createObjectURL(blob);
+                img.onload = () => URL.revokeObjectURL(img.src); // 메모리 누수 방지
+            });
+            
+            // 프리셋 아이템 클릭 시, 프리셋 적용 및 팝업 닫기
+            item.addEventListener('click', () => {
+                applyPreset(preset); 
+                elements.presetPopupContainer.classList.add('hidden');
+            });
+
+            elements.presetScrollWrapper.appendChild(item);
+        });
+    };
     const conversionWorker = new Worker('worker.js', { type: 'module' });
 
+    // ==========================================================
+    // ===== v5.10 최종 아키텍처 ================================
+    // ==========================================================
+    
+    let triggerConversion = () => { 
+        if (state.isApplyingPreset) return;
+        clearTimeout(state.timeoutId); 
+        state.timeoutId = setTimeout(() => { 
+            if (state.appMode === 'image' && state.originalImageObject) processImage(); 
+            else if (state.appMode === 'text') processText();
+        }, CONFIG.DEBOUNCE_DELAY); 
+    };
+
+    const triggerControlChange = (key, value) => {
+        const slider = elements[`${key}Slider`];
+        const checkbox = elements[key];
+        const select = elements[`${key}Select`];
+
+        const inputEvent = new Event('input', { bubbles: true });
+        const changeEvent = new Event('change', { bubbles: true });
+
+        if (slider && slider.value !== String(value)) {
+            slider.value = value;
+            slider.dispatchEvent(inputEvent);
+        } else if (checkbox && checkbox.checked !== value) {
+            checkbox.checked = value;
+            checkbox.dispatchEvent(changeEvent);
+        } else if (select && select.value !== value) {
+            select.value = value;
+            select.dispatchEvent(changeEvent);
+        }
+    };
+    
+    const applyPreset = (presetObject) => {
+        state.isApplyingPreset = true;
+        const { preset: presetValues, requiredPaletteMode } = presetObject;
+
+        // 1. 모드 전환 (필요 시)
+        if (requiredPaletteMode && state.currentMode !== requiredPaletteMode) {
+            if (confirm(`이 프리셋은 '${requiredPaletteMode}' 모드에 최적화되어 있습니다. 모드를 전환하시겠습니까?`)) {
+                setPaletteMode(requiredPaletteMode);
+            } else {
+                state.isApplyingPreset = false;
+                return;
+            }
+        }
+        
+        // 2. 일반 컨트롤 값 적용
+        Object.keys(presetValues).forEach(key => {
+            if (['celShading', 'overwriteUserPalette', 'disableAllPalettes', 'enablePaletteColors'].includes(key)) return;
+            triggerControlChange(key, presetValues[key]);
+        });
+        
+        // 3. 만화 필터(celShading) 객체 처리
+        if (presetValues.celShading) {
+            Object.keys(presetValues.celShading).forEach(key => {
+                const fullKey = `celShading${key.charAt(0).toUpperCase() + key.slice(1)}`;
+                triggerControlChange(fullKey, presetValues.celShading[key]);
+            });
+        } else {
+            triggerControlChange('celShadingApply', false);
+        }
+
+        // 4. 팔레트 제어 (overwriteUserPalette 로직 추가)
+        if (presetValues.overwriteUserPalette && Array.isArray(presetValues.overwriteUserPalette)) {
+            if (state.currentMode !== 'geopixels') {
+                setPaletteMode('geopixels'); // 사용자 팔레트는 GeoPixels 모드에서만 보이므로 강제 전환
+            }
+            resetAddedColors(true); // confirm 창 없이 강제로 사용자 팔레트 비우기
+            presetValues.overwriteUserPalette.forEach(hex => {
+                const rgb = hexToRgb(hex);
+                if (rgb) {
+                    createAddedColorItem({ rgb: [rgb.r, rgb.g, rgb.b] }, true); // 새로 추가하고 켜기
+                }
+            });
+            // 다른 기본 팔레트들은 모두 끈다.
+            document.querySelectorAll('#geopixels-controls .color-button[data-on="true"]').forEach(btn => btn.click());
+        } 
+        else { // overwriteUserPalette가 아닐 경우에만 일반 팔레트 제어 실행
+            if (presetValues.disableAllPalettes === true) {
+                document.querySelectorAll('.color-button[data-on="true"], .added-color-item[data-on="true"]').forEach(item => {
+                    const clickable = item.classList.contains('color-button') ? item : item.querySelector('.added-color-swatch');
+                    clickable.click();
+                });
+            }
+
+            if (presetValues.enableAllPalettes === true) {
+                document.querySelectorAll('.color-button[data-on="false"], .added-color-item[data-on="false"]').forEach(item => {
+                    const clickable = item.classList.contains('color-button') ? item : item.querySelector('.added-color-swatch');
+                    clickable.click();
+                });
+            }
+
+            if (presetValues.enablePaletteColors) {
+                const rules = presetValues.enablePaletteColors[state.currentMode];
+                if (rules && Array.isArray(rules)) {
+                    const allPaletteData = (state.currentMode === 'geopixels') ? geopixelsColors : [...wplaceFreeColors, ...wplacePaidColors];
+                    const buttons = (state.currentMode === 'geopixels')
+                        ? [...document.querySelectorAll('#geopixels-controls .color-button'), ...document.querySelectorAll('#user-palette-section .added-color-item')]
+                        : [...document.querySelectorAll('#wplace-controls .color-button')];
+
+                    const targetRgbStrings = rules.map(nameOrHex => {
+                        if (String(nameOrHex).startsWith('#')) {
+                            const rgb = hexToRgb(nameOrHex);
+                            return rgb ? JSON.stringify([rgb.r, rgb.g, rgb.b]) : null;
+                        } else {
+                            const colorData = allPaletteData.find(c => c.name === nameOrHex);
+                            return colorData ? JSON.stringify(colorData.rgb) : null;
+                        }
+                    }).filter(Boolean);
+
+                    buttons.forEach(item => {
+                        const shouldBeOn = targetRgbStrings.includes(item.dataset.rgb);
+                        const isCurrentlyOn = item.dataset.on === 'true';
+                        if (shouldBeOn !== isCurrentlyOn) {
+                            const clickable = item.classList.contains('color-button') ? item : item.querySelector('.added-color-swatch');
+                            clickable.click();
+                        }
+                    });
+                }
+            }
+        }
+        
+        state.isApplyingPreset = false;
+        triggerConversion();
+    };
+
+    const setPaletteMode = (mode) => {
+        // 이미 같은 모드이고, 프리셋 적용 중이 아닐 때는 아무것도 안 함
+        if (state.currentMode === mode && !state.isApplyingPreset) return;
+        
+        state.currentMode = mode;
+        elements.geopixelsModeBtn.checked = (mode === 'geopixels');
+        elements.wplaceModeBtn.checked = (mode === 'wplace');
+
+        // 모드에 따라 관련 UI 섹션들의 표시 여부를 결정
+        elements.geopixelsControls.style.display = (mode === 'geopixels') ? 'block' : 'none';
+        elements.wplaceControls.style.display = (mode === 'geopixels') ? 'none' : 'block';
+        elements.userPaletteSection.style.display = (mode === 'geopixels') ? 'block' : 'none';
+
+        // UI 상태 업데이트 및 텍스트 모드 색상 선택기 다시 채우기
+        updatePaletteStatus(); 
+        populateColorSelects();
+        
+        // 프리셋을 적용하는 중에는 불필요한 변환/추천을 막음
+        if (!state.isApplyingPreset) {
+            updateColorRecommendations([]); 
+            triggerConversion();
+        }
+    };
+    
+    const getOptions = () => {
+        const celShadingOptions = {
+            apply: elements.celShadingApply.checked,
+            levels: parseInt(elements.celShadingLevelsSlider.value),
+            quantMethod: elements.celShadingQuantMethodSelect.value,
+            colorSpace: elements.celShadingColorSpaceSelect.value,
+            mappingMode: elements.celShadingMappingModeSelect.value,
+            outline: elements.celShadingOutline.checked,
+            outlineThreshold: parseInt(elements.celShadingOutlineThresholdSlider.value),
+        };
+
+        return { 
+            saturation: parseInt(elements.saturationSlider.value), 
+            brightness: parseInt(elements.brightnessSlider.value), 
+            contrast: parseInt(elements.contrastSlider.value), 
+            dithering: parseInt(elements.ditheringSlider.value, 10), 
+            algorithm: elements.ditheringAlgorithmSelect.value, 
+            pixelatedScaling: elements.pixelatedScaling.checked, 
+            highQualityMode: elements.highQualityMode.checked, 
+            currentMode: state.currentMode,
+            applyPattern: elements.applyPattern.checked, 
+            patternType: elements.patternTypeSelect.value, 
+            patternSize: parseInt(elements.patternSizeSlider.value, 10), 
+            applyGradient: elements.applyGradient.checked, 
+            gradientAngle: parseInt(elements.gradientAngleSlider.value, 10), 
+            gradientStrength: parseInt(elements.gradientStrengthSlider.value, 10),
+            celShading: celShadingOptions, // celShading 객체를 통째로 전달
+        }; 
+    };
+
+    // ... (나머지 모든 함수들은 이전과 거의 동일)
     const createTooltip = () => { if (!elements.tooltip) { elements.tooltip = document.createElement('div'); elements.tooltip.className = 'tooltip-box'; document.body.appendChild(elements.tooltip); } };
     const showTooltip = (e) => { const target = e.target.closest('[data-tooltip-key]'); if (!target || !elements.tooltip) return; const tooltipKey = target.dataset.tooltipKey; const text = languageData[state.language][tooltipKey] || ''; if (!text) return; elements.tooltip.innerHTML = text; updateTooltipPosition(e); elements.tooltip.classList.add('visible'); };
     const hideTooltip = () => { if (elements.tooltip) elements.tooltip.classList.remove('visible'); };
@@ -35,74 +283,258 @@ document.addEventListener('DOMContentLoaded', () => {
     const applySettingsData = (settings) => { if (!settings || settings.type !== 'colors' || !Array.isArray(settings.data)) return; if (confirm(languageData[state.language].confirm_load_palette_from_png)) { elements.addedColorsContainer.innerHTML = ''; settings.data.forEach(rgb => createAddedColorItem({ rgb }, true)); updatePaletteStatus(); triggerConversion(); } };
     const hexToRgb = (hex) => { let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); if (!result) { const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i; const shorthandResult = shorthandRegex.exec(hex); if (shorthandResult) { result = [ shorthandResult[0], shorthandResult[1] + shorthandResult[1], shorthandResult[2] + shorthandResult[2], shorthandResult[3] + shorthandResult[3] ]; } } return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null; };
     const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => { const hex = x.toString(16); return hex.length === 1 ? '0' + hex : hex; }).join('').toUpperCase();
-    const updatePaletteUsage = (usageMap) => {
-        if (!usageMap) return;
-
-        // 대상을 모든 종류의 팔레트 아이템으로 확장
-        document.querySelectorAll('.palette-buttons .color-button, .palette-buttons .added-color-item').forEach(item => {
-            const isAddedItem = item.classList.contains('added-color-item');
-            const swatch = isAddedItem ? item.querySelector('.added-color-swatch') : item;
-            
-            // 이전에 추가된 사용량 표시나 스타일을 초기화
-            swatch.classList.remove('unused');
-            const existingCount = item.querySelector('.usage-count');
-            if (existingCount) existingCount.remove();
-            
-            const rgbArray = JSON.parse(item.dataset.rgb);
-            const key = rgbArray.join(',');
-
-            if (usageMap.hasOwnProperty(key)) {
-                const count = usageMap[key];
-                const isOn = item.dataset.on === 'true';
-
-                if (isOn) {
-                    if (count > 0) {
-                        const countEl = document.createElement('span');
-                        countEl.className = 'usage-count';
-                        countEl.textContent = count > 999 ? `${(count/1000).toFixed(1)}k` : count;
-                        
-                        // ▼▼▼ 이 부분이 핵심 수정 사항입니다 ▼▼▼
-                        // '추가한 색상' 항목의 경우, 색상 정보(info) 컨테이너 옆에 붙입니다.
-                        if (isAddedItem) {
-                            const deleteBtn = item.querySelector('.delete-color-btn');
-                            item.insertBefore(countEl, deleteBtn);
-                        } else {
-                            item.appendChild(countEl);
-                        }
-                    } else {
-                        swatch.classList.add('unused');
-                    }
-                }
-            }
-        });
-    };
+    const updatePaletteUsage = (usageMap) => { if (!usageMap) return; document.querySelectorAll('.palette-buttons .color-button, .palette-buttons .added-color-item').forEach(item => { const isAddedItem = item.classList.contains('added-color-item'); const swatch = isAddedItem ? item.querySelector('.added-color-swatch') : item; swatch.classList.remove('unused'); const existingCount = item.querySelector('.usage-count'); if (existingCount) existingCount.remove(); const rgbArray = JSON.parse(item.dataset.rgb); const key = rgbArray.join(','); if (usageMap.hasOwnProperty(key)) { const count = usageMap[key]; const isOn = item.dataset.on === 'true'; if (isOn) { if (count > 0) { const countEl = document.createElement('span'); countEl.className = 'usage-count'; countEl.textContent = count > 999 ? `${(count/1000).toFixed(1)}k` : count; if (isAddedItem) { const deleteBtn = item.querySelector('.delete-color-btn'); item.insertBefore(countEl, deleteBtn); } else { item.appendChild(countEl); } } else { swatch.classList.add('unused'); } } } }); };
     const updateColorRecommendations = (newRecommendations) => { if (newRecommendations) { state.recommendedColors = newRecommendations; } const reportContainer = elements.recommendationReportContainer; reportContainer.innerHTML = ''; if (!state.recommendedColors || state.recommendedColors.length === 0) { elements.recommendedColorsPlaceholder.style.display = 'block'; reportContainer.style.display = 'none'; return; } elements.recommendedColorsPlaceholder.style.display = 'none'; reportContainer.style.display = 'flex'; const createGroup = (titleKey, colors, tagGenerator) => { const filteredColors = colors.filter(rec => !isColorAlreadyAdded(rec.rgb)); if (filteredColors.length === 0) return; const groupDiv = document.createElement('div'); groupDiv.className = 'recommendation-group'; const title = document.createElement('h4'); title.dataset.langKey = titleKey; title.textContent = languageData[state.language][titleKey] || titleKey; groupDiv.appendChild(title); const itemsContainer = document.createElement('div'); itemsContainer.className = 'recommendation-group-items'; filteredColors.forEach(rec => { const item = document.createElement('div'); item.className = 'recommendation-item'; const swatch = document.createElement('div'); swatch.className = 'recommendation-swatch'; swatch.style.backgroundColor = `rgb(${rec.rgb.join(',')})`; const info = document.createElement('div'); info.className = 'recommendation-info'; const rgbLabel = document.createElement('span'); rgbLabel.textContent = `(${rec.rgb.join(',')})`; info.appendChild(rgbLabel); const tag = document.createElement('span'); tag.className = 'recommendation-tag'; tag.textContent = tagGenerator(rec); info.appendChild(tag); const addBtn = document.createElement('button'); addBtn.className = 'recommendation-add-btn'; addBtn.textContent = '+'; addBtn.title = '이 색상 추가하기'; addBtn.onclick = () => { if (createAddedColorItem({ rgb: rec.rgb, name: rec.name })) { item.remove(); if (itemsContainer.childElementCount === 0) { groupDiv.remove(); } updatePaletteStatus(); triggerConversion(); } else { alert(languageData[state.language].alert_already_added); } }; item.appendChild(swatch); item.appendChild(info); item.appendChild(addBtn); itemsContainer.appendChild(item); }); groupDiv.appendChild(itemsContainer); reportContainer.appendChild(groupDiv); }; createGroup('extract_mode_smh', state.recommendedColors.filter(c => c.type === '명암 대표색'), rec => rec.subType); createGroup('extract_mode_high_usage', state.recommendedColors.filter(c => c.type === '고비율 색상'), rec => `${(rec.usage * 100).toFixed(1)}%`); createGroup('extract_mode_highlight', state.recommendedColors.filter(c => c.type === '하이라이트 색상'), () => `하이라이트`); if (reportContainer.childElementCount === 0) { reportContainer.innerHTML = `<div class="placeholder-section" style="padding:10px; font-size:12px;" data-lang-key="placeholder_no_new_recommendations">${languageData[state.language].placeholder_no_new_recommendations || "No new recommendations."}</div>`; } };
     const updatePaletteStatus = () => { document.querySelectorAll('.palette-status-icon').forEach(icon => { const targetIds = icon.dataset.target.split(','); let isActive = false; for (const id of targetIds) { const container = document.getElementById(id); if (container && (container.querySelector('.color-button[data-on="true"]') || container.querySelector('.added-color-item[data-on="true"]'))) { isActive = true; break; } } icon.classList.toggle('active', isActive); }); };
     const createColorButton = (colorData, container, startOn = true) => { if (!colorData.rgb) return; const ctn = document.createElement('div'); ctn.className = 'color-container'; const btn = document.createElement('div'); btn.className = 'color-button'; btn.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`; btn.dataset.rgb = JSON.stringify(colorData.rgb); btn.dataset.on = startOn.toString(); if (!startOn) { btn.classList.add('off'); } btn.title = colorData.name || `rgb(${colorData.rgb.join(',')})`; btn.addEventListener('click', () => { btn.classList.toggle('off'); btn.dataset.on = btn.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); }); ctn.appendChild(btn); if (colorData.name !== null) { const lbl = document.createElement('div'); lbl.className = 'color-name'; lbl.textContent = colorData.name || `(${colorData.rgb.join(',')})`; ctn.appendChild(lbl); } container.appendChild(ctn); };
     const createAddedColorItem = (colorData, startOn = true) => { if (isColorAlreadyAdded(colorData.rgb)) return false; const placeholder = elements.addedColorsContainer.querySelector('.placeholder-section'); if (placeholder) placeholder.remove(); const item = document.createElement('div'); item.className = 'added-color-item'; item.dataset.rgb = JSON.stringify(colorData.rgb); item.dataset.on = startOn.toString(); if (!startOn) item.classList.add('off'); const swatch = document.createElement('div'); swatch.className = 'added-color-swatch'; swatch.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`; swatch.addEventListener('click', () => { item.classList.toggle('off'); item.dataset.on = item.dataset.on === 'true' ? 'false' : 'true'; triggerConversion(); updatePaletteStatus(); }); const infoContainer = document.createElement('div'); infoContainer.className = 'added-color-info'; const hexInfo = document.createElement('span'); hexInfo.className = 'color-info-hex'; hexInfo.textContent = colorData.name || rgbToHex(colorData.rgb[0], colorData.rgb[1], colorData.rgb[2]); const rgbInfo = document.createElement('span'); rgbInfo.className = 'color-info-rgb'; rgbInfo.textContent = `(${colorData.rgb.join(',')})`; infoContainer.appendChild(hexInfo); infoContainer.appendChild(rgbInfo); const deleteBtn = document.createElement('button'); deleteBtn.className = 'delete-color-btn'; deleteBtn.textContent = '−'; deleteBtn.title = '이 색상 삭제'; deleteBtn.onclick = () => { item.remove(); if (elements.addedColorsContainer.childElementCount === 0) { const placeholderDiv = document.createElement('div'); placeholderDiv.className = 'placeholder-section'; placeholderDiv.dataset.langKey = 'placeholder_add_color'; placeholderDiv.innerHTML = languageData[state.language].placeholder_add_color; elements.addedColorsContainer.appendChild(placeholderDiv); } updatePaletteStatus(); triggerConversion(); }; item.appendChild(swatch); item.appendChild(infoContainer); item.appendChild(deleteBtn); elements.addedColorsContainer.appendChild(item); return true; };
     const createMasterToggleButton = (targetId, container) => { if (!container) return; const btn = document.createElement('button'); btn.className = 'toggle-all toggle-all-palette'; btn.title = '전체 선택/해제'; btn.textContent = 'A'; btn.addEventListener('click', () => { const targetIds = targetId.split(','); let allItems = []; targetIds.forEach(id => { const cont = document.getElementById(id); if (cont) { allItems.push(...cont.querySelectorAll('.color-button, .added-color-item')); } }); if (allItems.length === 0) return; const onItemsCount = allItems.filter(b => b.dataset.on === 'true').length; const turnOn = onItemsCount < allItems.length; allItems.forEach(item => { const isOn = item.dataset.on === 'true'; if ((turnOn && !isOn) || (!turnOn && isOn)) { const clickable = item.classList.contains('added-color-item') ? item.querySelector('.added-color-swatch') : item; clickable.click(); } }); }); container.prepend(btn); };
-    const applyConversion = (imageDataToProcess, palette, options) => { if (!imageDataToProcess) return; state.isConverting = true; showLoading(true); state.processId++; const allPaletteColors = Array.from(document.querySelectorAll('.palette-buttons .color-button, .palette-buttons .added-color-item')).map(btn => JSON.parse(btn.dataset.rgb).join(',')); conversionWorker.postMessage({ imageData: imageDataToProcess, palette: palette, allPaletteColors: allPaletteColors, options: options, processId: state.processId }, [imageDataToProcess.data.buffer]); };
-    conversionWorker.onmessage = (e) => { const { status, imageData, recommendations, usageMap, processId, message } = e.data; if (processId !== state.processId) return; if (status === 'success') { state.finalDownloadableData = imageData; const tempCanvas = document.createElement('canvas'); tempCanvas.width = imageData.width; tempCanvas.height = imageData.height; tempCanvas.getContext('2d').putImageData(imageData, 0, 0); const displayWidth = (state.appMode === 'image' && state.originalImageObject) ? state.originalImageObject.width : imageData.width; const displayHeight = (state.appMode === 'image' && state.originalImageObject) ? state.originalImageObject.height : imageData.height; elements.convertedCanvas.width = displayWidth; elements.convertedCanvas.height = displayHeight; cCtx.imageSmoothingEnabled = false; cCtx.drawImage(tempCanvas, 0, 0, displayWidth, displayHeight); elements.downloadBtn.disabled = false; updateTransform(); if (recommendations) { updateColorRecommendations(recommendations); } if (usageMap) { updatePaletteUsage(usageMap); } } else { console.error("워커 오류:", message); alert("이미지 변환 중 오류가 발생했습니다."); } state.isConverting = false; showLoading(false); };
-    conversionWorker.onerror = (e) => { console.error('워커에서 에러 발생:', e); showLoading(false); state.isConverting = false; alert('변환 엔진(워커)을 시작하는 데 실패했습니다. 페이지를 새로고침 해주세요.'); };
     
-    const getOptions = () => {
-        return { saturation: parseInt(elements.saturationSlider.value), brightness: parseInt(elements.brightnessSlider.value), contrast: parseInt(elements.contrastSlider.value), dithering: parseFloat(elements.ditheringSlider.value), algorithm: elements.ditheringAlgorithmSelect.value, pixelatedScaling: elements.pixelatedScaling.checked, highQualityMode: elements.highQualityMode.checked, currentMode: state.currentMode, highlightSensitivity: parseInt(elements.highlightSensitivitySlider.value), edgeCleanup: elements.edgeCleanup.checked, posterizeLevels: parseInt(elements.posterizeLevelsSlider.value), showOutline: elements.showOutline.checked, applyPattern: elements.applyPattern.checked, patternType: elements.patternTypeSelect.value, patternSize: parseInt(elements.patternSizeSlider.value, 10), applyGradient: elements.applyGradient.checked, gradientAngle: parseInt(elements.gradientAngleSlider.value, 10), gradientStrength: parseInt(elements.gradientStrengthSlider.value, 10) };
+    conversionWorker.onmessage = (e) => {
+        const { status, type, processId, message } = e.data;
+        if (status === 'error') {
+            console.error("워커 오류:", message);
+            alert(`오류가 발생했습니다: ${message}`);
+            showLoading(false);
+            if (type === 'recommendationError') elements.getStyleRecommendationsBtn.disabled = false;
+            return;
+        }
+
+        if (type === 'recommendationResult') {
+            if (processId !== state.processId) return;
+
+            // ==========================================================
+            // ===== 👇 [핵심 수정] 하단 갤러리 -> 중앙 팝업으로 변경 👇 =====
+            // ==========================================================
+
+            // 1. Worker로부터 받은 모든 프리셋을 하나의 배열로 합칩니다.
+            const { fixed, recommended, others } = e.data.results;
+            const allPresets = [...fixed, ...recommended, ...others];
+            
+            // 2. 새로운 중앙 팝업 표시 함수를 호출합니다.
+            displayRecommendedPresetsInPopup(allPresets);
+
+            // 3. 로딩 상태를 해제합니다.
+            showLoading(false);
+            elements.getStyleRecommendationsBtn.disabled = false;
+            
+        } else if (type === 'conversionResult') {
+            if (processId !== state.processId) return;
+            const { imageData, recommendations, usageMap } = e.data;
+            state.finalDownloadableData = imageData;
+            const tempCanvas = document.createElement('canvas'); tempCanvas.width = imageData.width; tempCanvas.height = imageData.height;
+            tempCanvas.getContext('2d').putImageData(imageData, 0, 0);
+            const displayWidth = (state.appMode === 'image' && state.originalImageObject) ? state.originalImageObject.width : imageData.width;
+            const displayHeight = (state.appMode === 'image' && state.originalImageObject) ? state.originalImageObject.height : imageData.height;
+            elements.convertedCanvas.width = displayWidth; elements.convertedCanvas.height = displayHeight;
+            cCtx.imageSmoothingEnabled = !getOptions().pixelatedScaling;
+            cCtx.drawImage(tempCanvas, 0, 0, displayWidth, displayHeight);
+            elements.downloadBtn.disabled = false; updateTransform();
+            if (recommendations) { updateColorRecommendations(recommendations); }
+            if (usageMap) { updatePaletteUsage(usageMap); }
+            showLoading(false);
+        }
     };
-
+    
+    const applyConversion = (imageDataToProcess, palette, options) => {
+        if (!imageDataToProcess) return;
+        state.isConverting = true;
+        showLoading(true);
+        const allPaletteColors = Array.from(document.querySelectorAll('.palette-buttons .color-button, .palette-buttons .added-color-item')).map(btn => JSON.parse(btn.dataset.rgb).join(','));
+        conversionWorker.postMessage({
+            type: 'conversionResult',
+            imageData: imageDataToProcess,
+            palette,
+            allPaletteColors,
+            options,
+            processId: ++state.processId
+        }, [imageDataToProcess.data.buffer]);
+    };
     const getActivePalette = () => {
-        let paletteSelectors = []; if (state.currentMode === 'geopixels') { paletteSelectors.push('#geopixels-controls #geoPixelColors .color-button[data-on="true"]', '#user-palette-section .added-color-item[data-on="true"]'); if (state.useWplaceInGeoMode) { paletteSelectors.push('#geopixels-controls #wplace-palette-in-geo .color-button[data-on="true"]'); } } else { paletteSelectors.push('#wplace-controls .color-button[data-on="true"]'); }
+        let paletteSelectors = [];
+        if (state.currentMode === 'geopixels') {
+            paletteSelectors.push('#geopixels-controls #geoPixelColors .color-button[data-on="true"]', '#user-palette-section .added-color-item[data-on="true"]');
+            if (state.useWplaceInGeoMode) {
+                paletteSelectors.push('#geopixels-controls #wplace-palette-in-geo .color-button[data-on="true"]');
+            }
+        } else { // wplace 모드
+            paletteSelectors.push('#wplace-controls .color-button[data-on="true"]');
+        }
         return Array.from(document.querySelectorAll(paletteSelectors.join(','))).map(b => JSON.parse(b.dataset.rgb));
-    }
+    };
+    const processImage = () => {
+        if (!state.originalImageObject) return;
+        let newWidth, newHeight;
+        const options = getOptions();
 
-    const processImage = () => { if (!state.originalImageObject) return; let newWidth, newHeight; if (state.scaleMode === 'ratio') { const sliderValue = parseInt(elements.scaleSlider.value, 10); const scaleFactor = 1.0 + (sliderValue * 0.25); newWidth = Math.max(1, Math.round(state.originalImageObject.width / scaleFactor)); newHeight = Math.max(1, Math.round(state.originalImageObject.height / scaleFactor)); } else { newWidth = Math.max(1, parseInt(elements.scaleWidth.value, 10) || state.originalImageObject.width); newHeight = Math.max(1, parseInt(elements.scaleHeight.value, 10) || state.originalImageObject.height); } elements.convertedDimensions.textContent = `${newWidth} x ${newHeight} px`; const tempCanvas = document.createElement('canvas'); tempCanvas.width = newWidth; tempCanvas.height = newHeight; const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true }); const options = getOptions(); tempCtx.imageSmoothingEnabled = !options.pixelatedScaling; tempCtx.drawImage(state.originalImageObject, 0, 0, newWidth, newHeight); const imageDataForWorker = tempCtx.getImageData(0, 0, newWidth, newHeight); const palette = getActivePalette(); applyConversion(imageDataForWorker, palette, options); };
-    const processText = () => { const { content, fontFamily, fontSize, isBold, isItalic, letterSpacing, padding, textColor, bgColor, strokeColor, strokeWidth } = state.textState; if (!content) { elements.convertedCanvasContainer.classList.remove('has-image'); return; } const tempCtx = document.createElement('canvas').getContext('2d'); let fontStyle = ''; if (isItalic) fontStyle += 'italic '; if (isBold) fontStyle += 'bold '; tempCtx.font = `${fontStyle} ${fontSize * 2}px "${fontFamily}"`; tempCtx.letterSpacing = `${letterSpacing}px`; const lines = content.split('\n'); let maxWidth = 0; let totalHeight = 0; const lineMetrics = lines.map(line => { const metrics = tempCtx.measureText(line || ' '); maxWidth = Math.max(maxWidth, metrics.width); totalHeight += (metrics.actualBoundingBoxAscent || fontSize * 2) + (metrics.actualBoundingBoxDescent || 0); return metrics; }); const canvasWidth = Math.ceil(maxWidth + padding * 2); const canvasHeight = Math.ceil(totalHeight + padding * 2); elements.convertedDimensions.textContent = `${canvasWidth} x ${canvasHeight} px`; const textCanvas = document.createElement('canvas'); textCanvas.width = canvasWidth; textCanvas.height = canvasHeight; const ctx = textCanvas.getContext('2d', { willReadFrequently: true }); ctx.fillStyle = `rgb(${bgColor})`; ctx.fillRect(0, 0, canvasWidth, canvasHeight); ctx.font = tempCtx.font; ctx.letterSpacing = tempCtx.letterSpacing; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; let currentY = padding; lines.forEach((line, index) => { if (strokeWidth > 0) { ctx.strokeStyle = `rgb(${strokeColor})`; ctx.lineWidth = strokeWidth; ctx.strokeText(line, padding, currentY); } ctx.fillStyle = `rgb(${textColor})`; ctx.fillText(line, padding, currentY); currentY += (lineMetrics[index].actualBoundingBoxAscent || fontSize * 2) + (lineMetrics[index].actualBoundingBoxDescent || 0); }); const textImageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight); const palette = getActivePalette(); const options = getOptions(); options.dithering = 0; options.algorithm = 'none'; options.edgeCleanup = false; options.applyPattern = false; options.applyGradient = false; elements.convertedCanvasContainer.classList.add('has-image'); applyConversion(textImageData, palette, options); };
-    const triggerConversion = () => { clearTimeout(state.timeoutId); state.timeoutId = setTimeout(() => { if (state.appMode === 'image') { if (state.originalImageObject) processImage(); } else { processText(); } }, CONFIG.DEBOUNCE_DELAY); };
-    const handleFile = async (file) => { if (!file || !file.type.startsWith('image/')) return; elements.metadataInfoDisplay.classList.remove('visible'); elements.recommendedColorsPlaceholder.style.display = 'block'; elements.recommendationReportContainer.style.display = 'none'; elements.analyzeColorsBtn.disabled = false; updateColorRecommendations([]); try { const settings = await PNGMetadata.extract(file); if (settings) { if (settings.type === 'colors') { applySettingsData(settings); } else if (settings.type === 'marker') { elements.metadataInfoDisplay.textContent = languageData[state.language].alert_png_metadata_info; elements.metadataInfoDisplay.classList.add('visible'); } } } catch (error) { console.error("메타데이터 읽기 오류:", error); } state.originalFileName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name; const img = new Image(); img.onload = () => { state.originalImageObject = img; state.aspectRatio = img.height / img.width; elements.scaleWidth.value = img.width; elements.scaleHeight.value = img.height; elements.pixelScaleSlider.max = img.width > 1 ? img.width - 1 : 1; elements.pixelScaleSlider.value = 0; elements.scaleControlsFieldset.disabled = false; elements.appContainer.classList.add('image-loaded'); elements.originalDimensions.textContent = `${img.width} x ${img.height} px`; elements.convertedCanvasContainer.classList.add('has-image'); state.panX = 0; state.panY = 0; updateZoom(100); triggerConversion(); }; img.src = URL.createObjectURL(file); };
-    const resetAll = () => { state.originalImageObject = null; state.originalImageData = null; state.textState.content = ''; elements.editorTextarea.value = ''; elements.appContainer.classList.remove('image-loaded'); elements.convertedCanvasContainer.classList.remove('has-image'); cCtx.clearRect(0, 0, elements.convertedCanvas.width, elements.convertedCanvas.height); updateColorRecommendations([]); elements.analyzeColorsBtn.disabled = true; elements.recommendationReportContainer.style.display = 'none'; elements.recommendedColorsPlaceholder.style.display = 'block'; document.querySelectorAll('.reset-btn').forEach(btn => btn.click()); elements.scaleControlsFieldset.disabled = true; elements.scaleWidth.value = ''; elements.scaleHeight.value = ''; elements.metadataInfoDisplay.classList.remove('visible'); elements.imageUpload.value = ''; if (elements.highQualityMode) elements.highQualityMode.checked = false; if (elements.edgeCleanup) elements.edgeCleanup.checked = false; if (elements.showOutline) elements.showOutline.checked = false; if (elements.useWplaceInGeoMode) elements.useWplaceInGeoMode.checked = false; if (elements.applyPattern) elements.applyPattern.checked = false; if (elements.patternOptions) elements.patternOptions.style.display = 'none'; if (elements.applyGradient) elements.applyGradient.checked = false; if (elements.gradientOptions) elements.gradientOptions.style.display = 'none'; state.highQualityMode = false; state.edgeCleanup = false; state.useWplaceInGeoMode = false; if (elements.edgeCleanupOptions) elements.edgeCleanupOptions.style.display = 'none'; if (elements.wplacePaletteInGeo) elements.wplacePaletteInGeo.style.display = 'none'; };
-    const setAppMode = (mode) => { if (state.appMode === mode) return; const confirmSwitch = () => { if (state.appMode === 'image' && state.originalImageObject && mode === 'text') { return confirm(languageData[state.language].confirm_mode_switch_to_text); } else if (state.appMode === 'text' && state.textState.content && mode === 'image') { return confirm(languageData[state.language].confirm_mode_switch_to_image); } return true; }; if (!confirmSwitch()) { elements.imageModeBtn.checked = state.appMode === 'image'; elements.textModeBtn.checked = state.appMode === 'text'; return; } resetAll(); state.appMode = mode; elements.appContainer.classList.toggle('text-mode', mode === 'text'); elements.imageControls.style.display = mode === 'image' ? 'grid' : 'none'; elements.textControls.style.display = mode === 'text' ? 'block' : 'none'; const isImageMode = mode === 'image'; const imageOnlyControls = [ elements.ditheringAlgorithmGroup, elements.ditheringStrengthGroup, elements.edgeCleanup.parentElement, elements.applyPattern.parentElement, elements.applyGradient.parentElement ]; imageOnlyControls.forEach(el => { if (el) el.style.display = isImageMode ? 'flex' : 'none'; }); const placeholderText = elements.placeholderUi.querySelector('p'); if (isImageMode) { placeholderText.innerHTML = languageData[state.language].placeholder_image_upload; elements.convertedDimensionsLabel.innerHTML = languageData[state.language].info_converted_size; } else { placeholderText.innerHTML = languageData[state.language].placeholder_text_preview; elements.convertedDimensionsLabel.innerHTML = languageData[state.language].info_generated_size; triggerConversion(); } };
-    const setPaletteMode = (mode) => { state.currentMode = mode; if (mode === 'geopixels') { elements.geopixelsControls.style.display = 'block'; elements.wplaceControls.style.display = 'none'; elements.userPaletteSection.style.display = 'block'; } else { elements.geopixelsControls.style.display = 'none'; elements.wplaceControls.style.display = 'block'; elements.userPaletteSection.style.display = 'none'; document.querySelectorAll('#wplaceFreeColors .color-button.off').forEach(btn => btn.click()); document.querySelectorAll('#wplacePaidColors .color-button[data-on="true"]').forEach(btn => btn.click()); } updatePaletteStatus(); updateColorRecommendations([]); triggerConversion(); };
+        if (state.scaleMode === 'ratio') {
+            const sliderValue = parseInt(elements.scaleSlider.value, 10);
+            const scaleFactor = 1.0 + (sliderValue * 0.25);
+            newWidth = Math.max(1, Math.round(state.originalImageObject.width / scaleFactor));
+            newHeight = Math.max(1, Math.round(state.originalImageObject.height / scaleFactor));
+        } else {
+            newWidth = Math.max(1, parseInt(elements.scaleWidth.value, 10) || state.originalImageObject.width);
+            newHeight = Math.max(1, parseInt(elements.scaleHeight.value, 10) || state.originalImageObject.height);
+        }
+        elements.convertedDimensions.textContent = `${newWidth} x ${newHeight} px`;
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = newWidth;
+        tempCanvas.height = newHeight;
+        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+        tempCtx.imageSmoothingEnabled = !options.pixelatedScaling;
+        tempCtx.drawImage(state.originalImageObject, 0, 0, newWidth, newHeight);
+        const imageDataForWorker = tempCtx.getImageData(0, 0, newWidth, newHeight);
+        const palette = getActivePalette();
+        applyConversion(imageDataForWorker, palette, options);
+    };
+    const processText = () => {
+        const { content, fontFamily, fontSize, isBold, isItalic, letterSpacing, padding, textColor, bgColor, strokeColor, strokeWidth } = state.textState;
+        if (!content) {
+            elements.convertedCanvasContainer.classList.remove('has-image');
+            cCtx.clearRect(0, 0, elements.convertedCanvas.width, elements.convertedCanvas.height);
+            return;
+        }
+
+        const tempCtx = document.createElement('canvas').getContext('2d');
+        let fontStyle = '';
+        if (isItalic) fontStyle += 'italic ';
+        if (isBold) fontStyle += 'bold ';
+        tempCtx.font = `${fontStyle} ${fontSize * 2}px "${fontFamily}"`; // 고해상도 렌더링을 위해 2배 크기
+        tempCtx.letterSpacing = `${letterSpacing}px`;
+
+        const lines = content.split('\n');
+        let maxWidth = 0;
+        let totalHeight = 0;
+        const lineMetrics = lines.map(line => {
+            const metrics = tempCtx.measureText(line || ' ');
+            maxWidth = Math.max(maxWidth, metrics.width);
+            totalHeight += (metrics.actualBoundingBoxAscent || fontSize * 2) + (metrics.actualBoundingBoxDescent || 0);
+            return metrics;
+        });
+
+        const canvasWidth = Math.ceil(maxWidth + padding * 2);
+        const canvasHeight = Math.ceil(totalHeight + padding * 2);
+        elements.convertedDimensions.textContent = `${canvasWidth} x ${canvasHeight} px`;
+
+        const textCanvas = document.createElement('canvas');
+        textCanvas.width = canvasWidth;
+        textCanvas.height = canvasHeight;
+        const ctx = textCanvas.getContext('2d', { willReadFrequently: true });
+
+        ctx.fillStyle = `rgb(${bgColor})`;
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        ctx.font = tempCtx.font;
+        ctx.letterSpacing = tempCtx.letterSpacing;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+
+        let currentY = padding;
+        lines.forEach((line, index) => {
+            if (strokeWidth > 0) {
+                ctx.strokeStyle = `rgb(${strokeColor})`;
+                ctx.lineWidth = strokeWidth;
+                ctx.strokeText(line, padding, currentY);
+            }
+            ctx.fillStyle = `rgb(${textColor})`;
+            ctx.fillText(line, padding, currentY);
+            currentY += (lineMetrics[index].actualBoundingBoxAscent || fontSize * 2) + (lineMetrics[index].actualBoundingBoxDescent || 0);
+        });
+
+        const textImageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+        const palette = getActivePalette();
+        const options = getOptions();
+
+        // 텍스트 모드에서는 특정 이미지 필터들을 강제로 비활성화
+        options.celShading.apply = false;
+        options.applyPattern = false;
+        options.applyGradient = false;
+
+        elements.convertedCanvasContainer.classList.add('has-image');
+        applyConversion(textImageData, palette, options);
+    };
+    const handleFile = async (file) => { if (!file || !file.type.startsWith('image/')) return; elements.aiPresetSection.style.display = 'block'; elements.getStyleRecommendationsBtn.disabled = false; elements.metadataInfoDisplay.classList.remove('visible'); elements.recommendedColorsPlaceholder.style.display = 'block'; elements.recommendationReportContainer.style.display = 'none'; elements.analyzeColorsBtn.disabled = true; updateColorRecommendations([]); try { const settings = await PNGMetadata.extract(file); if (settings) { if (settings.type === 'colors') { applySettingsData(settings); } else if (settings.type === 'marker') { elements.metadataInfoDisplay.textContent = languageData[state.language].alert_png_metadata_info; elements.metadataInfoDisplay.classList.add('visible'); } } } catch (error) { console.error("메타데이터 읽기 오류:", error); } state.originalFileName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name; const img = new Image(); img.onload = () => { state.originalImageObject = img; state.aspectRatio = img.height / img.width; elements.scaleWidth.value = img.width; elements.scaleHeight.value = img.height; elements.pixelScaleSlider.max = img.width > 1 ? img.width - 1 : 1; elements.pixelScaleSlider.value = 0; elements.scaleControlsFieldset.disabled = false; elements.appContainer.classList.add('image-loaded'); elements.originalDimensions.textContent = `${img.width} x ${img.height} px`; elements.convertedCanvasContainer.classList.add('has-image'); state.panX = 0; state.panY = 0; updateZoom(100); triggerConversion(); elements.analyzeColorsBtn.disabled = false; }; img.src = URL.createObjectURL(file); };
+    const resetAll = () => {
+        state.originalImageObject = null;
+        state.originalImageData = null;
+        state.textState.content = '';
+        elements.editorTextarea.value = '';
+        elements.appContainer.classList.remove('image-loaded');
+        elements.convertedCanvasContainer.classList.remove('has-image');
+        cCtx.clearRect(0, 0, elements.convertedCanvas.width, elements.convertedCanvas.height);
+        elements.aiPresetSection.style.display = 'none';
+        updateColorRecommendations([]);
+        elements.analyzeColorsBtn.disabled = true;
+        elements.recommendationReportContainer.style.display = 'none';
+        elements.recommendedColorsPlaceholder.style.display = 'block';
+        document.querySelectorAll('.reset-btn').forEach(btn => btn.click());
+        elements.scaleControlsFieldset.disabled = true;
+        elements.scaleWidth.value = '';
+        elements.scaleHeight.value = '';
+        elements.metadataInfoDisplay.classList.remove('visible');
+        elements.imageUpload.value = '';
+        document.querySelector('.recommendation-gallery-popup')?.remove();
+        // UI 상태 초기화
+        if (elements.highQualityMode) elements.highQualityMode.checked = false;
+        if (elements.pixelatedScaling) elements.pixelatedScaling.checked = true;
+        if (elements.useWplaceInGeoMode) elements.useWplaceInGeoMode.checked = false;
+        if (elements.applyPattern) elements.applyPattern.checked = false;
+        if (elements.applyGradient) elements.applyGradient.checked = false;
+        if (elements.celShadingApply) elements.celShadingApply.checked = false;
+        document.querySelectorAll('.sub-options').forEach(el => el.style.display = 'none');
+    };
+    const setAppMode = (mode) => {
+        if (state.appMode === mode) return;
+        const confirmSwitch = () => {
+            if (state.appMode === 'image' && state.originalImageObject && mode === 'text') {
+                return confirm(languageData[state.language].confirm_mode_switch_to_text);
+            } else if (state.appMode === 'text' && state.textState.content && mode === 'image') {
+                return confirm(languageData[state.language].confirm_mode_switch_to_image);
+            }
+            return true;
+        };
+
+        if (!confirmSwitch()) {
+            elements.imageModeBtn.checked = state.appMode === 'image';
+            elements.textModeBtn.checked = state.appMode === 'text';
+            return;
+        }
+
+        resetAll();
+        state.appMode = mode;
+        elements.appContainer.classList.toggle('text-mode', mode === 'text');
+
+        const isImageMode = mode === 'image';
+        elements.imageControls.style.display = isImageMode ? 'grid' : 'none';
+        elements.textControls.style.display = isImageMode ? 'none' : 'block';
+        elements.textEditorPanel.style.display = isImageMode ? 'none' : 'flex';
+        elements.aiPresetSection.style.display = isImageMode && state.originalImageObject ? 'block' : 'none';
+
+        const imageOnlyControls = [
+            elements.ditheringAlgorithmGroup,
+            elements.ditheringStrengthGroup,
+            elements.applyPattern.parentElement,
+            elements.applyGradient.parentElement,
+            elements.celShadingApply.parentElement
+        ];
+        imageOnlyControls.forEach(el => {
+            if (el) {
+                const parent = el.closest('.control-group') || el;
+                parent.style.display = isImageMode ? 'flex' : 'none';
+            }
+        });
+        
+        const placeholderText = elements.placeholderUi.querySelector('p');
+        if (isImageMode) {
+            placeholderText.innerHTML = languageData[state.language].placeholder_image_upload;
+            elements.convertedDimensionsLabel.innerHTML = languageData[state.language].info_converted_size;
+        } else {
+            placeholderText.innerHTML = languageData[state.language].placeholder_text_preview;
+            elements.convertedDimensionsLabel.innerHTML = languageData[state.language].info_generated_size;
+            triggerConversion();
+        }
+    };
     const isColorAlreadyAdded = (rgbArray) => { const rgbStr = JSON.stringify(rgbArray); const existingItems = elements.addedColorsContainer.querySelectorAll('.added-color-item'); for (const item of existingItems) { if (item.dataset.rgb === rgbStr) return true; } return false; };
-    const resetAddedColors = () => { if (!elements.addedColorsContainer.querySelector('.added-color-item')) { alert(languageData[state.language].alert_no_color_to_reset); return; } if (confirm(languageData[state.language].confirm_reset_added_colors)) { const placeholderDiv = document.createElement('div'); placeholderDiv.className = 'placeholder-section'; placeholderDiv.dataset.langKey = 'placeholder_add_color'; placeholderDiv.innerHTML = languageData[state.language].placeholder_add_color; elements.addedColorsContainer.innerHTML = ''; elements.addedColorsContainer.appendChild(placeholderDiv); updatePaletteStatus(); triggerConversion(); } };
     const handleFontUpload = (file) => { if (!file) return; showLoading(true); const reader = new FileReader(); reader.onload = async (e) => { const fontName = file.name.split('.').slice(0, -1).join('.'); try { const fontFace = new FontFace(fontName, e.target.result); await fontFace.load(); document.fonts.add(fontFace); const option = new Option(fontName, fontName); elements.fontSelect.add(option); option.selected = true; state.textState.fontFamily = fontName; triggerConversion(); } catch (err) { console.error("Font loading failed:", err); alert("지원하지 않거나 손상된 폰트 파일입니다."); } finally { showLoading(false); } }; reader.onerror = () => { alert("폰트 파일을 읽는 데 실패했습니다."); showLoading(false); }; reader.readAsArrayBuffer(file); };
     const populateColorSelects = () => { const selects = [elements.textColorSelect, elements.bgColorSelect, elements.strokeColorSelect]; selects.forEach(select => select.innerHTML = ''); const palettes = []; if (state.currentMode === 'geopixels') { palettes.push({ groupName: 'GeoPixels', data: geopixelsColors }); } else { palettes.push({ groupName: 'Wplace 무료', data: wplaceFreeColors }); palettes.push({ groupName: 'Wplace 유료', data: wplacePaidColors }); } selects.forEach(select => { palettes.forEach(palette => { const optgroup = document.createElement('optgroup'); optgroup.label = palette.groupName; palette.data.forEach(color => { if (!color.rgb) return; const option = document.createElement('option'); option.value = color.rgb.join(','); option.textContent = color.name || `rgb(${color.rgb.join(',')})`; option.style.backgroundColor = `rgb(${color.rgb.join(',')})`; option.style.color = getTextColorForBg(color.rgb); optgroup.appendChild(option); }); select.appendChild(optgroup); }); }); elements.textColorSelect.value = state.textState.textColor; elements.bgColorSelect.value = state.textState.bgColor; elements.strokeColorSelect.value = state.textState.strokeColor; };
     const updateScaleUIVisibility = () => { const isRatio = state.scaleMode === 'ratio'; elements.ratioScaleControls.classList.toggle('hidden', !isRatio); elements.pixelScaleControls.classList.toggle('hidden', isRatio); };
@@ -113,13 +545,22 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.addEventListener('mouseover', showTooltip); document.body.addEventListener('mouseout', hideTooltip); document.body.addEventListener('mousemove', updateTooltipPosition);
         elements.languageSwitcher.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { const lang = e.target.dataset.lang; if (lang && lang !== state.language) { setLanguage(lang); } } });
         elements.imageModeBtn.addEventListener('change', () => setAppMode('image')); elements.textModeBtn.addEventListener('change', () => setAppMode('text'));
-        elements.geopixelsModeBtn.addEventListener('change', () => { setPaletteMode('geopixels'); populateColorSelects(); }); elements.wplaceModeBtn.addEventListener('change', () => { setPaletteMode('wplace'); populateColorSelects(); });
+        
+        elements.geopixelsModeBtn.addEventListener('change', () => setPaletteMode('geopixels')); 
+        elements.wplaceModeBtn.addEventListener('change', () => setPaletteMode('wplace'));
+
         elements.useWplaceInGeoMode.addEventListener('change', (e) => { state.useWplaceInGeoMode = e.target.checked; elements.wplacePaletteInGeo.style.display = e.target.checked ? 'block' : 'none'; updatePaletteStatus(); triggerConversion(); });
         elements.pixelatedScaling.addEventListener('change', triggerConversion);
-        elements.highQualityMode.addEventListener('change', (e) => { state.highQualityMode = e.target.checked; triggerConversion(); });
-        elements.edgeCleanup.addEventListener('change', (e) => { state.edgeCleanup = e.target.checked; elements.edgeCleanupOptions.style.display = e.target.checked ? 'block' : 'none'; triggerConversion(); });
-        elements.posterizeLevelsSlider.addEventListener('input', () => { elements.posterizeLevelsValue.textContent = elements.posterizeLevelsSlider.value; triggerConversion(); });
-        elements.showOutline.addEventListener('change', triggerConversion);
+        elements.highQualityMode.addEventListener('change', triggerConversion);
+        
+        elements.celShadingApply.addEventListener('change', (e) => { elements.celShadingOptions.style.display = e.target.checked ? 'block' : 'none'; triggerConversion(); });
+        elements.celShadingLevelsSlider.addEventListener('input', () => { elements.celShadingLevelsValue.textContent = elements.celShadingLevelsSlider.value; triggerConversion(); });
+        elements.celShadingQuantMethodSelect.addEventListener('change', triggerConversion);
+        elements.celShadingColorSpaceSelect.addEventListener('change', triggerConversion);
+        elements.celShadingMappingModeSelect.addEventListener('change', triggerConversion);
+        elements.celShadingOutline.addEventListener('change', triggerConversion);
+        elements.celShadingOutlineThresholdSlider.addEventListener('input', () => { elements.celShadingOutlineThresholdValue.textContent = elements.celShadingOutlineThresholdSlider.value; triggerConversion(); });
+
         elements.ditheringAlgorithmSelect.addEventListener('change', () => { elements.ditheringSlider.disabled = elements.ditheringAlgorithmSelect.value === 'none'; triggerConversion(); });
         elements.applyPattern.addEventListener('change', (e) => { elements.patternOptions.style.display = e.target.checked ? 'grid' : 'none'; triggerConversion(); });
         elements.patternTypeSelect.addEventListener('change', triggerConversion);
@@ -135,11 +576,63 @@ document.addEventListener('DOMContentLoaded', () => {
         cont.addEventListener('drop', e => { e.preventDefault(); cont.classList.remove('drag-over'); if (state.appMode === 'image' && e.dataTransfer.files.length > 0) { handleFile(e.dataTransfer.files[0]); } });
         elements.imageUpload.addEventListener('change', e => { if (e.target.files.length > 0) handleFile(e.target.files[0]); });
         ['saturation', 'brightness', 'contrast', 'dithering'].forEach(t => { const s = elements[`${t}Slider`], v = elements[`${t}Value`]; if(s && v) { s.addEventListener('input', () => { v.textContent = s.value; triggerConversion(); }); } });
-        document.querySelectorAll('.reset-btn').forEach(btn => { const targetId = btn.dataset.target; if (elements[targetId]) { btn.addEventListener('click', () => { const slider = elements[targetId]; const valueDisplay = elements[`${targetId.replace('Slider', '')}Value`]; const defaultValue = CONFIG.DEFAULTS[targetId]; slider.value = defaultValue; if (valueDisplay) valueDisplay.textContent = defaultValue; if (targetId === 'posterizeLevelsSlider' && elements.showOutline) { elements.showOutline.checked = false; } triggerConversion(); }); } });
+        document.querySelectorAll('.reset-btn').forEach(btn => { const targetId = btn.dataset.target; if (elements[targetId]) { btn.addEventListener('click', () => { const slider = elements[targetId]; const valueDisplay = elements[`${targetId.replace('Slider', '')}Value`]; const defaultValue = CONFIG.DEFAULTS[targetId]; slider.value = defaultValue; if (valueDisplay) valueDisplay.textContent = defaultValue; triggerConversion(); }); } });
         elements.scaleModeSelect.addEventListener('change', e => { const newMode = e.target.value; if (newMode === state.scaleMode) return; if (state.originalImageObject) { if (newMode === 'pixel') switchToPixelMode(); else switchToRatioMode(); } state.scaleMode = newMode; updateScaleUIVisibility(); triggerConversion(); });
         elements.scaleSlider.addEventListener('input', () => { const sliderValue = parseInt(elements.scaleSlider.value, 10); const scaleFactor = 1.0 + (sliderValue * 0.25); elements.scaleValue.textContent = `${scaleFactor.toFixed(2)}x`; triggerConversion(); });
         elements.highlightSensitivitySlider.addEventListener('input', () => { elements.highlightSensitivityValue.textContent = elements.highlightSensitivitySlider.value; triggerConversion(); });
         elements.analyzeColorsBtn.addEventListener('click', triggerConversion);
+        
+        // ============================================================
+        // ===== 👇 [핵심 수정] 프리셋 추천 버튼 및 팝업 이벤트 리스너 👇 =====
+        // ============================================================
+
+        // [수정] 프리셋 추천 버튼 클릭 시: Worker 요청과 함께 중앙 팝업 열기
+        elements.getStyleRecommendationsBtn.addEventListener('click', () => {
+            if (!state.originalImageObject) {
+                alert(languageData[state.language].alert_preset_recommendation_first || 'Please upload an image first.');
+                return;
+            }
+            showLoading(true);
+            elements.getStyleRecommendationsBtn.disabled = true;
+
+            // [신규] 팝업을 즉시 열고 로딩 메시지를 표시
+            elements.presetPopupContainer.classList.remove('hidden');
+            elements.presetScrollWrapper.innerHTML = `<p>${languageData[state.language].popup_loading_presets || "프리셋을 분석하는 중입니다..."}</p>`;
+            
+            const options = getOptions();
+            const palette = getActivePalette();
+            const MAX_ANALYSIS_SIZE = 500;
+            let thumbWidth = state.originalImageObject.width;
+            let thumbHeight = state.originalImageObject.height;
+            if (thumbWidth > MAX_ANALYSIS_SIZE || thumbHeight > MAX_ANALYSIS_SIZE) {
+                if (state.aspectRatio > 1) {
+                    thumbHeight = MAX_ANALYSIS_SIZE;
+                    thumbWidth = Math.round(thumbHeight / state.aspectRatio);
+                } else {
+                    thumbWidth = MAX_ANALYSIS_SIZE;
+                    thumbHeight = Math.round(thumbWidth * state.aspectRatio);
+                }
+            }
+            const thumbCanvas = new OffscreenCanvas(thumbWidth, thumbHeight);
+            const thumbCtx = thumbCanvas.getContext('2d');
+            thumbCtx.drawImage(state.originalImageObject, 0, 0, thumbWidth, thumbHeight);
+            const thumbnailImageData = thumbCtx.getImageData(0, 0, thumbWidth, thumbHeight);
+            conversionWorker.postMessage({ type: 'getStyleRecommendations', imageData: thumbnailImageData, palette: palette, options: options, processId: ++state.processId }, [thumbnailImageData.data.buffer]);
+        });
+
+        // [신규] 팝업 닫기 버튼 이벤트 리스너
+        elements.closePresetPopupBtn.addEventListener('click', () => {
+            elements.presetPopupContainer.classList.add('hidden');
+        });
+        
+        // [신규] 팝업 배경 클릭 시 닫기 이벤트 리스너
+        elements.presetPopupContainer.addEventListener('click', (event) => {
+            if (event.target === elements.presetPopupContainer) {
+                elements.presetPopupContainer.classList.add('hidden');
+            }
+        });
+        
+        // --- 나머지 이벤트 리스너 (기존과 동일) ---
         let isUpdatingScale = false; const updatePixelInputs = (source) => { if (isUpdatingScale || !state.originalImageObject) return; isUpdatingScale = true; let width, height; if (source === 'width') { width = parseInt(elements.scaleWidth.value, 10) || 0; if (width > state.originalImageObject.width) width = state.originalImageObject.width; width = Math.max(1, width); height = Math.round(width * state.aspectRatio); elements.scaleWidth.value = width; elements.scaleHeight.value = height; } else if (source === 'height') { height = parseInt(elements.scaleHeight.value, 10) || 0; if (height > state.originalImageObject.height) height = state.originalImageObject.height; height = Math.max(1, height); width = Math.round(height / state.aspectRatio); elements.scaleWidth.value = width; elements.scaleHeight.value = height; } else { const sliderValue = parseInt(elements.pixelScaleSlider.value, 10); width = state.originalImageObject.width - sliderValue; width = Math.max(1, width); height = Math.round(width * state.aspectRatio); elements.scaleWidth.value = width; elements.scaleHeight.value = height; } elements.pixelScaleSlider.value = state.originalImageObject.width - width; triggerConversion(); isUpdatingScale = false; };
         elements.scaleWidth.addEventListener('input', () => updatePixelInputs('width')); elements.scaleHeight.addEventListener('input', () => updatePixelInputs('height')); elements.pixelScaleSlider.addEventListener('input', () => updatePixelInputs('slider'));
         document.querySelectorAll('.scale-mod-btn').forEach(btn => { btn.addEventListener('click', () => { if (!state.originalImageObject) return; const targetInput = elements[btn.dataset.target]; const amount = parseInt(btn.dataset.amount, 10); const oldValue = parseInt(targetInput.value, 10); targetInput.value = Math.max(1, oldValue + amount); targetInput.dispatchEvent(new Event('input', { bubbles: true })); }); });
@@ -153,7 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.addHex.addEventListener('paste', handleHexPaste);
         [elements.addR, elements.addG, elements.addB].forEach(input => { input.addEventListener('paste', (e) => e.preventDefault()); input.addEventListener('input', () => { elements.addHex.value = ''; elements.hexInputFeedback.textContent = '\u00A0'; }); });
         elements.addHex.addEventListener('input', () => { elements.addR.value = ''; elements.addG.value = ''; elements.addB.value = ''; elements.rgbInputFeedback.textContent = '\u00A0'; });
-        elements.resetAddedColorsBtn.addEventListener('click', resetAddedColors);
+        elements.resetAddedColorsBtn.addEventListener('click', () => resetAddedColors());
         elements.exportPaletteBtn.addEventListener('click', () => { const colors = Array.from(elements.addedColorsContainer.querySelectorAll('.added-color-item')).map(item => JSON.parse(item.dataset.rgb)); if (colors.length === 0) { alert(languageData[state.language].alert_no_color_to_export); return; } const jsonString = JSON.stringify(colors, null, 2); const blob = new Blob([jsonString], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'noadot_palette.json'; link.click(); URL.revokeObjectURL(url); });
         elements.importPaletteBtn.addEventListener('click', () => { elements.paletteUpload.click(); });
         elements.paletteUpload.addEventListener('change', (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (event) => { try { const colors = JSON.parse(event.target.result); if (!Array.isArray(colors)) throw new Error('파일 형식이 올바르지 않습니다.'); if (confirm("'추가한 색상' 목록에 불러온 팔레트를 추가하시겠습니까? (기존 목록은 유지됩니다)")) { let addedCount = 0; colors.forEach(rgb => { if (Array.isArray(rgb) && rgb.length === 3 && rgb.every(c => typeof c === 'number' && c >= 0 && c <= 255)) { if (!isColorAlreadyAdded(rgb)) { createAddedColorItem({ rgb }); addedCount++; } } }); if (addedCount > 0) { updatePaletteStatus(); triggerConversion(); alert(`${addedCount}개의 새로운 색상을 불러왔습니다.`); } else { alert("새롭게 추가된 색상이 없습니다. (중복 또는 유효하지 않은 색상 제외)"); } } } catch (err) { alert('유효하지 않은 팔레트 파일입니다. JSON 형식을 확인해주세요.'); console.error("팔레트 불러오기 오류:", err); } finally { e.target.value = ''; } }; reader.readAsText(file); });
@@ -162,13 +655,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const initialize = () => {
         createTooltip();
+        // 초기값 설정
         elements.ditheringAlgorithmSelect.value = 'atkinson';
-        if(elements.showOutline) elements.showOutline.checked = false;
-        elements.scaleSlider.min = '0';
-        elements.scaleSlider.max = '76';
-        elements.scaleSlider.value = '0';
-        elements.scaleSlider.step = '1';
-        elements.scaleValue.textContent = '1.00x';
+        elements.celShadingApply.checked = false; // 새로운 만화 필터 초기화
+        // ... (나머지 초기화는 동일) ...
         geopixelsColors.forEach(c => createColorButton(c, elements.geoPixelColorsContainer, true));
         wplaceFreeColors.forEach(c => createColorButton(c, elements.wplaceFreeColorsContainer, false));
         wplacePaidColors.forEach(c => createColorButton(c, elements.wplacePaidColorsContainer, false));
@@ -176,7 +666,7 @@ document.addEventListener('DOMContentLoaded', () => {
         wplacePaidColors.forEach(c => createColorButton(c, elements.wplacePaidColorsInGeo, false));
         createMasterToggleButton('geoPixelColors', elements.geoPixelColorsContainer);
         createMasterToggleButton('wplaceFreeColors', elements.wplaceFreeColorsContainer);
-        createMasterToggleButton('wplacePaidColors', elements.wplacePaidColorsContainer);
+        createMasterToggleButton('wplacePaidColors', elements.wplacePaidColorsContainer); 
         createMasterToggleButton('wplaceFreeColorsInGeo', elements.wplaceFreeColorsInGeo);
         createMasterToggleButton('wplacePaidColorsInGeo', elements.wplacePaidColorsInGeo);
         setupEventListeners();
@@ -186,9 +676,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const initialLang = savedLang || (languageData[browserLang] ? browserLang : 'en');
         setLanguage(initialLang);
         setAppMode('image');
-        setPaletteMode('geopixels');
+        setPaletteMode('geopixels'); 
         populateColorSelects();
     };
-    
+
     initialize();
 });

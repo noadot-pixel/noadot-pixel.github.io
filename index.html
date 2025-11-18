@@ -12,7 +12,7 @@
     <!-- 왼쪽 패널: 헤더 및 변환 결과 영역 -->
     <div class="left-panel">
         <header class="main-header">
-            <h1 data-lang-key="app_header">🎨 NoaDot v4.x</h1>
+            <h1 data-lang-key="app_header">🎨 NoaDot v5.10</h1>
             <div class="external-links">
                 <div id="language-switcher" class="language-switcher">
                     <button data-lang="ko" class="active">KR</button>
@@ -25,7 +25,7 @@
         </header>
 
         <div class="left-panel-content">
-            <div id="text-editor-panel">
+            <div id="text-editor-panel" style="display: none;">
                 <div class="editor-toolbar">
                     <button class="style-btn" data-style="bold" title="굵게" data-lang-key="text_bold" data-tooltip-key="tooltip_bold"><b>B</b></button>
                     <button class="style-btn" data-style="italic" title="기울임" data-lang-key="text_italic" data-tooltip-key="tooltip_italic"><i>I</i></button>
@@ -55,6 +55,7 @@
         </div>
     </div>
 
+    <!-- 오른쪽 패널 -->
     <div class="right-panel">
         <section class="main-mode-switcher">
             <h2 data-lang-key="section_mode">1. 모드 선택</h2>
@@ -110,6 +111,10 @@
             </section>
         </div>
 
+        <section id="ai-preset-section" class="option-section">
+             <h2 data-lang-key="section_ai_preset">✨ 프리셋 추천</h2>
+             <button id="getStyleRecommendationsBtn" class="analyze-button" disabled data-lang-key="btn_get_recommendations">프리셋 추천</button>
+        </section>
         <div id="text-controls" style="display: none;">
             <section>
                 <h2 data-lang-key="section_text_style">2. 텍스트 스타일</h2>
@@ -216,26 +221,64 @@
             </div>
 
             <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
-                <div class="control-group checkbox-group">
-                    <input type="checkbox" id="pixelatedScaling" checked>
-                    <label for="pixelatedScaling" data-lang-key="option_pixelated_scaling" data-tooltip-key="tooltip_pixelated_scaling">선명한 리사이징 (픽셀 아트용)</label>
-                </div>
+                <input type="checkbox" id="pixelatedScaling" checked>
+                <label for="pixelatedScaling" data-lang-key="option_pixelated_scaling" data-tooltip-key="tooltip_pixelated_scaling">선명한 리사이징 (픽셀 아트용)</label>
+            </div>
+            <div class="control-group checkbox-group">
                 <input type="checkbox" id="highQualityMode">
                 <label for="highQualityMode" data-lang-key="option_hq_mode" data-tooltip-key="tooltip_hq_mode">고품질 색상 계산 (느림)</label>
             </div>
-            <div class="control-group checkbox-group">
-                <input type="checkbox" id="edgeCleanup">
-                <label for="edgeCleanup" data-lang-key="option_cartoon_filter" data-tooltip-key="tooltip_cartoon_filter">만화 스타일 필터</label>
+            
+            <!-- 만화 필터 메인 토글 -->
+            <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
+                <input type="checkbox" id="celShadingApply">
+                <label for="celShadingApply" data-lang-key="option_cartoon_filter" data-tooltip-key="tooltip_cartoon_filter">만화 스타일 필터</label>
             </div>
-            <div id="edgeCleanupOptions" class="sub-options" style="display: none;">
-                <div class="control-group">
-                    <label for="posterizeLevelsSlider"><span data-lang-key="cartoon_color_level">색상 레벨</span>: <span id="posterizeLevelsValue">8</span><button class="reset-btn" data-target="posterizeLevelsSlider" title="초기화">⟳</button></label>
-                    <input type="range" id="posterizeLevelsSlider" min="2" max="32" value="8">
-                </div>
-                 <div class="control-group checkbox-group" style="padding-left: 0; margin-top: 5px;">
-                    <input type="checkbox" id="showOutline">
-                    <label for="showOutline" data-lang-key="cartoon_show_outline">외곽선 표시</label>
-                </div>
+
+            <!-- "만화 필터 스튜디오" 상세 옵션 -->
+            <div id="celShadingOptions" class="sub-options" style="display: none;">
+                <fieldset class="sub-fieldset">
+                    <legend data-lang-key="cartoon_section_quant">색상 추출 (Quantization)</legend>
+                    <div class="control-group">
+                        <label for="celShadingLevelsSlider"><span data-lang-key="cartoon_color_level">색상 레벨</span>: <span id="celShadingLevelsValue">8</span></label>
+                        <input type="range" id="celShadingLevelsSlider" min="2" max="32" value="8">
+                    </div>
+                    <div class="control-group">
+                        <label for="celShadingQuantMethodSelect" data-lang-key="cartoon_quant_method">추출 방식</label>
+                        <select id="celShadingQuantMethodSelect">
+                            <option value="kmeans++" data-lang-key="quant_kmeans_plus">안정적 (K-Means++)</option>
+                            <option value="random" data-lang-key="quant_random">무작위 (빠름)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="celShadingColorSpaceSelect" data-lang-key="cartoon_quant_space">색 공간</label>
+                        <select id="celShadingColorSpaceSelect">
+                            <option value="oklab" data-lang-key="space_oklab">고품질 (OKLab)</option>
+                            <option value="rgb" data-lang-key="space_rgb">일반 (RGB)</option>
+                        </select>
+                    </div>
+                </fieldset>
+                <fieldset class="sub-fieldset">
+                    <legend data-lang-key="cartoon_section_map">색상 매핑 (Mapping)</legend>
+                    <div class="control-group">
+                        <label for="celShadingMappingModeSelect" data-lang-key="cartoon_map_mode">매핑 모드</label>
+                        <select id="celShadingMappingModeSelect">
+                            <option value="none" data-lang-key="map_none">사용 안함 (추출 색상 그대로)</option>
+                            <option value="activePalette" data-lang-key="map_active">현재 활성 팔레트에 맞춤</option>
+                        </select>
+                    </div>
+                </fieldset>
+                <fieldset class="sub-fieldset">
+                    <legend data-lang-key="cartoon_section_outline">외곽선 (Outline)</legend>
+                    <div class="control-group checkbox-group" style="padding-left: 0;">
+                        <input type="checkbox" id="celShadingOutline">
+                        <label for="celShadingOutline" data-lang-key="cartoon_show_outline">외곽선 표시</label>
+                    </div>
+                    <div class="control-group">
+                        <label for="celShadingOutlineThresholdSlider"><span data-lang-key="cartoon_outline_threshold">외곽선 민감도</span>: <span id="celShadingOutlineThresholdValue">50</span></label>
+                        <input type="range" id="celShadingOutlineThresholdSlider" min="10" max="150" value="50">
+                    </div>
+                </fieldset>
             </div>
         </section>
 
@@ -261,7 +304,6 @@
         <details open class="palette-category user-palette" id="user-palette-section">
             <summary><span class="palette-status-icon" data-target="addedColors"></span><span data-lang-key="palette_user">사용자 팔레트</span></summary>
             
-            <!-- [v4.5] 수정된 색상 추출 추천 섹션 -->
             <div id="recommendation-section" class="palette-section">
                 <h2 data-lang-key="section_color_extract">색상 추출 추천</h2>
                 <div class="control-group">
@@ -271,9 +313,7 @@
                 
                 <button id="analyzeColorsBtn" class="analyze-button" disabled data-lang-key="btn_analyze_colors">색상 분석</button>
     
-                <div id="recommendation-report-container" class="recommendation-report-area" style="display: none;">
-                    <!-- 자바스크립트가 동적으로 리포트 내용을 채울 공간 -->
-                </div>
+                <div id="recommendation-report-container" class="recommendation-report-area" style="display: none;"></div>
                 
                 <div id="recommendedColorsPlaceholder" class="placeholder-section" style="margin-top: 15px;" data-lang-key="placeholder_recommend">이미지를 업로드하면<br>추천 색상이 표시됩니다.</div>
             </div>
@@ -312,8 +352,36 @@
     </div>
 </div>
 
+<!-- ======================================================== -->
+<!-- ===== ✨ 프리셋 추천 팝업 (새로 추가) ✨ ===== -->
+<!-- ======================================================== -->
+<div id="preset-popup-container" class="hidden">
+    <div class="preset-popup-content">
+        <h3 data-lang-key="popup_preset_title">✨ 추천 스타일 프리셋</h3>
+        
+        <!-- 가로 스크롤이 적용될 영역 -->
+        <div class="preset-scroll-wrapper">
+            <!-- 
+                이 곳은 나중에 script.js가 'preset-item'을 동적으로 채워줄 공간입니다. 
+                예시:
+                <div class="preset-item">
+                    <div class="preset-thumbnail-wrapper">
+                        <img src="[...썸네일 데이터...]" alt="프리셋 미리보기">
+                        <div class="preset-rank-badge high">강력 추천</div>
+                    </div>
+                    <span class="preset-title">프리셋 이름</span>
+                </div>
+            -->
+        </div>
+        
+        <button id="close-preset-popup-btn" class="preset-popup-close" title="닫기">&times;</button>
+    </div>
+</div>
+
+
 <script src="palette-data.js"></script>
 <script src="language.js"></script>
+<script src="threshold-maps.js" type="module"></script>
 <script type="module" src="script.js"></script>
 
 </body>

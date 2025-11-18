@@ -3,7 +3,8 @@
 const languageData = {
     ko: {
         app_title: "NoaDot - 이미지/텍스트 변환기",
-        app_header: "🎨 NoaDot v4.0",
+        app_header: "🎨 NoaDot v5.10",
+        // ... (기존 텍스트는 동일) ...
         section_mode: "1. 모드 선택",
         mode_image: "🖼️ 이미지",
         mode_text: "✏️ 텍스트",
@@ -39,9 +40,7 @@ const languageData = {
         dithering_atkinson: "애킨슨",
         dithering_none: "사용 안함",
         option_dithering_strength: "디더링 강도",
-        
-        // [신규] 패턴 적용 관련
-        option_apply_pattern: "패턴 적용 (베타)",
+        option_apply_pattern: "패턴 적용",
         pattern_type: "패턴 종류",
         pattern_size: "패턴 크기",
         pattern_crosshatch: "격자",
@@ -51,12 +50,37 @@ const languageData = {
         pattern_diagonal_left: "대각선 (↘)",
         pattern_brick: "벽돌",
         pattern_bayer: "점묘화 (베이어8*8)",
-        
         option_hq_mode: "고품질 색상 계산 (느림)",
         option_cartoon_filter: "만화 스타일 필터",
+        option_apply_gradient: "투명도 그라데이션 적용",
+        gradient_angle: "각도",
+        gradient_strength: "강도",
+        option_pixelated_scaling: "선명한 리사이징 (픽셀 아트용)",
+        section_ai_preset: "✨프리셋 추천(테스트 기능)",
+        btn_get_recommendations: "프리셋 추천",
+        
+        // --- ▼ 신규/수정된 텍스트 ▼ ---
+        cartoon_section_quant: "색상 추출",
         cartoon_color_level: "색상 레벨",
+        cartoon_quant_method: "추출 방식",
+        quant_kmeans_plus: "안정적 (K-Means++)",
+        quant_random: "무작위 (빠름)",
+        cartoon_quant_space: "색 공간",
+        space_oklab: "고품질 (OKLab)",
+        space_rgb: "일반 (RGB)",
+
+        cartoon_section_map: "색상 매핑",
+        cartoon_map_mode: "매핑 모드",
+        map_none: "사용 안함 (추출 색상 그대로)",
+        map_active: "현재 활성 팔레트에 맞춤",
+        
+        cartoon_section_outline: "외곽선",
         cartoon_show_outline: "외곽선 표시",
+        cartoon_outline_threshold: "외곽선 민감도",
+        // --- ▲ 신규/수정된 텍스트 ▲ ---
+
         section_palette: "4. 팔레트 선택",
+        // ... (이하 모든 기존 텍스트는 동일) ...
         palette_geopixels_default: "GeoPixels 기본 팔레트",
         palette_use_wplace: "Wplace 팔레트 사용하기",
         palette_use_wplace_in_geo: "GeoPixels 모드에서 Wplace 팔레트 함께 사용",
@@ -82,8 +106,6 @@ const languageData = {
         placeholder_add_color: "아래에서 직접 색상을 추가하세요.",
         placeholder_hex: "HEX 코드 입력 (예: #FF595E)",
         placeholder_text_preview: "왼쪽에서 텍스트를 입력하면 여기에 미리보기가 표시됩니다.",
-        
-        // 툴팁
         tooltip_dithering: "제한된 색상으로 이미지의 색을 표현할 때, 점을 찍는 방식으로 색상 간의 경계를 부드럽게 만들어 계단 현상을 줄여주는 기법입니다. 이미지의 디테일을 향상시킵니다.",
         tooltip_pattern: "이미지의 명암과 패턴 지도를 비교하여, 팔레트 내의 가장 가까운 두 색상으로 픽셀을 다시 그립니다. 일반 디더링과 함께 사용하면 더 복합적인 질감을 만들 수 있습니다. (만화 스타일 필터와는 함께 사용할 수 없습니다.)",
         tooltip_hq_mode: "사람의 시각에 더 가깝게 색상 차이를 계산하는 Oklab/CIEDE2000 방식을 사용합니다. 색상의 정확도가 크게 향상되지만, 변환 속도가 느려질 수 있습니다.",
@@ -92,8 +114,8 @@ const languageData = {
         tooltip_center_zoom: "화면 중앙 및 확대/축소 초기화",
         tooltip_bold: "굵게",
         tooltip_italic: "기울임",
-
-        // 알림 메시지
+        tooltip_gradient: "이미지에 선형 그라데이션으로 점차 투명해지는 디더링 효과를 적용합니다. '각도'로 방향을, '강도'로 전체적인 투명도를 조절할 수 있습니다.",
+        tooltip_pixelated_scaling: "체크 시, 이미지 크기 조절 시 픽셀 경계를 유지하여 선명하게 만듭니다. 일반 사진의 경우 체크를 해제하면 더 부드러운 결과물을 얻을 수 있습니다.",
         alert_no_color_to_export: "내보낼 색상이 없습니다.",
         alert_no_color_to_reset: "초기화할 색상이 없습니다.",
         confirm_reset_added_colors: "정말로 추가한 모든 색상을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
@@ -104,16 +126,12 @@ const languageData = {
         alert_already_added: "이미 추가된 색상입니다.",
         placeholder_no_recommendations: "선택된 모드에 맞는<br>추천 색상이 없습니다.",
         alert_some_colors_failed: "일부 색상을 추가하지 못했습니다. (중복 또는 유효하지 않은 형식)",
-        placeholder_no_recommendations: "선택된 모드에 맞는<br>추천 색상이 없습니다.",
-
-        option_apply_gradient: "투명도 그라데이션 적용",
-        gradient_angle: "각도",
-        gradient_strength: "강도",
-        tooltip_gradient: "이미지에 선형 그라데이션으로 점차 투명해지는 디더링 효과를 적용합니다. '각도'로 방향을, '강도'로 전체적인 투명도를 조절할 수 있습니다.",
         extract_mode_smh : "명암 대표색",
         placeholder_no_new_recommendations: "현재 모드에 대한 새로운 추천 색상이 없거나, 모든 색상이 이미 추가되었습니다.",
-        option_pixelated_scaling: "선명한 리사이징 (픽셀 아트용)",
-        tooltip_pixelated_scaling: "체크 시, 이미지 크기 조절 시 픽셀 경계를 유지하여 선명하게 만듭니다. 일반 사진의 경우 체크를 해제하면 더 부드러운 결과물을 얻을 수 있습니다.",
+        preset_category_fixed: "기본 설정 프리셋",
+        preset_category_recommended: "강력 추천 프리셋",
+        preset_category_available: "사용 가능한 프리셋",
+        
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
@@ -155,7 +173,7 @@ const languageData = {
         option_dithering_strength: "Dithering Strength",
 
         // [New] Pattern related
-        option_apply_pattern: "Apply Pattern (Beta)",
+        option_apply_pattern: "Apply Pattern",
         pattern_type: "Pattern Type",
         pattern_size: "Pattern Size",
         pattern_crosshatch: "Crosshatch",
@@ -228,5 +246,11 @@ const languageData = {
         placeholder_no_new_recommendations: "No new recommendations for this mode, or all have been added.",
         option_pixelated_scaling: "Pixel-perfect Scaling (for Pixel Art)",
         tooltip_pixelated_scaling: "When checked, keeps pixel edges sharp during resizing. For regular photos, uncheck this for a smoother result.",
+        section_ai_preset: "✨Preset Recommendations(test)",
+        btn_get_recommendations: "Get Presets",
+        confirm_force_palette_mode: (modeName) => `This preset is optimized for '${modeName}' mode. Force change the palette mode and apply the preset?`,
+        preset_category_fixed: "Fixed Presets",
+        preset_category_recommended: "Strongly Recommended",
+        preset_category_available: "Available Presets",
     }
 };
