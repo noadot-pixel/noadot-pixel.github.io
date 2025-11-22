@@ -4,7 +4,7 @@ const languageData = {
     ko: {
         app_title: "NoaDot - 이미지/텍스트 변환기",
         app_header: "🎨 NoaDot v5.10",
-        // ... (기존 텍스트는 동일) ...
+        // ... (기존 텍스트는 동일) ...!
         section_mode: "1. 모드 선택",
         mode_image: "🖼️ 이미지",
         mode_text: "✏️ 텍스트",

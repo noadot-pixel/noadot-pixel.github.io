@@ -1,4 +1,4 @@
-// worker.js (v5.14 - '기본값' 우선 추천 로직 적용 최종본)
+// worker.js (v5.14 - '기본값' 우선 추천 로직 적용 최종본)!
 
 import { THRESHOLD_MAPS } from './threshold-maps.js';
 import { PRESET_RECIPES } from './presets.js';
