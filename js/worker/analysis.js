@@ -108,15 +108,42 @@ export function calculateRecommendations(imageData, activePalette, options) {
 }
 
 export function getStyleRecipesByTags(imageFeatures) {
-    if (!PRESET_RECIPES || PRESET_RECIPES.length === 0) { return { fixed: [], recommended: [], others: [] }; }
-    const fixedRecipes = PRESET_RECIPES.filter(r => r.ranking === false);
+    if (!PRESET_RECIPES || PRESET_RECIPES.length === 0) { 
+        return { fixed: [], recommended: [], others: [] }; 
+    }
+
+    // 1. 고정 프리셋 (ranking === false)
+    const fixedRecipes = PRESET_RECIPES.filter(r => r.ranking === false).map(r => ({
+        ...r,
+        score: 999, // 정렬용 가산점
+        displayTag: '고정' // 화면에 표시할 태그 텍스트
+    }));
+
+    // 2. 랭킹 대상 프리셋 (ranking !== false)
     const rankableRecipes = PRESET_RECIPES.filter(r => r.ranking !== false);
+    
+    // 점수 계산
     const scoredRecipes = rankableRecipes.map(recipe => {
         let score = 0;
-        if (recipe.tags && recipe.tags.length > 0) { recipe.tags.forEach(tag => { if (imageFeatures.has(tag)) { score++; } }); }
-        return { ...recipe, score };
+        if (recipe.tags && recipe.tags.length > 0) {
+            recipe.tags.forEach(tag => {
+                if (imageFeatures.has(tag)) {
+                    score++; // 태그 매칭 시 1점 추가
+                }
+            });
+        }
+        
+        // 태그 결정 (점수가 있으면 '추천', 없으면 태그 없음)
+        let displayTag = null;
+        if (score > 0) displayTag = '추천'; // '강력 추천' 등 구분 없이 '추천'으로 통일
+
+        return { ...recipe, score, displayTag };
     });
+
+    // 3. 추천(점수 > 0)과 일반(점수 0) 분류
+    // 점수 높은 순으로 정렬
     const recommendedRecipes = scoredRecipes.filter(r => r.score > 0).sort((a, b) => b.score - a.score);
     const otherRecipes = scoredRecipes.filter(r => r.score === 0);
+
     return { fixed: fixedRecipes, recommended: recommendedRecipes, others: otherRecipes };
 }

@@ -113,18 +113,17 @@ function applyGradientTransparency(imageData, options) {
 }
 
 function applyConversion(imageData, palette, options) {
-    // [안전장치] 팔레트 없으면 빈 배열
+    // [안전장치] 팔레트가 없으면 빈 배열로 처리
     if (!palette) palette = []; 
 
     const paletteOklab = options.highQualityMode && palette.length > 0 ? palette.map(c => ColorConverter.rgbToOklab(c)) : null;
     const { width, height } = imageData;
     
-    // 팔레트가 비었으면 검은색(또는 투명) 처리
+    // 팔레트가 비었으면 검은색(혹은 투명) 이미지 반환
     if (palette.length === 0) {
         const blackData = new Uint8ClampedArray(width * height * 4);
         for (let i = 0; i < blackData.length; i += 4) { 
-            // Alpha = 255 (검은색)
-            blackData[i + 3] = 255; 
+            blackData[i + 3] = 255; // Alpha = 255 (Black)
         }
         return new ImageData(blackData, width, height);
     }
@@ -194,6 +193,7 @@ function applyConversion(imageData, palette, options) {
 self.onmessage = async (e) => {
     const { type, imageData, palette, allPaletteColors, options, processId } = e.data;
 
+    // [프리셋 추천 로직]
     if (type === 'getStyleRecommendations') {
         try {
             // 1. 이미지 분석
@@ -201,45 +201,86 @@ self.onmessage = async (e) => {
             const categorizedRecipes = getStyleRecipesByTags(imageFeatures);
             
             // 2. [최적화] 썸네일 생성용 이미지 축소 (너비 150px)
-            // 이렇게 해야 여러 개의 미리보기를 빠르게 만들 수 있습니다.
+            // 속도 향상을 위해 작은 이미지로 프리셋을 적용합니다.
             const smallImage = resizeImageData(imageData, 150);
 
             const recommendationResults = { fixed: [], recommended: [], others: [] };
 
             const generateThumbnails = async (recipes, category) => {
                 for (const recipe of recipes) {
-                    // 축소된 이미지 복사해서 사용
+                    // 1. 축소된 이미지 데이터 복사 (원본 보존)
                     const thumbImageData = new ImageData(
                         new Uint8ClampedArray(smallImage.data), 
                         smallImage.width, 
                         smallImage.height
                     );
                     
-                    const recipeOptions = { ...options, ...recipe.preset };
-                    let finalThumb;
+                    // 2. 옵션 병합 (Deep Copy)
+                    const baseOptions = JSON.parse(JSON.stringify(options));
+                    const presetValues = recipe.preset;
                     
-                    // 팔레트 준비 (현재 활성 팔레트 사용하거나 빈 배열)
-                    const usePalette = palette || [];
+                    Object.assign(baseOptions, presetValues);
+                    if (presetValues.celShading) {
+                        baseOptions.celShading = { 
+                            ...baseOptions.celShading, 
+                            ...presetValues.celShading 
+                        };
+                        
+                        // 외곽선 색상 변환 (HEX 문자열 -> RGB 배열)
+                        if (presetValues.celShading.outlineColor && typeof presetValues.celShading.outlineColor === 'string') {
+                            const hex = presetValues.celShading.outlineColor.replace('#', '');
+                            const bigint = parseInt(hex, 16);
+                            const r = (bigint >> 16) & 255;
+                            const g = (bigint >> 8) & 255;
+                            const b = bigint & 255;
+                            baseOptions.celShading.outlineColor = [r, g, b];
+                        }
+                    }
+
+                    // 3. 팔레트 결정 로직 (모드별 팔레트 or 기본 팔레트)
+                    let usePalette = [];
                     
-                    // 전처리
-                    const processedThumb = preprocessImageData(thumbImageData, recipeOptions);
-                    
-                    // 변환 수행
-                    if (recipeOptions.celShading && recipeOptions.celShading.apply) {
-                        // 만화 필터
-                        finalThumb = applyCelShadingFilter(processedThumb, usePalette, recipeOptions);
-                    } else {
-                        // 일반 디더링 변환
-                        finalThumb = applyConversion(processedThumb, usePalette, recipeOptions);
+                    if (presetValues.enablePaletteColors) {
+                        const currentMode = baseOptions.currentMode || 'geopixels';
+                        const targetColors = presetValues.enablePaletteColors[currentMode];
+                        
+                        if (targetColors && Array.isArray(targetColors)) {
+                            usePalette = targetColors.map(hex => {
+                                const h = hex.replace('#', '');
+                                const i = parseInt(h, 16);
+                                return [(i >> 16) & 255, (i >> 8) & 255, i & 255];
+                            });
+                        }
                     }
                     
-                    // 결과 저장 (ranking, tags 등 메타데이터 포함)
+                    // 지정된 팔레트가 없으면 메인 스레드에서 받은 현재 팔레트 사용
+                    if (usePalette.length === 0) {
+                        if (palette && palette.length > 0) {
+                            usePalette = palette;
+                        } else {
+                            // 비상용 (흑백)
+                            usePalette = [[0,0,0], [255,255,255], [128,128,128]];
+                        }
+                    }
+
+                    // 4. 이미지 처리 및 변환 수행
+                    let finalThumb;
+                    const processedThumb = preprocessImageData(thumbImageData, baseOptions);
+                    
+                    if (baseOptions.celShading && baseOptions.celShading.apply) {
+                        finalThumb = applyCelShadingFilter(processedThumb, usePalette, baseOptions);
+                    } else {
+                        finalThumb = applyConversion(processedThumb, usePalette, baseOptions);
+                    }
+                    
+                    // 5. 결과 저장
                     recommendationResults[category].push({ 
                         thumbnailData: finalThumb, 
-                        name: recipe.name, // 다국어 객체일 수 있음
+                        name: recipe.name, 
                         preset: recipe.preset, 
-                        ranking: recipe.ranking,
-                        tags: recipe.tags 
+                        ranking: recipe.ranking, 
+                        tags: recipe.tags,
+                        displayTag: recipe.displayTag 
                     });
                 }
             };
@@ -248,8 +289,6 @@ self.onmessage = async (e) => {
             await generateThumbnails(categorizedRecipes.recommended, 'recommended');
             await generateThumbnails(categorizedRecipes.others, 'others');
             
-            // 결과 전송 (썸네일 이미지 데이터는 Transferable로 보내는 것이 좋지만 구조가 복잡해지므로 일반 전송)
-            // 성능 이슈가 있다면 Transferable 로직 추가 가능
             self.postMessage({ 
                 status: 'success', 
                 type: 'recommendationResult', 
@@ -263,6 +302,7 @@ self.onmessage = async (e) => {
         return;
     }
 
+    // [메인 변환 로직]
     try {
         let finalImageData;
         

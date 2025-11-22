@@ -611,14 +611,68 @@ export const updateScaleUIVisibility = () => {
 export const displayRecommendedPresetsInPopup = (presets, applyCallback) => {
     const container = elements.presetPopupContainer.querySelector('.preset-scroll-wrapper');
     container.innerHTML = '';
+    
+    // 프리셋이 없을 경우 처리
+    if (!presets || presets.length === 0) {
+        container.innerHTML = '<div class="no-presets">추천할 프리셋이 없습니다.</div>';
+        elements.presetPopupContainer.classList.remove('hidden');
+        return;
+    }
+
     presets.forEach(p => {
-        const card = document.createElement('div'); card.className = 'preset-card';
-        const canvas = document.createElement('canvas'); canvas.width = 150; canvas.height = 150; 
-        const ctx = canvas.getContext('2d'); const tempC = document.createElement('canvas'); tempC.width = p.thumbnailData.width; tempC.height = p.thumbnailData.height; tempC.getContext('2d').putImageData(p.thumbnailData, 0, 0); ctx.drawImage(tempC, 0, 0, canvas.width, canvas.height);
-        const title = document.createElement('h4'); title.textContent = p.name;
-        const tags = document.createElement('div'); tags.className = 'preset-tags'; if (p.tags) p.tags.forEach(t => { const span = document.createElement('span'); span.textContent = '#' + t.replace('is', ''); tags.appendChild(span); });
-        card.onclick = () => { if (applyCallback) applyCallback(p); elements.presetPopupContainer.classList.add('hidden'); };
-        card.appendChild(canvas); card.appendChild(title); card.appendChild(tags); container.appendChild(card);
+        const card = document.createElement('div');
+        card.className = 'preset-card';
+        
+        // 1. 썸네일 영역 (이미지 + 태그 배지)
+        const thumbWrapper = document.createElement('div');
+        thumbWrapper.className = 'preset-thumb-wrapper';
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = 150; 
+        canvas.height = 150; 
+        
+        const ctx = canvas.getContext('2d');
+        // Worker에서 온 ImageData를 캔버스에 그림
+        const tempC = document.createElement('canvas');
+        tempC.width = p.thumbnailData.width; 
+        tempC.height = p.thumbnailData.height;
+        tempC.getContext('2d').putImageData(p.thumbnailData, 0, 0);
+        
+        // 캔버스 크기에 맞춰 리사이징 (cover 효과)
+        // 비율 유지를 위해 단순 drawImage 사용 (필요시 object-fit 로직 추가 가능)
+        ctx.drawImage(tempC, 0, 0, canvas.width, canvas.height);
+        
+        thumbWrapper.appendChild(canvas);
+
+        // [핵심] 태그 배지 ('고정' 또는 '추천')
+        // displayTag가 있을 때만 배지 표시
+        if (p.displayTag) {
+            const badge = document.createElement('span');
+            badge.className = `preset-badge ${p.displayTag === '고정' ? 'fixed' : 'recommended'}`;
+            badge.textContent = p.displayTag;
+            thumbWrapper.appendChild(badge);
+        }
+
+        // 2. 이름 영역
+        const title = document.createElement('h4');
+        // 다국어 객체 처리 ({ko:..., en:...})
+        const currentLang = state.language || 'ko';
+        let nameText = p.name;
+        if (typeof p.name === 'object') {
+            nameText = p.name[currentLang] || p.name['ko'] || Object.values(p.name)[0];
+        }
+        title.textContent = nameText;
+        
+        // 클릭 이벤트
+        card.onclick = () => {
+            if (applyCallback) applyCallback(p);
+            elements.presetPopupContainer.classList.add('hidden');
+        };
+        
+        card.appendChild(thumbWrapper);
+        card.appendChild(title);
+        container.appendChild(card);
     });
+    
     elements.presetPopupContainer.classList.remove('hidden');
 };

@@ -17,37 +17,47 @@ export function preprocessImageData(sourceImageData, options) {
 }
 
 export function posterizeWithKMeans(imageData, options) {
-    const { levels: k, quantMethod, colorSpace } = options;
+    // 옵션 기본값 처리 (options가 undefined일 경우 대비)
+    const k = (options && options.levels) || 8;
+    const quantMethod = (options && options.quantMethod) || 'kmeans++';
+    const colorSpace = (options && options.colorSpace) || 'rgb';
+    
     const { data, width, height } = imageData;
     const useOklab = colorSpace === 'oklab';
     const pixels = [];
     const oklabPixels = useOklab ? [] : null;
+    
+    // 유효 픽셀 수집
     for (let i = 0; i < data.length; i += 4) {
-        if (data[i + 3] > 128) {
+        if (data[i + 3] > 128) { // 투명하지 않은 픽셀만
             const rgb = [data[i], data[i + 1], data[i + 2]];
             pixels.push(rgb);
             if (useOklab) { oklabPixels.push(ColorConverter.rgbToOklab(rgb)); }
         }
     }
-    if (pixels.length === 0) return { centroids: [], posterizedData: imageData };
-    if (k >= pixels.length) {
-        const posterizedData = new ImageData(width, height);
-        let pixelIndex = 0;
-        for (let i = 0; i < posterizedData.data.length; i += 4) {
-            if (data[i + 3] > 128) {
-                const p = pixels[pixelIndex++];
-                posterizedData.data[i] = p[0]; posterizedData.data[i + 1] = p[1]; posterizedData.data[i + 2] = p[2]; posterizedData.data[i + 3] = 255;
-            }
-        }
-        return { centroids: pixels, posterizedData };
+    
+    // [수정됨] 유효한 픽셀이 하나도 없으면 원본 그대로 반환 (에러 방지)
+    if (pixels.length === 0) {
+        return { centroids: [[0,0,0]], posterizedData: imageData };
     }
+    
+    // 픽셀 수가 K보다 적으면 그냥 있는 색상 그대로 씀
+    if (k >= pixels.length) {
+        // 중복 제거해서 centroids로 반환
+        const uniquePixels = Array.from(new Set(pixels.map(p => p.join(',')))).map(s => s.split(',').map(Number));
+        return { centroids: uniquePixels, posterizedData: imageData };
+    }
+    
     const centroids = [];
     const centroidIndices = new Set();
+    
+    // 초기 중심점 선택 (K-Means++ 등)
     if (quantMethod === 'kmeans++' || quantMethod === 'deterministic') {
         const distances = new Array(pixels.length).fill(Infinity);
         let firstIndex = (quantMethod === 'deterministic') ? 0 : Math.floor(Math.random() * pixels.length);
         centroids.push(pixels[firstIndex]);
         centroidIndices.add(firstIndex);
+        
         for (let i = 1; i < k; i++) {
             let sum = 0;
             const lastCentroid = useOklab ? ColorConverter.rgbToOklab(centroids[i - 1]) : centroids[i - 1];
@@ -57,6 +67,10 @@ export function posterizeWithKMeans(imageData, options) {
                 if (d < distances[j]) distances[j] = d;
                 sum += distances[j];
             }
+            
+            // [안전장치] 모든 거리가 0이면(모든 픽셀이 같은 색) 중단
+            if (sum === 0) break;
+
             const rand = Math.random() * sum;
             let partialSum = 0;
             for (let j = 0; j < pixels.length; j++) {
@@ -68,15 +82,18 @@ export function posterizeWithKMeans(imageData, options) {
             }
         }
     } else {
+        // Random 방식
         while (centroids.length < k) {
             const index = Math.floor(Math.random() * pixels.length);
             if (!centroidIndices.has(index)) { centroids.push(pixels[index]); centroidIndices.add(index); }
         }
     }
+    
+    // K-Means 반복 (Clustering)
     const assignments = new Array(pixels.length);
     let iterations = 0;
     let moved = true;
-    while (moved && iterations < 20) {
+    while (moved && iterations < 20) { // 최대 20회 반복
         moved = false;
         const centroidColors = useOklab ? centroids.map(c => ColorConverter.rgbToOklab(c)) : centroids;
         for (let i = 0; i < pixels.length; i++) {
@@ -88,8 +105,8 @@ export function posterizeWithKMeans(imageData, options) {
             }
             if (assignments[i] !== bestCentroid) { assignments[i] = bestCentroid; moved = true; }
         }
-        const newCentroids = new Array(k).fill(0).map(() => [0, 0, 0]);
-        const counts = new Array(k).fill(0);
+        const newCentroids = new Array(centroids.length).fill(0).map(() => [0, 0, 0]);
+        const counts = new Array(centroids.length).fill(0);
         for (let i = 0; i < pixels.length; i++) {
             const centroidIndex = assignments[i];
             newCentroids[centroidIndex][0] += pixels[i][0]; newCentroids[centroidIndex][1] += pixels[i][1]; newCentroids[centroidIndex][2] += pixels[i][2];
@@ -102,12 +119,19 @@ export function posterizeWithKMeans(imageData, options) {
         }
         iterations++;
     }
+    
+    // 결과 생성
     const posterizedData = new ImageData(width, height);
     let pixelIndex = 0;
     for (let i = 0; i < posterizedData.data.length; i += 4) {
         if (data[i + 3] > 128) {
             const centroid = centroids[assignments[pixelIndex++]];
-            posterizedData.data[i] = centroid[0]; posterizedData.data[i + 1] = centroid[1]; posterizedData.data[i + 2] = centroid[2]; posterizedData.data[i + 3] = 255;
+            // [안전장치] centroid가 undefined일 경우 대비 (검은색 처리)
+            if (centroid) {
+                posterizedData.data[i] = centroid[0]; posterizedData.data[i + 1] = centroid[1]; posterizedData.data[i + 2] = centroid[2]; posterizedData.data[i + 3] = 255;
+            } else {
+                posterizedData.data[i] = 0; posterizedData.data[i + 1] = 0; posterizedData.data[i + 2] = 0; posterizedData.data[i + 3] = 255;
+            }
         }
     }
     const finalCentroids = centroids.map(c => [Math.round(c[0]), Math.round(c[1]), Math.round(c[2])]);

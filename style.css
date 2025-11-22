@@ -4,54 +4,55 @@
 
 /* ===== 1. 기본 및 레이아웃 스타일 ===== */
 :root {
-    --padding: 15px;
+  --padding: 15px;
+  --primary-color: #4A90E2; /* 신규 코드에서 사용된 변수 추가 정의 */
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background-image: url('image.png');
-    background-size: cover;
-    background-attachment: fixed;
-    background-color: #f4f7f9;
-    margin: 0;
-    color: #333;
-    overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-image: url('image.png');
+  background-size: cover;
+  background-attachment: fixed;
+  background-color: #f4f7f9;
+  margin: 0;
+  color: #333;
+  overflow: hidden;
 }
 
 section {
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: var(--padding);
-    border-radius: 8px;
-    margin-bottom: var(--padding);
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: var(--padding);
+  border-radius: 8px;
+  margin-bottom: var(--padding);
 }
 
 h1, h2, h3, h4 {
-    margin-top: 0;
-    padding-bottom: 10px;
+  margin-top: 0;
+  padding-bottom: 10px;
 }
 h1 { padding-bottom: 0; font-size: 1.5em; }
 h2 { border-bottom: 1px solid #ddd; }
 h3 { display: inline-block; padding: 0; margin: 0; }
 
 .app-container {
-    display: flex;
-    gap: var(--padding);
-    padding: var(--padding);
-    height: 100vh;
-    box-sizing: border-box;
+  display: flex;
+  gap: var(--padding);
+  padding: var(--padding);
+  height: 100vh;
+  box-sizing: border-box;
 }
 
 .left-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .right-panel { width: 420px; flex-shrink: 0; overflow-y: auto; height: 100%; }
 
 .main-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--padding);
-    background-color: rgba(255, 255, 255, 0.9);
-    border-radius: 8px;
-    margin-bottom: var(--padding);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--padding);
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  margin-bottom: var(--padding);
 }
 .main-header h1 { margin: 0; line-height: 1; }
 
@@ -69,30 +70,30 @@ h3 { display: inline-block; padding: 0; margin: 0; }
 
 /* --- 2-1. 결과 & 캔버스 영역 --- */
 #result-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    padding: 0;
-    background: none;
-    border: none;
-    margin: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  margin: 0;
 }
 #convertedCanvasContainer {
-    flex: 1;
-    overflow: hidden;
-    border: 1px solid #ccc;
-    position: relative;
-    cursor: grab;
-    border-radius: 8px;
-    background-color: #e0e0e0;
-    background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: border-color 0.2s;
+  flex: 1;
+  overflow: hidden;
+  border: 1px solid #ccc;
+  position: relative;
+  cursor: grab;
+  border-radius: 8px;
+  background-color: #e0e0e0;
+  background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: border-color 0.2s;
 }
 #convertedCanvasContainer:active { cursor: grabbing; }
 #convertedCanvasContainer.drag-over { border-color: #2196F3; border-style: dashed; }
@@ -117,23 +118,22 @@ h3 { display: inline-block; padding: 0; margin: 0; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 .all-toggle-btn {
-    width: 56px !important;
-    height: 56px !important;
-    border: 2px solid #666 !important;
-    background-color: #fff !important;
-    color: #333 !important;
-    font-size: 28px !important;
-    font-weight: bold !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    
-    /* 추가: 마우스 커서 및 배치 보정 */
-    cursor: pointer;
-    margin: 0 !important;
-    padding: 0 !important;
-    border-radius: 0; /* 백업 코드엔 radius가 없어서 각지게 둠 (원하면 수정 가능) */
-    box-sizing: border-box; 
+  width: 56px !important;
+  height: 56px !important;
+  border: 2px solid #666 !important;
+  background-color: #fff !important;
+  color: #333 !important;
+  font-size: 28px !important;
+  font-weight: bold !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  
+  cursor: pointer;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0; 
+  box-sizing: border-box; 
 }
 
 /* --- 2-2. 텍스트 에디터 --- */
@@ -230,92 +230,92 @@ button.toggle-all { cursor: pointer; }
 .input-feedback { font-size: 12px; color: #d9534f; padding: 4px 0 0 2px; min-height: 1.2em; display: block; transition: color 0.2s; }
 .placeholder-section { padding: 20px; text-align: center; color: #888; background-color: #f9f9f9; border: 1px dashed #ccc; border-radius: 5px; }
 #addedColors {
-    display: flex !important;
-    flex-direction: column !important; /* 세로 정렬 */
-    gap: 8px !important;
-    padding: 10px;
-    background: #FAFAFA;
-    border: 1px solid #eee;
-    border-radius: 8px;
+  display: flex !important;
+  flex-direction: column !important; /* 세로 정렬 */
+  gap: 8px !important;
+  padding: 10px;
+  background: #FAFAFA;
+  border: 1px solid #eee;
+  border-radius: 8px;
 }
 
 /* 2. 개별 아이템: 가로 바 형태 */
 .added-color-item {
-    display: flex !important; /* flex로 내용물 가로 정렬 */
-    align-items: center;
-    width: 100%;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    padding: 8px 10px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  display: flex !important; /* flex로 내용물 가로 정렬 */
+  align-items: center;
+  width: 100%;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 8px 10px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 /* 3. 색상 스와치 (왼쪽 네모) */
 .added-color-item .added-color-swatch {
-    width: 40px !important;
-    height: 40px !important;
-    border: 1px solid rgba(0,0,0,0.2);
-    border-radius: 4px;
-    margin-right: 12px;
-    flex-shrink: 0;
-    cursor: pointer;
+  width: 40px !important;
+  height: 40px !important;
+  border: 1px solid rgba(0,0,0,0.2);
+  border-radius: 4px;
+  margin-right: 12px;
+  flex-shrink: 0;
+  cursor: pointer;
 }
 
 .added-color-item .added-color-info {
-    display: flex !important;
-    flex-direction: column;
-    justify-content: center;
-    flex: 1; /* 남은 공간 차지 */
-    line-height: 1.3;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1; /* 남은 공간 차지 */
+  line-height: 1.3;
 }
 
 .color-hex {
-    font-family: monospace;
-    font-weight: bold;
-    font-size: 14px;
-    color: #333;
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 14px;
+  color: #333;
 }
 
 /* 5. 삭제 버튼 [-] 스타일 */
 .added-color-item .remove-color-btn {
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background-color: #f5f5f5;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    color: #333;
-    font-weight: bold;
-    font-size: 18px;
-    cursor: pointer;
-    margin-left: 10px; /* 배지와의 간격 */
-    position: static !important; /* 절대 위치 해제 */
-    opacity: 1 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: #f5f5f5;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  color: #333;
+  font-weight: bold;
+  font-size: 18px;
+  cursor: pointer;
+  margin-left: 10px; /* 배지와의 간격 */
+  position: static !important; /* 절대 위치 해제 */
+  opacity: 1 !important;
 }
 
 .added-color-item .remove-color-btn:hover {
-    background-color: #e0e0e0;
-    color: #d00;
+  background-color: #e0e0e0;
+  color: #d00;
 }
 
 /* 6. 사용자 팔레트 전용 배지 스타일 (삭제 버튼 앞에 위치) */
 .added-color-item .usage-badge {
-    position: static !important; /* 절대 위치 해제 (흐름 따름) */
-    display: inline-block;
-    background-color: #333; /* 검은색 배경 */
-    color: white;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: bold;
-    margin-left: auto; /* 오른쪽으로 밀어버림 (텍스트와 분리) */
-    margin-right: 5px; /* 버튼과의 간격 */
-    box-shadow: none;
-    border: none;
-    z-index: auto;
+  position: static !important; /* 절대 위치 해제 (흐름 따름) */
+  display: inline-block;
+  background-color: #333; /* 검은색 배경 */
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  margin-left: auto; /* 오른쪽으로 밀어버림 (텍스트와 분리) */
+  margin-right: 5px; /* 버튼과의 간격 */
+  box-shadow: none;
+  border: none;
+  z-index: auto;
 }
 
 .added-color-item.off { background-color: #f0f0f0; opacity: 0.6; }
@@ -338,17 +338,17 @@ button.toggle-all { cursor: pointer; }
 /* --- 2-6. 분석 및 추천 관련 --- */
 /* (v5.0, v4.5 스타일 통합) */
 .analyze-button {
-    width: 100%;
-    padding: 10px;
-    font-size: 15px;
-    font-weight: bold;
-    color: white;
-    background-color: #5cb85c;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    margin: 5px 0 10px 0;
+  width: 100%;
+  padding: 10px;
+  font-size: 15px;
+  font-weight: bold;
+  color: white;
+  background-color: #5cb85c;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin: 5px 0 10px 0;
 }
 .analyze-button:hover:not(:disabled) { background-color: #4cae4c; }
 .analyze-button:disabled { background-color: #ccc; cursor: not-allowed; }
@@ -397,146 +397,144 @@ button.toggle-all { cursor: pointer; }
   .app-container.text-mode .left-panel-content { flex-direction: column; }
 }
 
-/* ======================================================== */
-/* ===== ✨ 중앙 프리셋 추천 팝업 (v5.1x 신규) ✨ ===== */
-/* ======================================================== */
+/* =========================================
+   프리셋 팝업 및 카드 스타일 (New - Grid 버전)
+   ========================================= */
 
-/* 1. 전체 팝업 컨테이너 (반투명 배경) */
+/* 팝업 컨테이너 (배경) */
 #preset-popup-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1001; /* 레거시 팝업(1000)보다 위에 표시 */
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(4px);
 }
 
-/* 2. 팝업 내용물 (흰색 박스) */
+/* 팝업 본문 */
 .preset-popup-content {
-    position: relative;
-    background-color: #ffffff;
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
-    width: 90%;
-    max-width: 800px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    border: 1px solid #ddd;
+  background: white;
+  width: 80%;
+  max-width: 900px;
+  height: auto;
+  max-height: 80vh;
+  border-radius: 12px;
+  padding: 25px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
 }
 
-.preset-popup-content h3 {
-    margin: 0;
-    font-size: 1.2rem;
-    color: #333;
-    text-align: center;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 16px;
-    font-weight: 600;
-}
-
-/* 3. 가로 스크롤 영역 */
+/* 스크롤 영역 & 그리드 레이아웃 */
 .preset-scroll-wrapper {
-    display: flex;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 10px 4px;
-    gap: 16px;
-    margin: 0 -4px;
-    -webkit-overflow-scrolling: touch;
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  /* 카드 크기 자동 조절 (최소 160px) */
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-auto-rows: min-content;
+  align-content: start; 
+  gap: 20px;
+  padding: 10px;
 }
 
-/* 4. 개별 프리셋 아이템 */
-.preset-item {
-    flex: 0 0 150px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    transition: transform 0.2s ease, background-color 0.2s ease;
-    border-radius: 8px;
-    padding: 8px;
-}
-.preset-item:hover {
-    transform: translateY(-4px);
-    background-color: #f7f7f7;
+/* 프리셋 카드 디자인 */
+.preset-card {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.preset-thumbnail-wrapper {
-    width: 130px;
-    height: 130px;
-    border-radius: 6px;
-    overflow: hidden;
-    background-color: #f0f0f0;
-    border: 1px solid #ddd;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.preset-thumbnail-wrapper img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.preset-title {
-    font-size: 13px;
-    color: #444;
-    font-weight: 500;
-    text-align: center;
+.preset-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary-color);
 }
 
-/* 프리셋 추천 등급 배지 */
-.preset-rank-badge {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    padding: 3px 7px;
-    font-size: 11px;
-    font-weight: bold;
-    color: white;
-    border-radius: 4px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+/* 썸네일 래퍼 (배지 위치 기준점) */
+.preset-thumb-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1; /* 정사각형 비율 유지 */
+  margin-bottom: 10px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #eee;
 }
-.preset-rank-badge.fixed { background-color: #337ab7; }
-.preset-rank-badge.high { background-color: #D0021B; }
-.preset-rank-badge.normal { display: none; }
 
-/* 5. 스크롤바 스타일링 */
-.preset-scroll-wrapper::-webkit-scrollbar { height: 8px; }
-.preset-scroll-wrapper::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-.preset-scroll-wrapper::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
-.preset-scroll-wrapper::-webkit-scrollbar-thumb:hover { background: #999; }
+.preset-thumb-wrapper canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
-/* 6. 닫기 버튼 */
+/* [핵심] 태그 배지 스타일 */
+.preset-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 고정 태그 (파란색) */
+.preset-badge.fixed {
+  background-color: #4A90E2;
+}
+
+/* 추천 태그 (빨간색 - '강력 추천' 스타일) */
+.preset-badge.recommended {
+  background-color: #FF595E;
+}
+
+/* 프리셋 이름 */
+.preset-card h4 {
+  font-size: 14px;
+  margin: 0;
+  text-align: center;
+  color: #333;
+  font-weight: 600;
+  word-break: keep-all; /* 단어 단위 줄바꿈 */
+}
+
+/* 팝업 닫기 버튼 */
 .preset-popup-close {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 32px;
-    height: 32px;
-    border: none;
-    background: transparent;
-    font-size: 2rem;
-    color: #aaa;
-    cursor: pointer;
-    line-height: 1;
-    padding: 0;
-    transition: color 0.2s ease, transform 0.2s ease;
-}
-.preset-popup-close:hover {
-    color: #333;
-    transform: rotate(90deg);
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
 }
 
+.preset-popup-close:hover {
+  color: #333;
+}
+
+/* =========================================
+   기타 핫픽스 (색상 추천, 팔레트 배지 등)
+   ========================================= */
+
+/* 팔레트 배지 위치 조정 (오른쪽 하단) */
 .usage-badge {
     position: absolute;
     top: auto;       /* 위쪽 배치 취소 */
@@ -561,7 +559,7 @@ button.toggle-all { cursor: pointer; }
     min-width: auto; /* 최소 너비 해제 */
 }
 
-/* 2. 추천 색상 아이콘(미리보기) 복구 */
+/* 추천 색상 아이콘(미리보기) 복구 */
 .rec-color-box {
     width: 32px;       /* 크기 고정 */
     height: 32px;
@@ -572,6 +570,7 @@ button.toggle-all { cursor: pointer; }
     display: block !important; /* 강제 표시 */
 }
 
+/* 추천 항목 리스트 스타일 */
 .recommendation-item {
     display: flex;
     align-items: center;
@@ -606,8 +605,7 @@ button.toggle-all { cursor: pointer; }
     border-radius: 4px; 
 }
 
-/* 4. 사용자 추가 색상 스와치 설정 (배지 위치 기준점) */
+/* 사용자 추가 색상 스와치 설정 (배지 위치 기준점) */
 .added-color-swatch {
     position: relative !important; /* 배지가 이 안에 위치하려면 필수 */
 }
-
