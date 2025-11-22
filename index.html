@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-lang-key="app_title">NoaDot - 이미지/텍스트 변환기</title>
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval'; object-src 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:;">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="app-container">
-    <!-- 왼쪽 패널: 헤더 및 변환 결과 영역 -->
+    <!-- 왼쪽 패널 -->
     <div class="left-panel">
         <header class="main-header">
             <h1 data-lang-key="app_header">🎨 NoaDot v5.10</h1>
@@ -56,7 +56,7 @@
         </div>
     </div>
 
-    <!-- 오른쪽 패널! -->
+    <!-- 오른쪽 패널 -->
     <div class="right-panel">
         <section class="main-mode-switcher">
             <h2 data-lang-key="section_mode">1. 모드 선택</h2>
@@ -116,6 +116,8 @@
              <h2 data-lang-key="section_ai_preset">✨ 프리셋 추천</h2>
              <button id="getStyleRecommendationsBtn" class="analyze-button" disabled data-lang-key="btn_get_recommendations">프리셋 추천</button>
         </section>
+
+        <!-- 텍스트 모드 컨트롤 -->
         <div id="text-controls" style="display: none;">
             <section>
                 <h2 data-lang-key="section_text_style">2. 텍스트 스타일</h2>
@@ -240,17 +242,14 @@
             <div id="celShadingOptions" class="sub-options" style="display: none;">
                 <fieldset class="sub-fieldset">
                     <legend data-lang-key="cartoon_section_quant">색상 추출 (Quantization)</legend>
+                    
+                    <!-- 1. 색상 레벨 슬라이더 (유지) -->
                     <div class="control-group">
                         <label for="celShadingLevelsSlider"><span data-lang-key="cartoon_color_level">색상 레벨</span>: <span id="celShadingLevelsValue">8</span></label>
                         <input type="range" id="celShadingLevelsSlider" min="2" max="32" value="8">
                     </div>
-                    <div class="control-group">
-                        <label for="celShadingQuantMethodSelect" data-lang-key="cartoon_quant_method">추출 방식</label>
-                        <select id="celShadingQuantMethodSelect">
-                            <option value="kmeans++" data-lang-key="quant_kmeans_plus">안정적 (K-Means++)</option>
-                            <option value="random" data-lang-key="quant_random">무작위 (빠름)</option>
-                        </select>
-                    </div>
+
+                    <!-- 2. 색 공간 선택 (유지) -->
                     <div class="control-group">
                         <label for="celShadingColorSpaceSelect" data-lang-key="cartoon_quant_space">색 공간</label>
                         <select id="celShadingColorSpaceSelect">
@@ -258,26 +257,36 @@
                             <option value="rgb" data-lang-key="space_rgb">일반 (RGB)</option>
                         </select>
                     </div>
-                </fieldset>
-                <fieldset class="sub-fieldset">
-                    <legend data-lang-key="cartoon_section_map">색상 매핑 (Mapping)</legend>
-                    <div class="control-group">
-                        <label for="celShadingMappingModeSelect" data-lang-key="cartoon_map_mode">매핑 모드</label>
-                        <select id="celShadingMappingModeSelect">
-                            <option value="none" data-lang-key="map_none">사용 안함 (추출 색상 그대로)</option>
-                            <option value="activePalette" data-lang-key="map_active">현재 활성 팔레트에 맞춤</option>
-                        </select>
+
+                    <!-- [신규] 3. 다른 색상 조합 시도 버튼 (랜덤 시드 변경) -->
+                    <div class="control-group" style="justify-content: flex-end; margin-top: 5px;">
+                        <button id="celShadingRetryBtn" class="analyze-button" title="같은 설정으로 다시 색상을 추출해 봅니다." data-lang-key="btn_retry_color_combination" style="width: 100%;">
+                            🎲 다른 색상 조합 시도
+                        </button>
                     </div>
                 </fieldset>
+
                 <fieldset class="sub-fieldset">
                     <legend data-lang-key="cartoon_section_outline">외곽선 (Outline)</legend>
+    
+                    <!-- 외곽선 표시 토글 -->
                     <div class="control-group checkbox-group" style="padding-left: 0;">
                         <input type="checkbox" id="celShadingOutline">
                         <label for="celShadingOutline" data-lang-key="cartoon_show_outline">외곽선 표시</label>
                     </div>
-                    <div class="control-group">
-                        <label for="celShadingOutlineThresholdSlider"><span data-lang-key="cartoon_outline_threshold">외곽선 민감도</span>: <span id="celShadingOutlineThresholdValue">50</span></label>
-                        <input type="range" id="celShadingOutlineThresholdSlider" min="10" max="150" value="50">
+
+                    <!-- [수정됨] 토글에 따라 보여질 하위 메뉴 그룹 -->
+                    <div id="outline-sub-settings" style="display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+                        <div class="control-group">
+                            <label for="celShadingOutlineThresholdSlider"><span data-lang-key="cartoon_outline_threshold">외곽선 민감도</span>: <span id="celShadingOutlineThresholdValue">50</span></label>
+                            <input type="range" id="celShadingOutlineThresholdSlider" min="10" max="150" value="50">
+                        </div>
+                        <div class="control-group color-picker-group">
+                            <label for="celShadingOutlineColorSelect" data-lang-key="cartoon_outline_color">외곽선 색상</label>
+                            <select id="celShadingOutlineColorSelect">
+                                <!-- JS가 채워넣음 -->
+                            </select>
+                        </div>
                     </div>
                 </fieldset>
             </div>
@@ -353,37 +362,17 @@
     </div>
 </div>
 
-<!-- ======================================================== -->
-<!-- ===== ✨ 프리셋 추천 팝업 (새로 추가) ✨ ===== -->
-<!-- ======================================================== -->
+<!-- 프리셋 추천 팝업 -->
 <div id="preset-popup-container" class="hidden">
     <div class="preset-popup-content">
         <h3 data-lang-key="popup_preset_title">✨ 추천 스타일 프리셋</h3>
-        
-        <!-- 가로 스크롤이 적용될 영역 -->
-        <div class="preset-scroll-wrapper">
-            <!-- 
-                이 곳은 나중에 script.js가 'preset-item'을 동적으로 채워줄 공간입니다. 
-                예시:
-                <div class="preset-item">
-                    <div class="preset-thumbnail-wrapper">
-                        <img src="[...썸네일 데이터...]" alt="프리셋 미리보기">
-                        <div class="preset-rank-badge high">강력 추천</div>
-                    </div>
-                    <span class="preset-title">프리셋 이름</span>
-                </div>
-            -->
-        </div>
-        
+        <div class="preset-scroll-wrapper"></div>
         <button id="close-preset-popup-btn" class="preset-popup-close" title="닫기">&times;</button>
     </div>
 </div>
 
-
-<script src="palette-data.js"></script>
-<script src="language.js"></script>
-<script src="threshold-maps.js" type="module"></script>
-<script type="module" src="script.js"></script>
+<!-- 모듈형 스크립트 로드 -->
+<script type="module" src="js/script.js"></script>
 
 </body>
 </html>

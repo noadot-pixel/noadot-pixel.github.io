@@ -1,6 +1,6 @@
-// language.js (v4.0 최종 버전)
+// languages.js (v4.0 최종 버전)
 
-const languageData = {
+export const languageData = {
     ko: {
         app_title: "NoaDot - 이미지/텍스트 변환기",
         app_header: "🎨 NoaDot v5.10",
@@ -131,6 +131,9 @@ const languageData = {
         preset_category_fixed: "기본 설정 프리셋",
         preset_category_recommended: "강력 추천 프리셋",
         preset_category_available: "사용 가능한 프리셋",
+        btn_retry_color_combination: "🎲 다른 색상 조합 시도",
+        cartoon_outline_color: "외곽선 색상",
+        confirm_reset_colors: "추가한 색상을 모두 삭제하시겠습니까?", // [추가]
         
     },
     en: {
@@ -252,5 +255,8 @@ const languageData = {
         preset_category_fixed: "Fixed Presets",
         preset_category_recommended: "Strongly Recommended",
         preset_category_available: "Available Presets",
+        btn_retry_color_combination: "🎲 Retry Color Combo",
+        cartoon_outline_color: "Outline Color",
+        confirm_reset_colors: "Are you sure you want to remove all added colors?", // [추가]
     }
 };

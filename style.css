@@ -97,7 +97,7 @@ h3 { display: inline-block; padding: 0; margin: 0; }
 #convertedCanvasContainer:active { cursor: grabbing; }
 #convertedCanvasContainer.drag-over { border-color: #2196F3; border-style: dashed; }
 
-#placeholder-ui { display: flex; flex-direction: column; justify-content: center; align-items: center; color: #888; text-align: center; pointer-events: none; }
+#placeholder-ui { display: flex; flex-direction: column; justify-content: center; align-items: center; color: #888; text-align: center; pointer-events: auto; }
 .upload-icon { width: 64px; height: 64px; fill: #aaa; margin-bottom: 10px; }
 #convertedCanvasContainer.has-image #placeholder-ui { display: none; }
 
@@ -115,6 +115,26 @@ h3 { display: inline-block; padding: 0; margin: 0; }
 #loading-indicator { width: 24px; height: 24px; border: 3px solid rgba(255, 255, 255, 0.3); border-top: 3px solid #fff; border-radius: 50%; animation: spin 1s linear infinite; display: none; z-index: 11; }
 #loading-indicator.visible { display: block; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+.all-toggle-btn {
+    width: 56px !important;
+    height: 56px !important;
+    border: 2px solid #666 !important;
+    background-color: #fff !important;
+    color: #333 !important;
+    font-size: 28px !important;
+    font-weight: bold !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    
+    /* 추가: 마우스 커서 및 배치 보정 */
+    cursor: pointer;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0; /* 백업 코드엔 radius가 없어서 각지게 둠 (원하면 수정 가능) */
+    box-sizing: border-box; 
+}
 
 /* --- 2-2. 텍스트 에디터 --- */
 #text-editor-panel { display: none; flex-direction: column; flex: 1; min-width: 0; background-color: rgba(255, 255, 255, 0.9); border-radius: 8px; }
@@ -209,8 +229,95 @@ button.toggle-all { cursor: pointer; }
 .add-color-separator { text-align: center; color: #888; font-size: 14px; margin: -5px 0; }
 .input-feedback { font-size: 12px; color: #d9534f; padding: 4px 0 0 2px; min-height: 1.2em; display: block; transition: color 0.2s; }
 .placeholder-section { padding: 20px; text-align: center; color: #888; background-color: #f9f9f9; border: 1px dashed #ccc; border-radius: 5px; }
-#addedColors { flex-direction: column; align-items: stretch; }
-.added-color-item { display: flex; align-items: center; gap: 8px; background-color: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 5px; font-size: 12px; }
+#addedColors {
+    display: flex !important;
+    flex-direction: column !important; /* 세로 정렬 */
+    gap: 8px !important;
+    padding: 10px;
+    background: #FAFAFA;
+    border: 1px solid #eee;
+    border-radius: 8px;
+}
+
+/* 2. 개별 아이템: 가로 바 형태 */
+.added-color-item {
+    display: flex !important; /* flex로 내용물 가로 정렬 */
+    align-items: center;
+    width: 100%;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 8px 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* 3. 색상 스와치 (왼쪽 네모) */
+.added-color-item .added-color-swatch {
+    width: 40px !important;
+    height: 40px !important;
+    border: 1px solid rgba(0,0,0,0.2);
+    border-radius: 4px;
+    margin-right: 12px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.added-color-item .added-color-info {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1; /* 남은 공간 차지 */
+    line-height: 1.3;
+}
+
+.color-hex {
+    font-family: monospace;
+    font-weight: bold;
+    font-size: 14px;
+    color: #333;
+}
+
+/* 5. 삭제 버튼 [-] 스타일 */
+.added-color-item .remove-color-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background-color: #f5f5f5;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    color: #333;
+    font-weight: bold;
+    font-size: 18px;
+    cursor: pointer;
+    margin-left: 10px; /* 배지와의 간격 */
+    position: static !important; /* 절대 위치 해제 */
+    opacity: 1 !important;
+}
+
+.added-color-item .remove-color-btn:hover {
+    background-color: #e0e0e0;
+    color: #d00;
+}
+
+/* 6. 사용자 팔레트 전용 배지 스타일 (삭제 버튼 앞에 위치) */
+.added-color-item .usage-badge {
+    position: static !important; /* 절대 위치 해제 (흐름 따름) */
+    display: inline-block;
+    background-color: #333; /* 검은색 배경 */
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    margin-left: auto; /* 오른쪽으로 밀어버림 (텍스트와 분리) */
+    margin-right: 5px; /* 버튼과의 간격 */
+    box-shadow: none;
+    border: none;
+    z-index: auto;
+}
+
 .added-color-item.off { background-color: #f0f0f0; opacity: 0.6; }
 .added-color-swatch { width: 48px; height: 24px; border: 1px solid #888; flex-shrink: 0; cursor: pointer; }
 .added-color-info { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
@@ -429,3 +536,78 @@ button.toggle-all { cursor: pointer; }
     color: #333;
     transform: rotate(90deg);
 }
+
+.usage-badge {
+    position: absolute;
+    top: auto;       /* 위쪽 배치 취소 */
+    bottom: 2px;     /* 아래쪽 배치 */
+    right: 2px;      /* 오른쪽 배치 */
+    
+    background-color: rgba(0, 0, 0, 0.7); /* 반투명 검은색 배경 */
+    color: white;
+    
+    font-size: 10px;
+    font-family: 'Pretendard', sans-serif;
+    font-weight: bold;
+    
+    padding: 1px 4px;
+    border-radius: 4px;
+    border: none;    /* 테두리 제거 */
+    box-shadow: none;
+    
+    z-index: 20;
+    pointer-events: none;
+    line-height: 1.2;
+    min-width: auto; /* 최소 너비 해제 */
+}
+
+/* 2. 추천 색상 아이콘(미리보기) 복구 */
+.rec-color-box {
+    width: 32px;       /* 크기 고정 */
+    height: 32px;
+    border-radius: 4px;
+    border: 1px solid rgba(0,0,0,0.2);
+    flex-shrink: 0;    /* 찌그러짐 방지 */
+    margin-right: 10px;
+    display: block !important; /* 강제 표시 */
+}
+
+.recommendation-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    width: 100%;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    background: white;
+    margin-bottom: 5px;
+}
+
+.rec-text-info {
+    flex: 1;
+    display: flex;
+    align-items: center; /* 텍스트 수직 정렬 */
+    gap: 10px;
+}
+
+/* RGB 텍스트 */
+.rec-hex { 
+    font-weight: bold; 
+    font-size: 13px; 
+    color: #333; 
+}
+
+/* 타입 설명 (밝은 영역 등) */
+.rec-desc { 
+    font-size: 11px; 
+    color: #666; 
+    background: #eee; 
+    padding: 2px 6px; 
+    border-radius: 4px; 
+}
+
+/* 4. 사용자 추가 색상 스와치 설정 (배지 위치 기준점) */
+.added-color-swatch {
+    position: relative !important; /* 배지가 이 안에 위치하려면 필수 */
+}
+
