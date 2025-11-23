@@ -609,3 +609,73 @@ button.toggle-all { cursor: pointer; }
 .added-color-swatch {
     position: relative !important; /* 배지가 이 안에 위치하려면 필수 */
 }
+
+/* ===== 5. 신규 모달 스타일 (v6.0) ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 2000; /* 기존 팝업보다 높게 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(3px);
+}
+
+.modal-content {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  width: 320px;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  animation: popIn 0.2s ease-out;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-buttons-vertical { display: flex; flex-direction: column; gap: 10px; }
+.modal-buttons-vertical button { padding: 12px; font-size: 14px; cursor: pointer; border-radius: 6px; border: 1px solid #ccc; background: #fff; transition: all 0.2s; }
+.modal-buttons-vertical button:hover { background: #f0f0f0; transform: translateY(-2px); }
+#btn-save-to-file { background-color: #4A90E2; color: white; border: none; }
+#btn-save-to-session { background-color: #FF595E; color: white; border: none; }
+
+.modal-buttons-horizontal { display: flex; gap: 10px; justify-content: center; }
+.modal-buttons-horizontal button { flex: 1; padding: 10px; cursor: pointer; border-radius: 6px; border: none; color: white; font-weight: bold; }
+#btn-confirm-save-file { background-color: #28a745; }
+.secondary-btn { background-color: #6c757d !important; color: white !important; }
+
+.full-width-input {
+  width: 100%; padding: 10px; box-sizing: border-box;
+  border: 2px solid #eee; border-radius: 6px; font-size: 16px;
+}
+.full-width-input:focus { border-color: #4A90E2; outline: none; }
+
+.neon-gold {
+    color: #FFFFFF !important; /* 글자색: 흰색 */
+    
+    /* 텍스트 테두리 (Shadow Trick) */
+    /* -webkit-text-stroke는 일부 브라우저에서 흐릿할 수 있어 shadow로 테두리를 만듭니다 */
+    text-shadow: 
+        /* 1. 갈색 테두리 (상하좌우 1px씩) - 어두운 Y계열, 채도 낮음 (#5D4037 등) */
+        -1px -1px 0 #5D4037,  
+         1px -1px 0 #5D4037,
+        -1px  1px 0 #5D4037,
+         1px  1px 0 #5D4037,
+         
+        /* 2. 밝은 노란색 네온 광채 (Glow) */
+        0 0 5px #FFEB3B,   /* 안쪽 광채 (밝은 노랑) */
+        0 0 10px #FBC02D;  /* 바깥쪽 광채 (진한 노랑) */
+        
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+/* 변환 크기 텍스트 기본 스타일 강화 (전환 효과) */
+#convertedDimensions {
+    display: inline-block;
+    transition: color 0.3s, text-shadow 0.3s;
+}

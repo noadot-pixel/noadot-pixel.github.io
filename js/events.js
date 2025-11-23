@@ -8,6 +8,141 @@ import {
 import { triggerConversion, conversionWorker } from './worker-handler.js';
 
 export const setupEventListeners = (callbacks) => {
+
+    // 1. 프리셋 저장 버튼 -> 저장 방식 선택 모달 열기
+    const savePresetBtn = document.getElementById('savePresetBtn');
+    const presetChoiceModal = document.getElementById('preset-save-choice-modal');
+
+    if (savePresetBtn) {
+        savePresetBtn.addEventListener('click', () => {
+            presetChoiceModal.classList.remove('hidden');
+        });
+    }
+
+    // 2. 모달 닫기 (X 버튼)
+    document.getElementById('btn-close-save-modal').addEventListener('click', () => {
+        presetChoiceModal.classList.add('hidden');
+    });
+
+    // 3. '추천 커스텀에 저장하기' (임시 세션 저장)
+    document.getElementById('btn-save-to-session').addEventListener('click', () => {
+        const newPreset = createCurrentPresetObject("Custom Preset " + (state.sessionPresets.length + 1));
+        newPreset.ranking = 'fixed'; // 요청사항: 무조건 맨 앞 고정
+        newPreset.displayTag = 'My Custom'; // 배지 표시
+        
+        state.sessionPresets.unshift(newPreset); // 배열 앞에 추가
+        alert("추천 프리셋 목록에 임시로 추가되었습니다.\n'프리셋 추천' 버튼을 누르면 맨 앞에 나타납니다.");
+        presetChoiceModal.classList.add('hidden');
+    });
+
+    // 4. '파일로 저장하기' -> 이름 입력 모달 열기
+    const nameInputModal = document.getElementById('preset-name-input-modal');
+    const nameInput = document.getElementById('preset-name-input');
+
+    document.getElementById('btn-save-to-file').addEventListener('click', () => {
+        presetChoiceModal.classList.add('hidden');
+        nameInput.value = ''; // 초기화
+        nameInputModal.classList.remove('hidden');
+        nameInput.focus();
+    });
+
+    // 5. 이름 입력 후 실제 저장 실행
+    document.getElementById('btn-cancel-save-file').addEventListener('click', () => {
+        nameInputModal.classList.add('hidden');
+    });
+
+    document.getElementById('btn-confirm-save-file').addEventListener('click', () => {
+        const name = nameInput.value.trim() || "NoaDot_Preset";
+        const newPreset = createCurrentPresetObject(name);
+        
+        // 다운로드 로직
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(newPreset, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `${name}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        
+        nameInputModal.classList.add('hidden');
+    });
+
+    // 6. [수정됨] 다운로드 버튼 로직 (배율 확대 적용)
+    if (elements.downloadBtn) {
+        // 기존 리스너 제거가 어려우므로, 기존 ui.js 의 elements.downloadBtn 리스너를 덮어쓰거나 수정해야 함.
+        // 여기서는 cloneNode로 기존 리스너 날리고 새로 등록하는 방식을 씁니다.
+        const newBtn = elements.downloadBtn.cloneNode(true);
+        elements.downloadBtn.parentNode.replaceChild(newBtn, elements.downloadBtn);
+        elements.downloadBtn = newBtn; // 참조 갱신
+
+        elements.downloadBtn.addEventListener('click', () => {
+            if (!state.finalDownloadableData) return;
+            
+            const scaleSelect = document.getElementById('exportScaleSelect');
+            const scale = parseInt(scaleSelect.value, 10) || 1;
+            
+            // 원본(변환된) 데이터
+            const originalWidth = state.finalDownloadableData.width;
+            const originalHeight = state.finalDownloadableData.height;
+            
+            // 확대할 캔버스 생성
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = originalWidth * scale;
+            finalCanvas.height = originalHeight * scale;
+            const ctx = finalCanvas.getContext('2d');
+            
+            // [핵심] Nearest Neighbor 설정 (선명하게 확대)
+            ctx.imageSmoothingEnabled = false;
+            
+            // ImageData를 임시 캔버스로 옮김
+            const tempC = document.createElement('canvas');
+            tempC.width = originalWidth;
+            tempC.height = originalHeight;
+            tempC.getContext('2d').putImageData(state.finalDownloadableData, 0, 0);
+            
+            // 확대해서 그리기
+            ctx.drawImage(tempC, 0, 0, finalCanvas.width, finalCanvas.height);
+            
+            // 다운로드 실행
+            const link = document.createElement('a');
+            const originalName = state.originalFileName || 'noadot-image';
+            link.download = `${originalName}_x${scale}.png`;
+            link.href = finalCanvas.toDataURL('image/png');
+            link.click();
+        });
+    }
+
+    const createCurrentPresetObject = (name) => {
+        const currentOpts = getOptions(); // ui.js에서 가져옴
+        
+        // 사용자 추가 색상 수집 (요청하신 customColors 항목)
+        const customColors = [];
+        const userItems = document.querySelectorAll('#addedColors .added-color-item');
+        userItems.forEach(item => {
+            customColors.push(JSON.parse(item.dataset.rgb));
+        });
+
+        // preset 객체 구성
+        return {
+            name: { ko: name, en: name }, // 다국어 객체 형태 유지
+            ranking: 'normal',
+            tags: [], // 자동 생성 프리셋이므로 태그는 비움
+            customColors: customColors, // [New] 추가 색상 목록
+            preset: {
+                ...currentOpts,
+                // 불필요한 상태값 제거 (예: currentMode 등은 유지하되, randomSeed 같은건 리셋)
+                celShading: {
+                    ...currentOpts.celShading,
+                    randomSeed: 0
+                },
+                // 팔레트 옵션: 현재 상태 기반으로 '모두 켜기' 혹은 '특정 색만 켜기' 결정
+                // 여기선 단순화를 위해 'customColors'를 제외한 팔레트는
+                // '현재 모드'를 따르도록 설정
+                enableAllPalettes: true // 일단 기본 팔레트는 다 켜는걸로 가정 (복잡도 감소)
+            }
+        };
+    };
+
     // ==========================================================================
     // 1. 파일 업로드 (중복 방지 & 드래그앤드롭)
     // ==========================================================================
@@ -384,6 +519,7 @@ export const setupEventListeners = (callbacks) => {
                 imageData: originalData,
                 palette: currentPalette, // 팔레트 정보 전달
                 options: getOptions(),
+                
                 processId: state.processId
             }, [originalData.data.buffer]);
         });
@@ -408,4 +544,44 @@ export const setupEventListeners = (callbacks) => {
             if (callbacks.setLanguage) callbacks.setLanguage(lang);
         });
     });
+
+    if (elements.exportScaleSlider) {
+        elements.exportScaleSlider.addEventListener('input', (e) => {
+            // 1. 슬라이더 값 읽기 (문자열 -> 숫자)
+            const val = parseInt(e.target.value, 10);
+            
+            // 2. 전역 상태(state)에 저장
+            state.exportScale = val;
+            
+            // 3. 화면에 숫자 업데이트 ("4x")
+            if (elements.exportScaleValue) {
+                elements.exportScaleValue.textContent = `${val}x`;
+            }
+            
+            // 4. 변환 다시 실행 (그래야 '변환 크기' 텍스트가 갱신됨)
+            // (이미지 처리가 아니라 텍스트 갱신 목적이지만, 가장 간단한 방법)
+            triggerConversion();
+        });
+    }
+
+    // [수정] 다운로드 버튼 이벤트 (기존 거 찾아서 교체하세요!)
+    if (elements.downloadBtn) {
+        // 기존에 있던 리스너를 지우기 위해 노드를 복제해서 교체하는 트릭을 씁니다.
+        const newDownloadBtn = elements.downloadBtn.cloneNode(true);
+        elements.downloadBtn.parentNode.replaceChild(newDownloadBtn, elements.downloadBtn);
+        elements.downloadBtn = newDownloadBtn; // 참조 갱신
+
+        // 새 리스너 등록
+        elements.downloadBtn.addEventListener('click', () => {
+            // ui.js에서 만든 함수 호출
+            // state.js에서 import 해와야 하지만, ui.js에 있으니 콜백으로 넘기거나
+            // ui.js의 downloadImageWithScale을 import 해야 합니다.
+            
+            // [가장 쉬운 방법] callbacks 객체에 담아서 호출
+            if (callbacks.downloadImageWithScale) {
+                const name = state.originalFileName || 'image';
+                callbacks.downloadImageWithScale(name);
+            }
+        });
+    }
 };

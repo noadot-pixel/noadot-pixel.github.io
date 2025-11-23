@@ -134,6 +134,7 @@ export const languageData = {
         btn_retry_color_combination: "🎲 다른 색상 조합 시도",
         cartoon_outline_color: "외곽선 색상",
         confirm_reset_colors: "추가한 색상을 모두 삭제하시겠습니까?", // [추가]
+        resize_output_scale: "출력 배율",
         
     },
     en: {
@@ -258,5 +259,7 @@ export const languageData = {
         btn_retry_color_combination: "🎲 Retry Color Combo",
         cartoon_outline_color: "Outline Color",
         confirm_reset_colors: "Are you sure you want to remove all added colors?", // [추가]
+        resize_output_scale: "Output Scale",
+
     }
 };

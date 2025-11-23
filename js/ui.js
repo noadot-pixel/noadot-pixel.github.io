@@ -30,13 +30,16 @@ export const initElements = () => {
         'textColorSelect', 'bgColorSelect', 'strokeColorSelect',
         'getStyleRecommendationsBtn', 'highlightSensitivitySlider', 'highlightSensitivityValue',
         'analyzeColorsBtn', 'recommendedColorsPlaceholder',
-        'convertedDimensionsLabel', 'centerBtn'
+        'convertedDimensionsLabel', 'centerBtn',
+        'exportScaleSlider', 'exportScaleValue',
     ];
 
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (el) elements[id] = el;
     });
+    
+    
     
     // 2. [중요] ID가 달라서 수동으로 연결해야 하는 친구들 (여기가 문제였습니다!)
     elements.imageControls = document.getElementById('image-controls');
@@ -686,4 +689,42 @@ export const displayRecommendedPresetsInPopup = (presets, applyCallback) => {
     });
     
     elements.presetPopupContainer.classList.remove('hidden');
+};
+
+export const downloadImageWithScale = (originalName) => {
+    if (!state.finalDownloadableData) return;
+
+    // 1. 현재 설정된 배율 가져오기 (없으면 1배)
+    const scale = state.exportScale || 1;
+    const width = state.finalDownloadableData.width;
+    const height = state.finalDownloadableData.height;
+
+    // 2. 확대된 크기의 캔버스 생성
+    const finalCanvas = document.createElement('canvas');
+    finalCanvas.width = width * scale;
+    finalCanvas.height = height * scale;
+    const ctx = finalCanvas.getContext('2d');
+
+    // 3. [핵심] 픽셀 아트가 뭉개지지 않게 '선명하게' 설정 (Nearest Neighbor)
+    ctx.imageSmoothingEnabled = false;
+
+    // 4. 원본 데이터를 임시 캔버스에 그리기
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    tempCanvas.getContext('2d').putImageData(state.finalDownloadableData, 0, 0);
+
+    // 5. 임시 캔버스를 확대해서 그리기
+    // (작은 그림을 큰 캔버스에 꽉 차게 그림 -> 픽셀이 커짐)
+    ctx.drawImage(tempCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
+
+    // 6. 다운로드 실행
+    const link = document.createElement('a');
+    const name = originalName || 'noadot-image';
+    // 파일명에 배율 표시 (예: image_x4.png)
+    link.download = `${name}_x${scale}.png`;
+    link.href = finalCanvas.toDataURL('image/png');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 };

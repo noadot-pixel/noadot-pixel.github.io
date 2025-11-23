@@ -11,6 +11,8 @@ export const CONFIG = {
 };
 
 export const state = {
+    sessionPresets: [], // [New] 임시 저장된 사용자 프리셋 목록
+    exportScale: 1, // [New] 출력 배율 상태
     isApplyingPreset: false,
     language: 'ko',
     appMode: 'image',

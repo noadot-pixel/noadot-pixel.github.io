@@ -25,6 +25,8 @@ import {
 } from '/js/ui.js';
 import { triggerConversion, processImage, getActivePaletteData } from '/js/worker-handler.js';
 import { setupEventListeners } from '/js/events.js';
+import { downloadImageWithScale } from '/js/ui.js'; // [중요] 맨 위 import에 이거 추가!
+
 
 // ==========================================================================
 // 비즈니스 로직
@@ -87,6 +89,17 @@ const resetAddedColors = (force = false) => {
 
 const applyPreset = (presetObject) => {
     state.isApplyingPreset = true;
+    // [신규 기능] 사용자 정의 색상(customColors) 복구
+    if (presetObject.customColors && Array.isArray(presetObject.customColors)) {
+        // 1. 기존 추가 색상 초기화 (선택 사항, 여기선 깔끔하게 초기화 후 추가)
+        resetAddedColors(true); 
+        
+        // 2. 색상 추가
+        presetObject.customColors.forEach(rgb => {
+            // ui.js의 함수 활용
+            createAddedColorItem({ rgb: rgb }, true, triggerConversion);
+        });
+    }
     const { preset: presetValues, requiredPaletteMode } = presetObject;
 
     if (requiredPaletteMode && state.currentMode !== requiredPaletteMode) {
@@ -94,6 +107,7 @@ const applyPreset = (presetObject) => {
             setPaletteMode(requiredPaletteMode);
         } else {
             state.isApplyingPreset = false;
+            triggerConversion();
             return;
         }
     }
@@ -454,6 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
         handleFile, setAppMode, setPaletteMode, getOptions, getActivePaletteData,
         resetAll, resetAddedColors, gatherSettingsData, applySettingsData, 
         tryAddColor, clearAndResetInputFields, handleFontUpload, handleScaleModeChange,
+        downloadImageWithScale, 
         updateZoom, // [중요] events.js에 전달
         updatePixelInputs: (source) => { 
             let isUpdatingScale = false; 

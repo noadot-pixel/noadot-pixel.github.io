@@ -189,6 +189,22 @@ export const processImage = () => {
     const imageDataForWorker = tempCtx.getImageData(0, 0, newWidth, newHeight);
     const palette = getActivePaletteData();
     applyConversion(imageDataForWorker, palette, options);
+
+    if (convertedDimensions) {
+        const baseText = `${newWidth} x ${newHeight} px`;
+        const scale = state.exportScale || 1;
+        
+        if (scale > 1) {
+            const finalW = newWidth * scale;
+            const finalH = newHeight * scale;
+            convertedDimensions.textContent = `${baseText} ➜ ${finalW} x ${finalH} px (${scale}배)`;
+            convertedDimensions.classList.add('neon-gold');
+        } else {
+            convertedDimensions.textContent = baseText;
+            convertedDimensions.classList.remove('neon-gold');
+        }
+    }
+
 };
 
 export const processText = () => {

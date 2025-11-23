@@ -191,7 +191,7 @@ function applyConversion(imageData, palette, options) {
 // ========== 2. 메인 이벤트 핸들러 ==========
 
 self.onmessage = async (e) => {
-    const { type, imageData, palette, allPaletteColors, options, processId } = e.data;
+    const { type, imageData, palette, allPaletteColors, options, processId, extraPresets } = e.data;
 
     // [프리셋 추천 로직]
     if (type === 'getStyleRecommendations') {
@@ -199,7 +199,11 @@ self.onmessage = async (e) => {
             // 1. 이미지 분석
             const imageFeatures = analyzeImageFeatures(imageData);
             const categorizedRecipes = getStyleRecipesByTags(imageFeatures);
-            
+            if (extraPresets && extraPresets.length > 0) {
+                // extraPresets도 썸네일 생성 로직에 맞게 포맷팅 필요할 수 있으나,
+                // 구조를 맞춰서 보냈으므로 그대로 concat
+                categorizedRecipes.fixed = [...extraPresets, ...categorizedRecipes.fixed];
+            }
             // 2. [최적화] 썸네일 생성용 이미지 축소 (너비 150px)
             // 속도 향상을 위해 작은 이미지로 프리셋을 적용합니다.
             const smallImage = resizeImageData(imageData, 150);

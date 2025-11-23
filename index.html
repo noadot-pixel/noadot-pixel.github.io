@@ -108,12 +108,23 @@
                             </div>
                         </div>
                     </div>
+                    <div class="control-group" style="border-top: 1px dashed #ccc; padding-top: 15px; margin-top: 15px;">
+                        <label for="exportScaleSlider">
+                            <span data-lang-key="resize_output_scale">출력 배율</span>: 
+                            <span id="exportScaleValue">1x</span>
+                            <span style="font-size:12px; font-weight:normal; color:#666; margin-left:5px;">(다운로드 시 적용)</span>
+                        </label>
+                        <input type="range" id="exportScaleSlider" min="1" max="10" value="1" step="1">
+                    </div>
                 </fieldset>
             </section>
         </div>
 
         <section id="ai-preset-section" class="option-section">
              <h2 data-lang-key="section_ai_preset">✨ 프리셋 추천</h2>
+             <div class="button-group-horizontal" style="margin-top: 10px;">
+                <button id="savePresetBtn" class="analyze-button" style="background-color: #17a2b8; margin:0;">현재 설정 프리셋으로 저장</button>
+            </div>
              <button id="getStyleRecommendationsBtn" class="analyze-button" disabled data-lang-key="btn_get_recommendations">프리셋 추천</button>
         </section>
 
@@ -357,6 +368,40 @@
         </details>
 
         <section class="download-section">
+            <div class="control-group" style="margin-bottom: 10px;">
+                <label for="exportScaleSelect"><span data-lang-key="export_scale">다운로드 배율</span></label>
+                <select id="exportScaleSelect">
+                    <option value="1">1x (원본)</option>
+                    <option value="2">2x</option>
+                    <option value="4" selected>4x</option> <!-- 기본값을 4배로 추천 -->
+                    <option value="8">8x</option>
+                    <option value="10">10x</option>
+                </select>
+            </div>
+            <div id="preset-save-choice-modal" class="hidden modal-overlay">
+                <div class="modal-content">
+                    <h3>프리셋을 어떻게 저장하시겠습니까?</h3>
+                    <p style="color:#666; font-size:14px; margin-bottom:20px;">현재 적용된 모든 옵션과 추가된 색상이 저장됩니다.</p>
+                    <div class="modal-buttons-vertical">
+                        <button id="btn-save-to-file">📂 파일로 저장하기 (.json)</button>
+                        <button id="btn-save-to-session">✨ 추천 커스텀에 저장하기 (임시)</button>
+                        <button id="btn-close-save-modal" class="secondary-btn">닫기 (X)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. [신규] 프리셋 이름 입력 팝업 (Modal 2) -->
+            <div id="preset-name-input-modal" class="hidden modal-overlay">
+                <div class="modal-content">
+                    <h3>프리셋 이름 지정</h3>
+                    <p style="color:#666; font-size:14px; margin-bottom:15px;">저장할 프리셋의 이름을 입력해주세요.</p>
+                    <input type="text" id="preset-name-input" placeholder="예: 나만의 흑백 스타일" class="full-width-input">
+                    <div class="modal-buttons-horizontal" style="margin-top: 20px;">
+                        <button id="btn-confirm-save-file">저장하기</button>
+                        <button id="btn-cancel-save-file" class="secondary-btn">취소</button>
+                    </div>
+                </div>
+            </div>
             <button id="downloadBtn" disabled data-lang-key="btn_download">다운로드</button>
         </section>
     </div>
