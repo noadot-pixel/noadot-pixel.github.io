@@ -18,7 +18,7 @@ export const PRESET_RECIPES = [
         
         // 2. 순서 및 추천 로직
         // - ranking: 'fixed' (맨 앞 고정), 'high' (추천), 'normal' (일반)
-        ranking: "normal",
+        ranking: "fixed",
         
         // - tags: 이미지 분석 결과와 매칭될 태그들
         // (isDark, isBright, isColorful, isMonochromatic, isComplex, isSimple 등)

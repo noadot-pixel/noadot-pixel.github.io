@@ -196,58 +196,105 @@ self.onmessage = async (e) => {
     // [프리셋 추천 로직]
     if (type === 'getStyleRecommendations') {
         try {
-            // 1. 이미지 분석
-            const imageFeatures = analyzeImageFeatures(imageData);
-            const categorizedRecipes = getStyleRecipesByTags(imageFeatures);
-            if (extraPresets && extraPresets.length > 0) {
-                // extraPresets도 썸네일 생성 로직에 맞게 포맷팅 필요할 수 있으나,
-                // 구조를 맞춰서 보냈으므로 그대로 concat
-                categorizedRecipes.fixed = [...extraPresets, ...categorizedRecipes.fixed];
-            }
-            // 2. [최적화] 썸네일 생성용 이미지 축소 (너비 150px)
-            // 속도 향상을 위해 작은 이미지로 프리셋을 적용합니다.
-            const smallImage = resizeImageData(imageData, 150);
+            const { extraPresets, onlyCustom } = e.data; // [수정] onlyCustom 플래그 받기
 
+            let categorizedRecipes;
+
+            if (onlyCustom) {
+                // [Case A] 마이 프리셋 모드: AI 분석 생략하고, 내 프리셋만 처리
+                categorizedRecipes = { 
+                    fixed: extraPresets || [], // 내가 보낸 것만 fixed에 넣음
+                    recommended: [], 
+                    others: [] 
+                };
+            } else {
+                // [Case B] 일반 추천 모드: 이미지 분석 + AI 추천
+                const imageFeatures = analyzeImageFeatures(imageData);
+                categorizedRecipes = getStyleRecipesByTags(imageFeatures);
+                
+                // (기존 로직) 임시 프리셋이 있으면 합치기
+                if (extraPresets && Array.isArray(extraPresets)) {
+                    categorizedRecipes.fixed = [...extraPresets, ...categorizedRecipes.fixed];
+                }
+            }
+            
+            // 2. [최적화] 썸네일 생성용 이미지 축소 (이하 동일)
+            const smallImage = resizeImageData(imageData, 150);
+            
+            // ... (이하 generateThumbnails 호출 및 postMessage 부분은 기존과 완전히 동일) ...
+            
             const recommendationResults = { fixed: [], recommended: [], others: [] };
 
             const generateThumbnails = async (recipes, category) => {
                 for (const recipe of recipes) {
-                    // 1. 축소된 이미지 데이터 복사 (원본 보존)
+                    // 1. 축소된 이미지 데이터 복사
                     const thumbImageData = new ImageData(
                         new Uint8ClampedArray(smallImage.data), 
                         smallImage.width, 
                         smallImage.height
                     );
                     
-                    // 2. 옵션 병합 (Deep Copy)
+                    // 2. [핵심 수정] 옵션 초기화 (Clean Slate)
+                    // 현재 UI 설정(options)을 복사하되, 화질에 영향을 주는 필터들은 모두 끕니다.
                     const baseOptions = JSON.parse(JSON.stringify(options));
+                    
+                    // ★ 간섭 방지: 모든 효과를 기본적으로 끄고 시작합니다.
+                    baseOptions.celShading = { apply: false, levels: 8, outline: false }; 
+                    baseOptions.applyPattern = false;
+                    baseOptions.applyGradient = false;
+                    baseOptions.dithering = 0; // 디더링 없음
+                    baseOptions.algorithm = 'atkinson';
+                    baseOptions.saturation = 100;
+                    baseOptions.brightness = 0;
+                    baseOptions.contrast = 0;
+                    
+                    // 3. [핵심 수정] 프리셋 값 적용 (UI 키 -> 내부 로직 키 매핑)
+                    // 프리셋은 'saturationSlider' 같은 UI ID를 쓰지만, 워커 로직은 'saturation'을 씁니다.
                     const presetValues = recipe.preset;
                     
-                    Object.assign(baseOptions, presetValues);
+                    // 매핑 헬퍼 함수
+                    const applyMap = (pkey, lkey) => {
+                        if (typeof presetValues[pkey] !== 'undefined') baseOptions[lkey] = presetValues[pkey];
+                    };
+
+                    applyMap('saturationSlider', 'saturation');
+                    applyMap('brightnessSlider', 'brightness');
+                    applyMap('contrastSlider', 'contrast');
+                    applyMap('ditheringSlider', 'dithering');
+                    applyMap('ditheringAlgorithmSelect', 'algorithm');
+                    
+                    applyMap('applyPattern', 'applyPattern');
+                    applyMap('patternTypeSelect', 'patternType');
+                    applyMap('patternSizeSlider', 'patternSize');
+
+                    applyMap('applyGradient', 'applyGradient');
+                    applyMap('gradientAngleSlider', 'gradientAngle');
+                    applyMap('gradientStrengthSlider', 'gradientStrength');
+                    
+                    if (typeof presetValues.highQualityMode !== 'undefined') baseOptions.highQualityMode = presetValues.highQualityMode;
+                    if (typeof presetValues.pixelatedScaling !== 'undefined') baseOptions.pixelatedScaling = presetValues.pixelatedScaling;
+
+                    // 만화 필터 매핑
                     if (presetValues.celShading) {
+                        // 덮어쓰기
                         baseOptions.celShading = { 
-                            ...baseOptions.celShading, 
-                            ...presetValues.celShading 
+                            ...baseOptions.celShading, // 기본값 위에
+                            ...presetValues.celShading // 프리셋 값 덮어쓰기
                         };
                         
-                        // 외곽선 색상 변환 (HEX 문자열 -> RGB 배열)
-                        if (presetValues.celShading.outlineColor && typeof presetValues.celShading.outlineColor === 'string') {
-                            const hex = presetValues.celShading.outlineColor.replace('#', '');
+                        // 외곽선 색상 HEX -> RGB 변환 (필요시)
+                        if (typeof baseOptions.celShading.outlineColor === 'string') {
+                            const hex = baseOptions.celShading.outlineColor.replace('#', '');
                             const bigint = parseInt(hex, 16);
-                            const r = (bigint >> 16) & 255;
-                            const g = (bigint >> 8) & 255;
-                            const b = bigint & 255;
-                            baseOptions.celShading.outlineColor = [r, g, b];
+                            baseOptions.celShading.outlineColor = [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
                         }
                     }
 
-                    // 3. 팔레트 결정 로직 (모드별 팔레트 or 기본 팔레트)
+                    // 4. 팔레트 결정 로직 (기존과 동일)
                     let usePalette = [];
-                    
                     if (presetValues.enablePaletteColors) {
                         const currentMode = baseOptions.currentMode || 'geopixels';
                         const targetColors = presetValues.enablePaletteColors[currentMode];
-                        
                         if (targetColors && Array.isArray(targetColors)) {
                             usePalette = targetColors.map(hex => {
                                 const h = hex.replace('#', '');
@@ -256,18 +303,12 @@ self.onmessage = async (e) => {
                             });
                         }
                     }
-                    
-                    // 지정된 팔레트가 없으면 메인 스레드에서 받은 현재 팔레트 사용
                     if (usePalette.length === 0) {
-                        if (palette && palette.length > 0) {
-                            usePalette = palette;
-                        } else {
-                            // 비상용 (흑백)
-                            usePalette = [[0,0,0], [255,255,255], [128,128,128]];
-                        }
+                        if (palette && palette.length > 0) usePalette = palette;
+                        else usePalette = [[0,0,0], [255,255,255], [128,128,128]];
                     }
 
-                    // 4. 이미지 처리 및 변환 수행
+                    // 5. 이미지 처리
                     let finalThumb;
                     const processedThumb = preprocessImageData(thumbImageData, baseOptions);
                     
@@ -275,11 +316,13 @@ self.onmessage = async (e) => {
                         finalThumb = applyCelShadingFilter(processedThumb, usePalette, baseOptions);
                     } else {
                         finalThumb = applyConversion(processedThumb, usePalette, baseOptions);
+                        if (baseOptions.applyPattern) {
+                             finalThumb = applyPatternDithering(processedThumb, finalThumb, usePalette, baseOptions);
+                        }
                     }
                     
-                    // 5. 결과 저장
                     recommendationResults[category].push({ 
-                        thumbnailData: finalThumb, 
+                        thumbnailData: finalThumb, // 원본 비율 유지된 데이터
                         name: recipe.name, 
                         preset: recipe.preset, 
                         ranking: recipe.ranking, 
@@ -288,7 +331,7 @@ self.onmessage = async (e) => {
                     });
                 }
             };
-
+            
             await generateThumbnails(categorizedRecipes.fixed, 'fixed');
             await generateThumbnails(categorizedRecipes.recommended, 'recommended');
             await generateThumbnails(categorizedRecipes.others, 'others');
@@ -299,7 +342,7 @@ self.onmessage = async (e) => {
                 results: recommendationResults, 
                 processId: processId 
             });
-            
+
         } catch (error) {
              self.postMessage({ status: 'error', message: `스타일 추천 생성 중 오류: ${error.message}\n${error.stack}`, type: 'recommendationError', processId: processId });
         }

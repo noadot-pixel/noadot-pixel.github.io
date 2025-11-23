@@ -13,6 +13,48 @@ export const setupEventListeners = (callbacks) => {
     const savePresetBtn = document.getElementById('savePresetBtn');
     const presetChoiceModal = document.getElementById('preset-save-choice-modal');
 
+    if (elements.loadPresetBtn && elements.presetUpload) {
+        // 1. '불러오기' 버튼 클릭 -> 숨겨진 파일 input 클릭
+        elements.loadPresetBtn.addEventListener('click', () => {
+            elements.presetUpload.click();
+        });
+
+        // 2. 파일 선택 시 동작
+        elements.presetUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const presetData = JSON.parse(event.target.result);
+                    
+                    // 간단한 유효성 검사
+                    if (!presetData.preset) {
+                        alert("올바르지 않은 NoaDot 프리셋 파일입니다.");
+                        return;
+                    }
+
+                    // 전역 함수 applyPreset 호출 (script.js에 정의됨)
+                    // window.applyPreset이 존재하는지 확인
+                    if (window.applyPreset) {
+                        const name = (presetData.name && presetData.name.ko) ? presetData.name.ko : (presetData.name || 'Unknown');
+                        if (confirm(`'${name}' 프리셋을 적용하시겠습니까?`)) {
+                            window.applyPreset(presetData);
+                        }
+                    } else {
+                        console.error("applyPreset 함수를 찾을 수 없습니다.");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("파일을 읽는 중 오류가 발생했습니다.");
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = ''; // 초기화 (같은 파일 재선택 가능)
+        });
+    }
+
     if (savePresetBtn) {
         savePresetBtn.addEventListener('click', () => {
             presetChoiceModal.classList.remove('hidden');
@@ -25,15 +67,22 @@ export const setupEventListeners = (callbacks) => {
     });
 
     // 3. '추천 커스텀에 저장하기' (임시 세션 저장)
-    document.getElementById('btn-save-to-session').addEventListener('click', () => {
-        const newPreset = createCurrentPresetObject("Custom Preset " + (state.sessionPresets.length + 1));
-        newPreset.ranking = 'fixed'; // 요청사항: 무조건 맨 앞 고정
-        newPreset.displayTag = 'My Custom'; // 배지 표시
-        
-        state.sessionPresets.unshift(newPreset); // 배열 앞에 추가
-        alert("추천 프리셋 목록에 임시로 추가되었습니다.\n'프리셋 추천' 버튼을 누르면 맨 앞에 나타납니다.");
-        presetChoiceModal.classList.add('hidden');
-    });
+    const btnSaveSession = document.getElementById('btn-save-to-session');
+    if (btnSaveSession) {
+        document.getElementById('btn-save-to-session').addEventListener('click', () => {
+            const newPreset = createCurrentPresetObject("Custom Preset " + (state.sessionPresets.length + 1));
+            newPreset.ranking = 'fixed';
+            newPreset.displayTag = 'My Custom';
+            
+            state.sessionPresets.unshift(newPreset);
+            
+            // 모달 닫기
+            document.getElementById('preset-save-choice-modal').classList.add('hidden');
+
+            // [변경] 이제 그냥 알림만 띄웁니다.
+            alert("보관함에 저장되었습니다.\n[📂 보관함] 버튼을 눌러 확인하세요.");
+        });
+    }
 
     // 4. '파일로 저장하기' -> 이름 입력 모달 열기
     const nameInputModal = document.getElementById('preset-name-input-modal');
@@ -525,6 +574,51 @@ export const setupEventListeners = (callbacks) => {
         });
     }
     
+    if (elements.myPresetsBtn) {
+        elements.myPresetsBtn.addEventListener('click', () => {
+            // 1. 이미지가 없으면 실행 불가
+            if (!state.originalImageObject) {
+                alert("이미지를 먼저 업로드해주세요.");
+                return;
+            }
+            // 2. 저장된 프리셋이 없으면 알림
+            if (state.sessionPresets.length === 0) {
+                alert("아직 보관함에 저장된 프리셋이 없습니다.\n'저장' 버튼을 눌러 현재 설정을 추가해보세요.");
+                return;
+            }
+
+            showLoading(true);
+            
+            // 3. 워커 호출 (onlyCustom: true 옵션 사용)
+            // (변수 준비: originalData 추출 등은 기존 추천 버튼과 동일)
+            const tempC = document.createElement('canvas');
+            tempC.width = state.originalImageObject.width;
+            tempC.height = state.originalImageObject.height;
+            const ctx = tempC.getContext('2d');
+            ctx.drawImage(state.originalImageObject, 0, 0);
+            const originalData = ctx.getImageData(0, 0, tempC.width, tempC.height);
+
+            // 현재 팔레트 (썸네일 생성용)
+            let currentPalette = [];
+            const activeBtns = document.querySelectorAll('.color-button[data-on="true"], .added-color-item[data-on="true"]');
+            activeBtns.forEach(btn => {
+                if (!btn.classList.contains('all-toggle-btn')) currentPalette.push(JSON.parse(btn.dataset.rgb));
+            });
+
+            conversionWorker.postMessage({
+                type: 'getStyleRecommendations',
+                imageData: originalData,
+                palette: currentPalette,
+                options: getOptions(),
+                
+                extraPresets: state.sessionPresets, // 내 프리셋 목록 전달
+                onlyCustom: true,                   // [핵심] AI 추천 끄고 이것만 보여줘!
+                
+                processId: state.processId
+            }, [originalData.data.buffer]);
+        });
+    }
+
     if (elements.closePresetPopupBtn) elements.closePresetPopupBtn.addEventListener('click', () => elements.presetPopupContainer.classList.add('hidden'));
     
     if (elements.downloadBtn) {

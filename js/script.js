@@ -33,22 +33,37 @@ import { downloadImageWithScale } from '/js/ui.js'; // [중요] 맨 위 import�
 // ==========================================================================
 
 const triggerControlChange = (key, value) => {
-    const slider = elements[`${key}Slider`];
-    const checkbox = elements[key];
-    const select = elements[`${key}Select`];
+    // 1. ID 매핑 규칙 보강
+    let targetId = key;
+    
+    // 저장된 키가 'dithering'처럼 순수 이름이면 'Slider'나 'Select'를 붙여서 찾음
+    if (!elements[targetId]) {
+        if (elements[`${key}Slider`]) targetId = `${key}Slider`;
+        else if (elements[`${key}Select`]) targetId = `${key}Select`;
+    }
+    
+    // 요소 찾기
+    const targetEl = elements[targetId];
+    if (!targetEl) return;
 
-    const inputEvent = new Event('input', { bubbles: true });
-    const changeEvent = new Event('change', { bubbles: true });
-
-    if (slider && slider.value !== String(value)) {
-        slider.value = value;
-        slider.dispatchEvent(inputEvent);
-    } else if (checkbox && checkbox.checked !== value) {
-        checkbox.checked = value;
-        checkbox.dispatchEvent(changeEvent);
-    } else if (select && select.value !== value) {
-        select.value = value;
-        select.dispatchEvent(changeEvent);
+    // 2. 값 변경 및 이벤트 발생
+    if (targetEl.type === 'checkbox') {
+        const boolValue = (value === true || value === 'true');
+        if (targetEl.checked !== boolValue) {
+            targetEl.checked = boolValue;
+            targetEl.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    } else {
+        // 값 비교 (문자열/숫자 타입 차이 고려하여 != 사용)
+        if (targetEl.value != value) {
+            targetEl.value = value;
+            
+            // 3. [중요] Slider 옆의 숫자(Span) 업데이트를 위해 'input' 이벤트를 반드시 발생
+            targetEl.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            // 일부 로직은 change에서 동작할 수 있으므로 둘 다 발생
+            targetEl.dispatchEvent(new Event('change', { bubbles: true }));
+        }
     }
 };
 
@@ -89,90 +104,113 @@ const resetAddedColors = (force = false) => {
 
 const applyPreset = (presetObject) => {
     state.isApplyingPreset = true;
-    // [신규 기능] 사용자 정의 색상(customColors) 복구
-    if (presetObject.customColors && Array.isArray(presetObject.customColors)) {
-        // 1. 기존 추가 색상 초기화 (선택 사항, 여기선 깔끔하게 초기화 후 추가)
-        resetAddedColors(true); 
-        
-        // 2. 색상 추가
-        presetObject.customColors.forEach(rgb => {
-            // ui.js의 함수 활용
-            createAddedColorItem({ rgb: rgb }, true, triggerConversion);
-        });
-    }
     const { preset: presetValues, requiredPaletteMode } = presetObject;
 
+    // 1. 모드 강제 전환 (필요시)
     if (requiredPaletteMode && state.currentMode !== requiredPaletteMode) {
-        if (confirm(`이 프리셋은 '${requiredPaletteMode}' 모드에 최적화되어 있습니다. 모드를 전환하시겠습니까?`)) {
+        if (confirm(window.languageData[state.language].confirm_force_palette_mode(requiredPaletteMode))) {
             setPaletteMode(requiredPaletteMode);
         } else {
             state.isApplyingPreset = false;
-            triggerConversion();
             return;
         }
     }
     
+    // 2. [강제 적용] 일반 슬라이더/체크박스/셀렉트 값
+    // 저장된 JSON 키와 UI ID 매핑을 확실하게 처리합니다.
     Object.keys(presetValues).forEach(key => {
-        if (['celShading', 'overwriteUserPalette', 'disableAllPalettes', 'enablePaletteColors', 'enableAllPalettes'].includes(key)) return;
-        triggerControlChange(key, presetValues[key]);
+        // 특수 처리 키 건너뛰기
+        if (['celShading', 'overwriteUserPalette', 'disableAllPalettes', 'enablePaletteColors', 'enableAllPalettes', 'customColors'].includes(key)) return;
+        
+        // [수정] 키 이름 보정 (Slider, Select 접미사가 누락된 경우 자동 매칭)
+        let targetKey = key;
+        
+        // 만약 UI 요소가 없으면 접미사를 붙여서 찾아봄
+        if (!elements[key] && !elements[`${key}Slider`] && !elements[`${key}Select`]) {
+             // key가 'saturation'이면 -> 'saturationSlider'로 매핑 시도
+             if (elements[`${key}Slider`]) targetKey = `${key}Slider`;
+             else if (elements[`${key}Select`]) targetKey = `${key}Select`;
+        }
+        
+        // 반대로 저장된 키에 이미 접미사가 있는데 UI는 없을 수도 있음 (드문 경우)
+        // 그래도 안 되면 원래 키 사용
+        
+        triggerControlChange(targetKey, presetValues[key]);
     });
     
+    // 3. [강제 적용] 만화 필터 (Cel Shading)
     if (presetValues.celShading) {
-        Object.keys(presetValues.celShading).forEach(key => {
-            const fullKey = `celShading${key.charAt(0).toUpperCase() + key.slice(1)}`;
-            // outlineColor 같은 특수 필드는 별도 처리 필요할 수 있음 (여기선 생략)
-            triggerControlChange(fullKey, presetValues.celShading[key]);
-        });
-        triggerControlChange('celShadingApply', true);
+        const cs = presetValues.celShading;
+        
+        // 3-1. 세부 옵션 적용
+        if (typeof cs.levels !== 'undefined') triggerControlChange('celShadingLevelsSlider', cs.levels);
+        if (cs.colorSpace) triggerControlChange('celShadingColorSpaceSelect', cs.colorSpace);
+        if (typeof cs.outline !== 'undefined') triggerControlChange('celShadingOutline', cs.outline);
+        if (typeof cs.outlineThreshold !== 'undefined') triggerControlChange('celShadingOutlineThresholdSlider', cs.outlineThreshold);
+
+        // 3-2. [핵심] 외곽선 색상 (RGB 배열 -> HEX 변환)
+        if (cs.outlineColor) {
+            let hexValue = cs.outlineColor;
+            // 만약 배열([0,0,0])로 저장되어 있다면 HEX 문자열(#000000)로 변환
+            if (Array.isArray(cs.outlineColor)) {
+                hexValue = rgbToHex(cs.outlineColor[0], cs.outlineColor[1], cs.outlineColor[2]);
+            }
+            // Select 요소에 값 설정 (목록에 없으면 기본값 될 수 있음 -> populateColorSelects가 선행되어야 함)
+            // 사용자 정의 색상이 먼저 로드되어야 선택 가능함 (순서 중요)
+            triggerControlChange('celShadingOutlineColorSelect', hexValue);
+        }
+
+        // 3-3. 적용 여부 (반드시 마지막에)
+        // 명시적으로 false면 끄고, true면 켭니다. undefined면 끕니다.
+        const shouldApply = cs.apply === true;
+        triggerControlChange('celShadingApply', shouldApply);
+        
     } else {
         triggerControlChange('celShadingApply', false);
     }
 
-    // 팔레트 설정 적용
-    if (presetValues.enableAllPalettes) {
-        // 모든 버튼 켜기
-        document.querySelectorAll('.color-button[data-on="false"]').forEach(btn => btn.click());
+    // 4. 사용자 정의 색상 복구 (순서 중요: 색상 선택 UI보다 먼저 해야 함)
+    if (presetObject.customColors && Array.isArray(presetObject.customColors)) {
+        presetObject.customColors.forEach(rgb => {
+            // isColorAlreadyAdded 체크는 ui.js 함수 활용
+            // 여기선 직접 추가 함수 호출
+            if (typeof isColorAlreadyAdded === 'function' && !isColorAlreadyAdded(rgb)) {
+                createAddedColorItem({ rgb: rgb }, true, null); 
+            }
+        });
+        updatePaletteStatus(); // 배지 업데이트
+        populateColorSelects(); // [중요] 드롭다운 목록 갱신 (그래야 외곽선 색상 선택 가능)
     }
 
-    if (presetValues.overwriteUserPalette && Array.isArray(presetValues.overwriteUserPalette)) {
-        if (state.currentMode !== 'geopixels') { setPaletteMode('geopixels'); }
-        resetAddedColors(true);
-        presetValues.overwriteUserPalette.forEach(hex => {
-            const rgb = hexToRgb(hex);
-            if (rgb) { createAddedColorItem({ rgb: [rgb.r, rgb.g, rgb.b] }, true, triggerConversion); }
-        });
-        // 기본 팔레트는 끔? (기획에 따라 다름, 여기선 켬)
-        document.querySelectorAll('#geopixels-controls .color-button[data-on="false"]').forEach(btn => btn.click());
-    } 
+    // 5. 팔레트 버튼 켜기/끄기 강제 적용 (기존 로직 유지)
+    // ... (이전 코드와 동일하므로 생략 가능하나, 안전을 위해 아래 전체 포함)
+    if (presetValues.enableAllPalettes) {
+        document.querySelectorAll('.color-button[data-on="false"]').forEach(btn => btn.click());
+    }
     else if (presetValues.enablePaletteColors) {
-        // 특정 색상만 켜기 로직
         const rules = presetValues.enablePaletteColors[state.currentMode];
         if (rules && Array.isArray(rules)) {
-            // 1. 일단 다 끄고 시작? or 유지? (여기선 다 끄고 시작한다고 가정)
-            // document.querySelectorAll('.color-button[data-on="true"]').forEach(btn => btn.click());
+            const allButtons = document.querySelectorAll(
+                state.currentMode === 'geopixels' 
+                ? '#geopixels-controls .color-button, #user-palette-section .added-color-item'
+                : '#wplace-controls .color-button'
+            );
 
-            const allPaletteData = (state.currentMode === 'geopixels') ? geopixelsColors : [...wplaceFreeColors, ...wplacePaidColors];
-            const buttons = (state.currentMode === 'geopixels')
-                ? [...document.querySelectorAll('#geopixels-controls .color-button'), ...document.querySelectorAll('#user-palette-section .added-color-item')]
-                : [...document.querySelectorAll('#wplace-controls .color-button')];
-
-            const targetRgbStrings = rules.map(nameOrHex => {
-                if (String(nameOrHex).startsWith('#')) {
-                    const rgb = hexToRgb(nameOrHex);
+            const targetSet = new Set(rules.map(val => {
+                if (typeof val === 'string' && val.startsWith('#')) {
+                    const rgb = hexToRgb(val);
                     return rgb ? JSON.stringify([rgb.r, rgb.g, rgb.b]) : null;
-                } else {
-                    const colorData = allPaletteData.find(c => c.name === nameOrHex);
-                    return colorData ? JSON.stringify(colorData.rgb) : null;
                 }
-            }).filter(Boolean);
+                return null;
+            }).filter(Boolean));
 
-            buttons.forEach(item => {
-                const shouldBeOn = targetRgbStrings.includes(item.dataset.rgb);
-                const isCurrentlyOn = item.dataset.on === 'true';
-                // 목표 상태와 다르면 클릭하여 토글
-                if (shouldBeOn !== isCurrentlyOn) {
-                    const clickable = item.classList.contains('color-button') ? item : item.querySelector('.added-color-swatch');
-                    if(clickable) clickable.click();
+            allButtons.forEach(btn => {
+                const btnRgb = btn.dataset.rgb;
+                const shouldBeOn = targetSet.has(btnRgb);
+                const isOn = btn.dataset.on === 'true';
+                if (shouldBeOn !== isOn) {
+                    const clickable = btn.classList.contains('color-button') ? btn : btn.querySelector('.added-color-swatch');
+                    if (clickable) clickable.click();
                 }
             });
         }

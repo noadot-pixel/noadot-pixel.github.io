@@ -121,11 +121,33 @@
         </div>
 
         <section id="ai-preset-section" class="option-section">
-             <h2 data-lang-key="section_ai_preset">✨ 프리셋 추천</h2>
-             <div class="button-group-horizontal" style="margin-top: 10px;">
-                <button id="savePresetBtn" class="analyze-button" style="background-color: #17a2b8; margin:0;">현재 설정 프리셋으로 저장</button>
+            <h2 data-lang-key="section_ai_preset">✨ 프리셋 추천</h2>
+
+            <!-- 1. 메인 버튼 (맨 위로 이동) -->
+            <button id="getStyleRecommendationsBtn" class="analyze-button main-big-btn" disabled>
+                <span style="font-size: 1.5em;">프리셋 추천</span>
+            </button>
+
+            <!-- 2. 서브 버튼 그룹 (아래로 이동) -->
+            <div class="preset-sub-button-group">
+                <!-- 저장 버튼 -->
+                <button id="savePresetBtn" class="sub-preset-btn" style="background-color: #17a2b8;">
+                    현재 설정<br>저장하기
+                </button>
+                
+                <!-- 불러오기 버튼 -->
+                <button id="loadPresetBtn" class="sub-preset-btn" style="background-color: #6c757d;">
+                    프리셋<br>불러오기
+                </button>
+                
+                <!-- 보관함 버튼 -->
+                <button id="myPresetsBtn" class="sub-preset-btn" style="background-color: #fd7e14;">
+                    프리셋<br>보관함
+                </button>
             </div>
-             <button id="getStyleRecommendationsBtn" class="analyze-button" disabled data-lang-key="btn_get_recommendations">프리셋 추천</button>
+            
+            <!-- 숨겨진 파일 업로드 (기존 유지) -->
+            <input type="file" id="presetUpload" accept=".json" hidden>
         </section>
 
         <!-- 텍스트 모드 컨트롤 -->
@@ -374,7 +396,7 @@
                     <p style="color:#666; font-size:14px; margin-bottom:20px;">현재 적용된 모든 옵션과 추가된 색상이 저장됩니다.</p>
                     <div class="modal-buttons-vertical">
                         <button id="btn-save-to-file">📂 파일로 저장하기 (.json)</button>
-                        <button id="btn-save-to-session">✨ 추천 커스텀에 저장하기 (임시)</button>
+                        <button id="btn-save-to-session">✨ 스타일 프리셋 목록</button>
                         <button id="btn-close-save-modal" class="secondary-btn">닫기 (X)</button>
                     </div>
                 </div>

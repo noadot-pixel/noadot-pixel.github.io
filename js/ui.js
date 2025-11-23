@@ -32,6 +32,7 @@ export const initElements = () => {
         'analyzeColorsBtn', 'recommendedColorsPlaceholder',
         'convertedDimensionsLabel', 'centerBtn',
         'exportScaleSlider', 'exportScaleValue',
+        'savePresetBtn', 'loadPresetBtn', 'presetUpload', 'myPresetsBtn',
     ];
 
     ids.forEach(id => {
@@ -637,24 +638,19 @@ export const displayRecommendedPresetsInPopup = (presets, applyCallback) => {
         const card = document.createElement('div');
         card.className = 'preset-card';
         
-        // 1. 썸네일 영역 (이미지 + 태그 배지)
+        // 1. 썸네일 영역
         const thumbWrapper = document.createElement('div');
         thumbWrapper.className = 'preset-thumb-wrapper';
         
+        // [수정] 캔버스 크기를 데이터 크기에 맞춤 (비율 유지)
         const canvas = document.createElement('canvas');
-        canvas.width = 150; 
-        canvas.height = 150; 
+        canvas.width = p.thumbnailData.width;   // 데이터 원본 너비
+        canvas.height = p.thumbnailData.height; // 데이터 원본 높이
         
         const ctx = canvas.getContext('2d');
-        // Worker에서 온 ImageData를 캔버스에 그림
-        const tempC = document.createElement('canvas');
-        tempC.width = p.thumbnailData.width; 
-        tempC.height = p.thumbnailData.height;
-        tempC.getContext('2d').putImageData(p.thumbnailData, 0, 0);
         
-        // 캔버스 크기에 맞춰 리사이징 (cover 효과)
-        // 비율 유지를 위해 단순 drawImage 사용 (필요시 object-fit 로직 추가 가능)
-        ctx.drawImage(tempC, 0, 0, canvas.width, canvas.height);
+        // ImageData 바로 그리기 (리사이징 불필요)
+        ctx.putImageData(p.thumbnailData, 0, 0);
         
         thumbWrapper.appendChild(canvas);
 

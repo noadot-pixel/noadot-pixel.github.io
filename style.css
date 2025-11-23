@@ -465,19 +465,26 @@ button.toggle-all { cursor: pointer; }
 
 /* 썸네일 래퍼 (배지 위치 기준점) */
 .preset-thumb-wrapper {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1; /* 정사각형 비율 유지 */
-  margin-bottom: 10px;
-  border-radius: 6px;
-  overflow: hidden;
-  border: 1px solid #eee;
+    position: relative;
+    width: 100%;
+    /* aspect-ratio: 1 / 1;  <-- [삭제] 정사각형 강제 제거 */
+    height: auto;         /* [추가] 높이 자동 */
+    min-height: 100px;    /* 최소 높이 확보 */
+    margin-bottom: 10px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #eee;
+    background-color: #f8f8f8; /* 배경색 추가 (투명 이미지 대비) */
+    display: flex;             /* 중앙 정렬 */
+    justify-content: center;
+    align-items: center;
 }
 
 .preset-thumb-wrapper canvas {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+    /* 캔버스가 너무 크면 카드 너비에 맞춤 */
+    max-width: 100%;
+    height: auto;
+    display: block;
 }
 
 /* [핵심] 태그 배지 스타일 */
@@ -678,4 +685,71 @@ button.toggle-all { cursor: pointer; }
 #convertedDimensions {
     display: inline-block;
     transition: color 0.3s, text-shadow 0.3s;
+}
+
+.main-big-btn {
+    width: 100%;
+    padding: 20px 0;      /* 위아래 여백을 크게 */
+    font-size: 22px;      /* 폰트 키움 */
+    font-weight: 800;     /* 아주 굵게 */
+    color: white;
+    background-color: #5cb85c; /* 연두색 */
+    border: none;
+    border-radius: 12px;  /* 둥근 모서리 (이미지 참고) */
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* 살짝 그림자 */
+    transition: transform 0.1s, background-color 0.2s;
+    margin-bottom: 12px;  /* 아래 버튼들과의 간격 */
+    line-height: 1;
+}
+
+.main-big-btn:hover:not(:disabled) {
+    background-color: #4cae4c;
+    transform: translateY(-2px);
+}
+
+.main-big-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.main-big-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* 2. 하단 서브 버튼 그룹 컨테이너 */
+.preset-sub-button-group {
+    display: flex;
+    gap: 10px;           /* 버튼 사이 간격 */
+    width: 100%;
+}
+
+/* 3. 하단 서브 버튼 개별 스타일 */
+.sub-preset-btn {
+    flex: 1;             /* 3등분으로 꽉 차게 */
+    padding: 12px 5px;   /* 내부 여백 */
+    font-size: 14px;
+    font-weight: bold;
+    color: white;
+    border: none;
+    border-radius: 10px; /* 둥근 모서리 */
+    cursor: pointer;
+    line-height: 1.4;    /* 두 줄 텍스트 간격 */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: opacity 0.2s, transform 0.1s;
+    
+    /* 텍스트가 버튼 밖으로 나가지 않게 */
+    white-space: normal; 
+    word-break: keep-all; 
+    text-align: center;
+}
+
+.sub-preset-btn:hover {
+    opacity: 0.9;        /* 호버 시 살짝 밝게 */
+    transform: translateY(-1px);
+}
+
+.sub-preset-btn:active {
+    transform: translateY(0);
 }
