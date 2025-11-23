@@ -95,63 +95,74 @@ export const initElements = () => {
 };
 
 // [신규] [A] 버튼(전체 토글) 생성 함수
-export const createAllToggleButton = (container) => {
+export const createAllToggleButton = (container, callback) => {
     if (!container) return;
-    // 이미 [A] 버튼이 있는지 확인 (중복 방지)
+    // 중복 생성 방지
     if (container.querySelector('.all-toggle-btn')) return;
 
     const btn = document.createElement('button');
-    btn.className = 'all-toggle-btn'; // CSS 스타일링 필요
+    btn.className = 'all-toggle-btn';
     btn.textContent = 'A';
     btn.title = '전체 선택/해제 (Toggle All)';
     
     btn.addEventListener('click', (e) => {
         e.preventDefault();
-        // 형제 요소들 중 색상 버튼만 찾음
+        e.stopPropagation(); // 이벤트 버블링 방지
+
         const buttons = container.querySelectorAll('.color-button');
-        // 하나라도 꺼져 있으면 -> 켜기 모드, 모두 켜져 있으면 -> 끄기 모드
-        const allOn = Array.from(buttons).every(b => b.dataset.on === 'true');
-        const newState = !allOn;
         
-        buttons.forEach(b => {
+        // 현재 상태 파악: 하나라도 꺼져 있으면 -> 켜기 모드 / 다 켜져 있으면 -> 끄기 모드
+        // (A 버튼 자기 자신은 제외해야 함)
+        const colorButtons = Array.from(buttons).filter(b => !b.classList.contains('all-toggle-btn'));
+        
+        if (colorButtons.length === 0) return;
+
+        const allOn = colorButtons.every(b => b.dataset.on === 'true');
+        const newState = !allOn; // 반대 상태로 전환
+        
+        colorButtons.forEach(b => {
             b.dataset.on = newState.toString();
             b.classList.toggle('off', !newState);
         });
         
+        // 드롭다운 갱신
         populateColorSelects();
-        // 전역 변환 트리거 호출 (events.js와 연결)
-        if (typeof window.triggerConversionGlobal === 'function') window.triggerConversionGlobal();
+        
+        // [핵심 수정] 변환 트리거 실행!
+        if (callback) callback();
     });
     
-    // 컨테이너의 맨 앞에 추가
     container.prepend(btn);
 };
+
+
 
 // 색상 버튼 생성 함수 (수정됨: 마스터 버튼 제거, [A] 버튼 추가 로직 삽입)
 export const createColorButton = (colorData, container, isToggleable, onClickCallback) => {
     if (!container) return;
     
-    // [중요] 컨테이너에 처음 버튼을 추가할 때 [A] 버튼을 먼저 만듦
+    // [수정됨] A 버튼을 만들 때 onClickCallback(triggerConversion)을 넘겨줍니다.
     if (container.children.length === 0 && isToggleable) {
-        createAllToggleButton(container);
+        createAllToggleButton(container, onClickCallback);
     }
 
     const btn = document.createElement('button');
     btn.className = 'color-button';
     btn.dataset.rgb = JSON.stringify(colorData.rgb);
     btn.dataset.name = colorData.name;
-    btn.dataset.on = 'true'; // 기본적으로 켜짐
+    btn.dataset.on = 'true';
     btn.title = `${colorData.name} (RGB: ${colorData.rgb.join(', ')})`;
     btn.style.backgroundColor = `rgb(${colorData.rgb.join(',')})`;
     
+    // 밝기에 따라 글자색(숫자 배지 등 대비용) 조정 - 여기선 배지가 덮으므로 큰 의미 없지만 유지
+    const brightness = (colorData.rgb[0]*299 + colorData.rgb[1]*587 + colorData.rgb[2]*114)/1000;
+    btn.style.color = brightness > 128 ? 'black' : 'white';
+
     if (isToggleable) {
-        // 체크 마크 제거 (디자인 요구사항)
-        // const checkMark = document.createElement('span'); ... (삭제됨)
-        
         btn.addEventListener('click', () => {
             const isOn = btn.dataset.on === 'true';
             btn.dataset.on = (!isOn).toString();
-            btn.classList.toggle('off', isOn); // off 클래스로 투명도 조절
+            btn.classList.toggle('off', isOn);
             if (onClickCallback) onClickCallback();
         });
     }
