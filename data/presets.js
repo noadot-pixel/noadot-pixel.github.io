@@ -34,7 +34,7 @@ export const PRESET_RECIPES = [
             // === 디더링 (점묘화 효과) ===
             // 옵션: 'none', 'floyd', 'atkinson', 'sierra'
             ditheringAlgorithmSelect: "atkinson", 
-            ditheringSlider: 30,     // 강도 (0 ~ 100)
+            ditheringSlider: 0,     // 강도 (0 ~ 100)
 
             // === 품질 & 크기 ===
             pixelatedScaling: true,  // 픽셀 아트처럼 선명하게 (true/false)

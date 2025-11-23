@@ -32,6 +32,31 @@ conversionWorker.onmessage = (e) => {
         return;
     }
 
+    if (type === 'upscaleResult') {
+        const { imageData } = e.data;
+        
+        // 1. 다운로드 데이터 교체 (이제 다운로드하면 업스케일된 게 받아짐)
+        state.finalDownloadableData = imageData;
+        state.isUpscaled = true; // [New] 상태 변경
+        
+        // 2. 캔버스 다시 그리기
+        const canvas = elements.convertedCanvas;
+        canvas.width = imageData.width;
+        canvas.height = imageData.height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.putImageData(imageData, 0, 0);
+        
+        // 3. 정보 갱신
+        if (elements.convertedDimensions) {
+             elements.convertedDimensions.textContent = `${imageData.width} x ${imageData.height} px (EPX 2x)`;
+             elements.convertedDimensions.classList.add('neon-gold');
+        }
+        
+        // 4. 로딩 끄기
+        showLoading(false);
+    }
+
     // 프리셋 추천 결과
     if (type === 'recommendationResult') {
         if (processId !== state.processId) return;
@@ -48,52 +73,106 @@ conversionWorker.onmessage = (e) => {
         if (processId !== state.processId) return;
         
         const { imageData, recommendations, usageMap } = e.data;
+        
+        // 1. [중요] 원본 데이터 백업 (나중에 1x로 돌아올 때 씀)
+        state.latestConversionData = imageData; 
+        
+        // 2. 업스케일 UI 초기화 (변환할 때마다 1x로 리셋)
+        const radio1x = document.getElementById('upscale1x');
+        if (radio1x) radio1x.checked = true;
+        state.currentUpscaleFactor = 1;
+
+        // 3. 다운로드용 데이터 설정
         state.finalDownloadableData = imageData;
         
+        // 4. 캔버스 그리기 (기존 코드)
         const canvas = elements.convertedCanvas || document.getElementById('convertedCanvas');
         const container = elements.convertedCanvasContainer || document.getElementById('convertedCanvasContainer');
-
-        if (!canvas) {
-            console.error("❌ 캔버스 요소를 찾을 수 없습니다.");
-            return;
-        }
-
-        // [수정됨] 핵심: 여기서 CSS 클래스를 강제로 붙여야 이미지가 보입니다!
-        if (container) {
-            container.classList.add('has-image');
-        }
-
-        // 캔버스 크기 및 그리기
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = imageData.width;
-        tempCanvas.height = imageData.height;
-        tempCanvas.getContext('2d').putImageData(imageData, 0, 0);
         
+        if (container) container.classList.add('has-image');
+        
+        // (캔버스 크기 설정 및 그리기)
         const displayWidth = (state.appMode === 'image' && state.originalImageObject) 
             ? state.originalImageObject.width : imageData.width;
         const displayHeight = (state.appMode === 'image' && state.originalImageObject) 
             ? state.originalImageObject.height : imageData.height;
-        
+            
         canvas.width = displayWidth;
         canvas.height = displayHeight;
+        
+        // 임시 캔버스로 그리기 (이미지 리사이징 처리)
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = imageData.width;
+        tempCanvas.height = imageData.height;
+        tempCanvas.getContext('2d').putImageData(imageData, 0, 0);
         
         const cCtx = canvas.getContext('2d');
         const opts = getOptions ? getOptions() : { pixelatedScaling: true };
         cCtx.imageSmoothingEnabled = !opts.pixelatedScaling;
         cCtx.drawImage(tempCanvas, 0, 0, displayWidth, displayHeight);
         
-        // UI 업데이트
+        // 5. UI 업데이트 (기존 코드)
         if (elements.downloadBtn) elements.downloadBtn.disabled = false;
+        if (elements.convertedDimensions) {
+            // 1x 상태이므로 네온 효과 제거
+            elements.convertedDimensions.textContent = `${imageData.width} x ${imageData.height} px`;
+            elements.convertedDimensions.classList.remove('neon-gold');
+        }
+
         updateTransform();
         if (recommendations) updateColorRecommendations(recommendations, triggerConversion);
         if (usageMap) updatePaletteUsage(usageMap);
         
         showLoading(false);
     }
+
+    // ------------------------------------------------------------
+    // [B] 업스케일 결과 처리 (upscaleResult) - 신규 추가!
+    // ------------------------------------------------------------
+    else if (type === 'upscaleResult') {
+        const { imageData, scale } = e.data;
+        
+        // 1. 다운로드용 데이터 교체 (이제 다운로드하면 큰 이미지가 받아짐)
+        state.finalDownloadableData = imageData;
+        state.currentUpscaleFactor = scale;
+        
+        // 2. 캔버스 다시 그리기 (확대된 크기로)
+        const canvas = elements.convertedCanvas;
+        canvas.width = imageData.width;
+        canvas.height = imageData.height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.putImageData(imageData, 0, 0);
+        
+        // 3. 정보 텍스트 갱신 (금색 네온 효과 ✨)
+        if (elements.convertedDimensions) {
+             elements.convertedDimensions.textContent = `${imageData.width} x ${imageData.height} px (EPX ${scale}x)`;
+             elements.convertedDimensions.classList.add('neon-gold');
+        }
+        
+        // 4. 변환 완료 (로딩 끄기)
+        showLoading(false);
+        
+        // (줌 리셋은 선택사항, 보통 확대되면 다시 중앙 잡아주는 게 좋음)
+        // updateTransform(); 
+    }
 };
 
 export const triggerConversion = () => {
+    // 1. 프리셋 적용 중이면 중단 (기존 코드)
     if (state.isApplyingPreset) return;
+
+    // 2. [신규] 재변환 시 업스케일 상태 초기화
+    // (옵션을 바꾸면 이미지가 새로 그려지므로, '확대됨' 상태도 풀려야 버튼이 꼬이지 않습니다)
+    if (state.isUpscaled) {
+        state.isUpscaled = false;
+        // UI 버튼도 '2x 확대' 모양으로 원상복구
+        if (typeof window.updateUpscaleButtonState === 'function') {
+            window.updateUpscaleButtonState();
+        }
+    }
+
+    // 3. 디바운싱(Debounce) 처리 (기존 코드)
     clearTimeout(state.timeoutId);
     state.timeoutId = setTimeout(() => {
         if (state.appMode === 'image' && state.originalImageObject) processImage();

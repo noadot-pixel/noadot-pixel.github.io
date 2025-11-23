@@ -5,6 +5,7 @@ import { clamp, ColorConverter, findClosestColor, findTwoClosestColors } from '.
 import { preprocessImageData } from './quantization.js';
 import { applyCelShadingFilter } from './outlining.js';
 import { analyzeImageFeatures, calculateRecommendations, getStyleRecipesByTags } from './analysis.js';
+import { upscaleEPX2x, upscaleEPX3x } from './upscale.js';
 
 // ========== 1. 내부 헬퍼 함수들 ==========
 
@@ -191,7 +192,32 @@ function applyConversion(imageData, palette, options) {
 // ========== 2. 메인 이벤트 핸들러 ==========
 
 self.onmessage = async (e) => {
-    const { type, imageData, palette, allPaletteColors, options, processId, extraPresets } = e.data;
+    const { type, imageData, palette, allPaletteColors, options, processId, extraPresets, onlyCustom } = e.data;
+
+    if (type === 'upscaleImage') {
+        try {
+            const { scale } = e.data; // 배율 받기
+            let upscaledData;
+
+            if (scale === 3) {
+                upscaledData = upscaleEPX3x(imageData);
+            } else {
+                upscaledData = upscaleEPX2x(imageData);
+            }
+            
+            self.postMessage({
+                status: 'success',
+                type: 'upscaleResult',
+                imageData: upscaledData,
+                processId: processId,
+                scale: scale // 결과에도 배율 담아 보내기
+            }, [upscaledData.data.buffer]);
+            
+        } catch (error) {
+            self.postMessage({ status: 'error', message: '업스케일 오류: ' + error.message });
+        }
+        return;
+    }
 
     // [프리셋 추천 로직]
     if (type === 'getStyleRecommendations') {

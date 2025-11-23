@@ -10,48 +10,67 @@ import { triggerConversion, conversionWorker } from './worker-handler.js';
 export const setupEventListeners = (callbacks) => {
 
     // 1. 프리셋 저장 버튼 -> 저장 방식 선택 모달 열기
-    const savePresetBtn = document.getElementById('savePresetBtn');
-    const presetChoiceModal = document.getElementById('preset-save-choice-modal');
-
-    if (elements.loadPresetBtn && elements.presetUpload) {
-        // 1. '불러오기' 버튼 클릭 -> 숨겨진 파일 input 클릭
-        elements.loadPresetBtn.addEventListener('click', () => {
-            elements.presetUpload.click();
-        });
-
-        // 2. 파일 선택 시 동작
-        elements.presetUpload.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const presetData = JSON.parse(event.target.result);
-                    
-                    // 간단한 유효성 검사
-                    if (!presetData.preset) {
-                        alert("올바르지 않은 NoaDot 프리셋 파일입니다.");
-                        return;
-                    }
-
-                    // 전역 함수 applyPreset 호출 (script.js에 정의됨)
-                    // window.applyPreset이 존재하는지 확인
-                    if (window.applyPreset) {
-                        const name = (presetData.name && presetData.name.ko) ? presetData.name.ko : (presetData.name || 'Unknown');
-                        if (confirm(`'${name}' 프리셋을 적용하시겠습니까?`)) {
-                            window.applyPreset(presetData);
-                        }
-                    } else {
-                        console.error("applyPreset 함수를 찾을 수 없습니다.");
-                    }
-                } catch (err) {
-                    console.error(err);
-                    alert("파일을 읽는 중 오류가 발생했습니다.");
+    const upscaleRadios = document.getElementsByName('upscaleMode');
+    upscaleRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const scale = parseInt(e.target.value, 10);
+            
+            // 데이터가 없으면 무시
+            if (!state.latestConversionData) return;
+            
+            // 1x (원본) 선택 시 -> 백업해둔 데이터 복구
+            if (scale === 1) {
+                state.finalDownloadableData = state.latestConversionData;
+                state.currentUpscaleFactor = 1;
+                
+                // 화면 갱신
+                const canvas = elements.convertedCanvas;
+                canvas.width = state.latestConversionData.width;
+                canvas.height = state.latestConversionData.height;
+                canvas.getContext('2d').putImageData(state.latestConversionData, 0, 0);
+                
+                // 텍스트 복구 (네온 끄기)
+                if (elements.convertedDimensions) {
+                    elements.convertedDimensions.textContent = `${canvas.width} x ${canvas.height} px`;
+                    elements.convertedDimensions.classList.remove('neon-gold');
                 }
-            };
-            reader.readAsText(file);
-            e.target.value = ''; // 초기화 (같은 파일 재선택 가능)
+            } 
+            // 2x, 3x 선택 시 -> 워커 호출
+            else {
+                showLoading(true);
+                // 원본(1배) 데이터를 보내야 깨끗하게 확대됨
+                conversionWorker.postMessage({
+                    type: 'upscaleImage',
+                    imageData: state.latestConversionData, 
+                    scale: scale,
+                    processId: state.processId
+                }); // Transferable 안 씀 (백업본 유지 위해 복사)
+            }
+        });
+    });
+    
+    if (elements.upscaleBtn) {
+        elements.upscaleBtn.addEventListener('click', () => {
+            if (!state.finalDownloadableData) {
+                alert("먼저 이미지를 변환해주세요.");
+                return;
+            }
+
+            // [Case A] 이미 확대된 상태라면 -> 되돌리기 (재변환)
+            if (state.isUpscaled) {
+                state.isUpscaled = false; // 상태 리셋
+                updateUpscaleButtonState(); // 버튼 모양 복구
+                triggerConversion(); // 원본 변환 다시 실행 (가장 깔끔한 복구 방법)
+                return;
+            }
+            
+            // [Case B] 원본 상태라면 -> 확대 실행
+            showLoading(true);
+            conversionWorker.postMessage({
+                type: 'upscaleImage',
+                imageData: state.finalDownloadableData,
+                processId: state.processId
+            });
         });
     }
 

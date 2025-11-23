@@ -32,7 +32,7 @@ export const initElements = () => {
         'analyzeColorsBtn', 'recommendedColorsPlaceholder',
         'convertedDimensionsLabel', 'centerBtn',
         'exportScaleSlider', 'exportScaleValue',
-        'savePresetBtn', 'loadPresetBtn', 'presetUpload', 'myPresetsBtn',
+        'savePresetBtn', 'loadPresetBtn', 'presetUpload', 'myPresetsBtn', 'upscaleBtn',
     ];
 
     ids.forEach(id => {
@@ -96,6 +96,21 @@ export const initElements = () => {
     // 디버깅: 요소가 잘 잡혔는지 확인
     if (!elements.textEditorPanel) console.error("⚠️ 'text-editor-panel'을 찾지 못했습니다.");
     if (!elements.imageControls) console.error("⚠️ 'image-controls'를 찾지 못했습니다.");
+};
+
+export const updateUpscaleButtonState = () => {
+    const btn = elements.upscaleBtn;
+    if (!btn) return;
+
+    if (state.isUpscaled) {
+        // 업스케일 된 상태 -> '되돌리기' 버튼으로 변경
+        btn.textContent = "↩ 원본 크기로 복구";
+        btn.style.backgroundColor = "#dc3545"; // 빨간색 (Danger)
+    } else {
+        // 원본 상태 -> '2x 확대' 버튼으로 변경
+        btn.textContent = "✨ 2x 부드럽게 확대 (EPX)";
+        btn.style.backgroundColor = "#6f42c1"; // 보라색
+    }
 };
 
 // [신규] [A] 버튼(전체 토글) 생성 함수
