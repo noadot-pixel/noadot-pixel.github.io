@@ -246,44 +246,50 @@ export const clearAndResetInputFields = () => {
     if (elements.rgbInputFeedback) elements.rgbInputFeedback.textContent = '\u00A0';
 };
 
+// js/ui.js 내부
+
 export const setLanguage = (lang) => {
+    // 1. 언어 데이터가 없으면 중단 (안전장치)
     if (!window.languageData || !window.languageData[lang]) return;
+    
+    // 2. 현재 언어 상태 저장 (새로고침 해도 기억하도록)
     state.language = lang;
     localStorage.setItem('userLanguage', lang);
+
+    // 3. [텍스트] data-lang-key 속성을 가진 요소들 내용 교체
     document.querySelectorAll('[data-lang-key]').forEach(elem => {
         const key = elem.getAttribute('data-lang-key');
-        if (window.languageData[lang][key]) elem.innerHTML = window.languageData[lang][key];
+        if (window.languageData[lang][key]) {
+            elem.innerHTML = window.languageData[lang][key];
+        }
     });
+
+    // 4. [입력창 힌트] data-lang-placeholder 속성을 가진 요소들 교체
     document.querySelectorAll('[data-lang-placeholder]').forEach(elem => {
         const key = elem.getAttribute('data-lang-placeholder');
-        if (window.languageData[lang][key]) elem.placeholder = window.languageData[lang][key];
+        if (window.languageData[lang][key]) {
+            elem.placeholder = window.languageData[lang][key];
+        }
     });
+
+    // 5. [툴팁] data-tooltip-key 속성을 가진 요소들 교체
+    // (우리가 만든 커스텀 툴팁용 속성 'data-tooltip-text'에 넣어줌)
     document.querySelectorAll('[data-tooltip-key]').forEach(elem => {
         const key = elem.getAttribute('data-tooltip-key');
         if (window.languageData[lang][key]) {
-            // 커스텀 툴팁용 속성에 저장 (title 속성 안 건드림)
             elem.setAttribute('data-tooltip-text', window.languageData[lang][key]);
         }
     });
-    document.querySelectorAll('#language-switcher button').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            // 1. 클릭한 버튼의 언어 코드(ko 또는 en) 가져오기
-            const lang = e.target.dataset.lang;
-            
-            // 2. 전체 언어 설정 변경 (기존 기능)
-            if (callbacks.setLanguage) {
-                callbacks.setLanguage(lang);
-            }
-            
-            // 3. [추가된 기능] 추천 색상 목록(UI) 새로고침
-            // state.js에 저장해둔 '최신 추천 목록(latestRecommendations)'이 있다면,
-            // 현재 언어에 맞춰서 다시 그려달라고(updateColorRecommendations) 요청합니다.
-            if (state.latestRecommendations && state.latestRecommendations.length > 0) {
-                // updateColorRecommendations 함수는 ui.js에서 import 해와야 합니다.
-                // 두 번째 인자인 triggerConversion은 '+' 버튼을 눌렀을 때 실행될 함수입니다.
-                updateColorRecommendations(state.latestRecommendations, triggerConversion);
-            }
-        });
+
+    // 6. [버튼 UI] 현재 선택된 언어 버튼만 파랗게 만들기
+    const buttons = document.querySelectorAll('#language-switcher button');
+    buttons.forEach(btn => {
+        // 만약 버튼의 언어 코드(ko/en)가 지금 설정하려는 언어와 같다면?
+        if (btn.dataset.lang === lang) {
+            btn.classList.add('active'); // 파란색 켜기!
+        } else {
+            btn.classList.remove('active'); // 아니면 끄기
+        }
     });
 };
 
