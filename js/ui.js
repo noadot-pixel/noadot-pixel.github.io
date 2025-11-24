@@ -260,7 +260,10 @@ export const setLanguage = (lang) => {
     });
     document.querySelectorAll('[data-tooltip-key]').forEach(elem => {
         const key = elem.getAttribute('data-tooltip-key');
-        if (window.languageData[lang][key]) elem.setAttribute('title', window.languageData[lang][key]);
+        if (window.languageData[lang][key]) {
+            // 커스텀 툴팁용 속성에 저장 (title 속성 안 건드림)
+            elem.setAttribute('data-tooltip-text', window.languageData[lang][key]);
+        }
     });
     document.querySelectorAll('#language-switcher button').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === lang);
@@ -483,20 +486,57 @@ export const populateColorSelects = () => {
 };
 
 export const createTooltip = () => {
-    const tooltip = document.createElement('div');
-    tooltip.id = 'custom-tooltip'; tooltip.className = 'custom-tooltip'; document.body.appendChild(tooltip);
+    // 1. 기존 스타일(.tooltip-box)을 사용하는 요소 생성
+    let tooltip = document.getElementById('custom-tooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'custom-tooltip';
+        // ▼ [수정] 기존 CSS 클래스 적용
+        tooltip.className = 'tooltip-box'; 
+        document.body.appendChild(tooltip);
+    }
+
+    let isVisible = false;
+
     document.addEventListener('mousemove', (e) => {
-        const target = e.target.closest('[title]');
+        const target = e.target.closest('[data-tooltip-text]');
+
         if (target) {
-            tooltip.textContent = target.getAttribute('title');
-            tooltip.style.display = 'block';
-            tooltip.style.left = (e.pageX + 10) + 'px'; tooltip.style.top = (e.pageY + 10) + 'px';
-            target.dataset.originalTitle = target.getAttribute('title'); target.removeAttribute('title');
+            const text = target.getAttribute('data-tooltip-text');
+            if (text) {
+                // 내용 업데이트
+                tooltip.textContent = text;
+
+                // 위치 계산 (화면 밖으로 나감 방지)
+                let top = e.clientY + 15;
+                let left = e.clientX + 15;
+
+                // 툴팁이 오른쪽 화면 밖으로 나가면 왼쪽으로
+                if (left + tooltip.offsetWidth > window.innerWidth) {
+                    left = e.clientX - tooltip.offsetWidth - 10;
+                }
+                // 툴팁이 아래쪽 화면 밖으로 나가면 위쪽으로
+                if (top + tooltip.offsetHeight > window.innerHeight) {
+                    top = e.clientY - tooltip.offsetHeight - 10;
+                }
+
+                tooltip.style.top = top + 'px';
+                tooltip.style.left = left + 'px';
+
+                // 보여주기 (애니메이션 효과)
+                if (!isVisible) {
+                    tooltip.classList.add('visible');
+                    isVisible = true;
+                }
+                return;
+            }
         }
-    });
-    document.addEventListener('mouseout', (e) => {
-        const target = e.target.closest('[data-original-title]');
-        if (target) { target.setAttribute('title', target.dataset.originalTitle); tooltip.style.display = 'none'; }
+
+        // 타겟이 없으면 숨기기
+        if (isVisible) {
+            tooltip.classList.remove('visible');
+            isVisible = false;
+        }
     });
 };
 

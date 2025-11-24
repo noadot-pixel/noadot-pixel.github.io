@@ -472,7 +472,7 @@ button.toggle-all { cursor: pointer; }
     min-height: 100px;    /* 최소 높이 확보 */
     margin-bottom: 10px;
     border-radius: 6px;
-    overflow: hidden;
+    overflow: auto;
     border: 1px solid #eee;
     background-color: #f8f8f8; /* 배경색 추가 (투명 이미지 대비) */
     display: flex;             /* 중앙 정렬 */
