@@ -1,54 +1,68 @@
 // js/events.js
 import { state, CONFIG, hexToRgb } from './state.js';
 import { 
-    elements, updateTransform, populateColorSelects, updatePaletteStatus, 
+    elements, updateTransform, populateColorSelects, updatePaletteStatus, updateOutputDimensionsDisplay,
     createAddedColorItem, clearAndResetInputFields, updateScaleUIVisibility,
-    showLoading, isColorAlreadyAdded, getOptions
+    showLoading, isColorAlreadyAdded, getOptions, updateUpscaleButtonState // updateUpscaleButtonState 추가
 } from './ui.js';
 import { triggerConversion, conversionWorker } from './worker-handler.js';
 
 export const setupEventListeners = (callbacks) => {
 
-    // 1. 프리셋 저장 버튼 -> 저장 방식 선택 모달 열기
+    // ==========================================================================
+    // 0. [수정됨] 변수 선언 (오류 원인 해결)
+    // ==========================================================================
+    // HTML ID를 JS 변수로 명시적으로 가져옵니다.
+    const presetChoiceModal = document.getElementById('preset-save-choice-modal');
+    const nameInputModal = document.getElementById('preset-name-input-modal');
+    const nameInput = document.getElementById('preset-name-input');
+    const exportScaleSelect = document.getElementById('exportScaleSelect'); // 다운로드 스케일용 (만약 있다면)
+
+    // ==========================================================================
+    // 1. 업스케일 및 프리셋 저장 관련 이벤트
+    // ==========================================================================
+    
+    // 업스케일 라디오 버튼 (1x, 2x, 3x)
     const upscaleRadios = document.getElementsByName('upscaleMode');
     upscaleRadios.forEach(radio => {
         radio.addEventListener('change', (e) => {
             const scale = parseInt(e.target.value, 10);
             
-            // 데이터가 없으면 무시
-            if (!state.latestConversionData) return;
+            // 아직 변환된 데이터가 없으면 무시
+            if (!state.originalConvertedData) return;
             
-            // 1x (원본) 선택 시 -> 백업해둔 데이터 복구
+            // [Case 1] 1x (원본) 선택 시 -> 백업해둔 원본(originalConvertedData)으로 복구
             if (scale === 1) {
-                state.finalDownloadableData = state.latestConversionData;
+                // 백업 데이터를 현재 데이터로 복원
+                state.latestConversionData = state.originalConvertedData;
+                state.finalDownloadableData = state.originalConvertedData;
                 state.currentUpscaleFactor = 1;
+                state.isUpscaled = false;
                 
-                // 화면 갱신
                 const canvas = elements.convertedCanvas;
-                canvas.width = state.latestConversionData.width;
-                canvas.height = state.latestConversionData.height;
-                canvas.getContext('2d').putImageData(state.latestConversionData, 0, 0);
+                canvas.width = state.originalConvertedData.width;
+                canvas.height = state.originalConvertedData.height;
+                canvas.getContext('2d').putImageData(state.originalConvertedData, 0, 0);
                 
-                // 텍스트 복구 (네온 끄기)
-                if (elements.convertedDimensions) {
-                    elements.convertedDimensions.textContent = `${canvas.width} x ${canvas.height} px`;
-                    elements.convertedDimensions.classList.remove('neon-gold');
-                }
+                // 텍스트 업데이트 (네온 제거됨)
+                updateOutputDimensionsDisplay();
             } 
-            // 2x, 3x 선택 시 -> 워커 호출
+            // [Case 2] 2x, 3x 선택 시 -> 원본(originalConvertedData)을 기반으로 요청
             else {
                 showLoading(true);
-                // 원본(1배) 데이터를 보내야 깨끗하게 확대됨
                 conversionWorker.postMessage({
                     type: 'upscaleImage',
-                    imageData: state.latestConversionData, 
+                    // [중요] latestConversionData 대신 originalConvertedData를 보냅니다.
+                    // 그래야 2배 상태에서 3배를 눌러도 "2배 x 3배"가 아니라 "1배 -> 3배"가 됩니다.
+                    imageData: state.originalConvertedData, 
                     scale: scale,
                     processId: state.processId
-                }); // Transferable 안 씀 (백업본 유지 위해 복사)
+                });
             }
         });
     });
     
+    // 업스케일 버튼 (토글형)
     if (elements.upscaleBtn) {
         elements.upscaleBtn.addEventListener('click', () => {
             if (!state.finalDownloadableData) {
@@ -58,171 +72,131 @@ export const setupEventListeners = (callbacks) => {
 
             // [Case A] 이미 확대된 상태라면 -> 되돌리기 (재변환)
             if (state.isUpscaled) {
-                state.isUpscaled = false; // 상태 리셋
-                updateUpscaleButtonState(); // 버튼 모양 복구
-                triggerConversion(); // 원본 변환 다시 실행 (가장 깔끔한 복구 방법)
+                state.isUpscaled = false; 
+                if(typeof updateUpscaleButtonState === 'function') updateUpscaleButtonState(); 
+                triggerConversion(); // 원본 변환 다시 실행
                 return;
             }
             
-            // [Case B] 원본 상태라면 -> 확대 실행
+            // [Case B] 원본 상태라면 -> 확대 실행 (2배)
             showLoading(true);
             conversionWorker.postMessage({
                 type: 'upscaleImage',
                 imageData: state.finalDownloadableData,
+                scale: 2, // 기본 2배
                 processId: state.processId
             });
         });
     }
 
-    if (savePresetBtn) {
-        savePresetBtn.addEventListener('click', () => {
-            presetChoiceModal.classList.remove('hidden');
+    // 프리셋 저장 버튼 -> 모달 열기
+    // [수정] elements 객체 사용
+    if (elements.savePresetBtn) {
+        elements.savePresetBtn.addEventListener('click', () => {
+            if (presetChoiceModal) presetChoiceModal.classList.remove('hidden');
         });
     }
 
-    // 2. 모달 닫기 (X 버튼)
-    document.getElementById('btn-close-save-modal').addEventListener('click', () => {
-        presetChoiceModal.classList.add('hidden');
-    });
+    // 모달 닫기 (X 버튼)
+    const closeSaveModalBtn = document.getElementById('btn-close-save-modal');
+    if (closeSaveModalBtn && presetChoiceModal) {
+        closeSaveModalBtn.addEventListener('click', () => {
+            presetChoiceModal.classList.add('hidden');
+        });
+    }
 
-    // 3. '추천 커스텀에 저장하기' (임시 세션 저장)
+    // '추천 커스텀에 저장하기' (세션 저장)
     const btnSaveSession = document.getElementById('btn-save-to-session');
     if (btnSaveSession) {
-        document.getElementById('btn-save-to-session').addEventListener('click', () => {
+        btnSaveSession.addEventListener('click', () => {
             const newPreset = createCurrentPresetObject("Custom Preset " + (state.sessionPresets.length + 1));
             newPreset.ranking = 'fixed';
             newPreset.displayTag = 'My Custom';
             
             state.sessionPresets.unshift(newPreset);
             
-            // 모달 닫기
-            document.getElementById('preset-save-choice-modal').classList.add('hidden');
-
-            // [변경] 이제 그냥 알림만 띄웁니다.
-            alert("보관함에 저장되었습니다.\n[📂 보관함] 버튼을 눌러 확인하세요.");
+            if (presetChoiceModal) presetChoiceModal.classList.add('hidden');
+            alert("보관함에 저장되었습니다.\n[📂 프리셋 보관함] 버튼을 눌러 확인하세요.");
         });
     }
 
-    // 4. '파일로 저장하기' -> 이름 입력 모달 열기
-    const nameInputModal = document.getElementById('preset-name-input-modal');
-    const nameInput = document.getElementById('preset-name-input');
-
-    document.getElementById('btn-save-to-file').addEventListener('click', () => {
-        presetChoiceModal.classList.add('hidden');
-        nameInput.value = ''; // 초기화
-        nameInputModal.classList.remove('hidden');
-        nameInput.focus();
-    });
-
-    // 5. 이름 입력 후 실제 저장 실행
-    document.getElementById('btn-cancel-save-file').addEventListener('click', () => {
-        nameInputModal.classList.add('hidden');
-    });
-
-    document.getElementById('btn-confirm-save-file').addEventListener('click', () => {
-        const name = nameInput.value.trim() || "NoaDot_Preset";
-        const newPreset = createCurrentPresetObject(name);
-        
-        // 다운로드 로직
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(newPreset, null, 2));
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", `${name}.json`);
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
-        
-        nameInputModal.classList.add('hidden');
-    });
-
-    // 6. [수정됨] 다운로드 버튼 로직 (배율 확대 적용)
-    if (elements.downloadBtn) {
-        // 기존 리스너 제거가 어려우므로, 기존 ui.js 의 elements.downloadBtn 리스너를 덮어쓰거나 수정해야 함.
-        // 여기서는 cloneNode로 기존 리스너 날리고 새로 등록하는 방식을 씁니다.
-        const newBtn = elements.downloadBtn.cloneNode(true);
-        elements.downloadBtn.parentNode.replaceChild(newBtn, elements.downloadBtn);
-        elements.downloadBtn = newBtn; // 참조 갱신
-
-        elements.downloadBtn.addEventListener('click', () => {
-            if (!state.finalDownloadableData) return;
-            
-            const scaleSelect = document.getElementById('exportScaleSelect');
-            const scale = parseInt(scaleSelect.value, 10) || 1;
-            
-            // 원본(변환된) 데이터
-            const originalWidth = state.finalDownloadableData.width;
-            const originalHeight = state.finalDownloadableData.height;
-            
-            // 확대할 캔버스 생성
-            const finalCanvas = document.createElement('canvas');
-            finalCanvas.width = originalWidth * scale;
-            finalCanvas.height = originalHeight * scale;
-            const ctx = finalCanvas.getContext('2d');
-            
-            // [핵심] Nearest Neighbor 설정 (선명하게 확대)
-            ctx.imageSmoothingEnabled = false;
-            
-            // ImageData를 임시 캔버스로 옮김
-            const tempC = document.createElement('canvas');
-            tempC.width = originalWidth;
-            tempC.height = originalHeight;
-            tempC.getContext('2d').putImageData(state.finalDownloadableData, 0, 0);
-            
-            // 확대해서 그리기
-            ctx.drawImage(tempC, 0, 0, finalCanvas.width, finalCanvas.height);
-            
-            // 다운로드 실행
-            const link = document.createElement('a');
-            const originalName = state.originalFileName || 'noadot-image';
-            link.download = `${originalName}_x${scale}.png`;
-            link.href = finalCanvas.toDataURL('image/png');
-            link.click();
+    // '파일로 저장하기' -> 이름 입력 모달 열기
+    const btnSaveToFile = document.getElementById('btn-save-to-file');
+    if (btnSaveToFile && nameInputModal) {
+        btnSaveToFile.addEventListener('click', () => {
+            if (presetChoiceModal) presetChoiceModal.classList.add('hidden');
+            if (nameInput) nameInput.value = ''; 
+            nameInputModal.classList.remove('hidden');
+            if (nameInput) nameInput.focus();
         });
     }
 
+    // 이름 입력 취소
+    const btnCancelSaveFile = document.getElementById('btn-cancel-save-file');
+    if (btnCancelSaveFile && nameInputModal) {
+        btnCancelSaveFile.addEventListener('click', () => {
+            nameInputModal.classList.add('hidden');
+        });
+    }
+
+    // 이름 입력 후 실제 파일 저장
+    const btnConfirmSaveFile = document.getElementById('btn-confirm-save-file');
+    if (btnConfirmSaveFile) {
+        btnConfirmSaveFile.addEventListener('click', () => {
+            const name = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : "NoaDot_Preset";
+            const newPreset = createCurrentPresetObject(name);
+            
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(newPreset, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `${name}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            
+            if (nameInputModal) nameInputModal.classList.add('hidden');
+        });
+    }
+
+    // 헬퍼: 현재 설정으로 프리셋 객체 생성
     const createCurrentPresetObject = (name) => {
-        const currentOpts = getOptions(); // ui.js에서 가져옴
-        
-        // 사용자 추가 색상 수집 (요청하신 customColors 항목)
+        const currentOpts = getOptions(); 
         const customColors = [];
         const userItems = document.querySelectorAll('#addedColors .added-color-item');
         userItems.forEach(item => {
             customColors.push(JSON.parse(item.dataset.rgb));
         });
 
-        // preset 객체 구성
         return {
-            name: { ko: name, en: name }, // 다국어 객체 형태 유지
+            name: { ko: name, en: name },
             ranking: 'normal',
-            tags: [], // 자동 생성 프리셋이므로 태그는 비움
-            customColors: customColors, // [New] 추가 색상 목록
+            tags: [],
+            customColors: customColors,
             preset: {
                 ...currentOpts,
-                // 불필요한 상태값 제거 (예: currentMode 등은 유지하되, randomSeed 같은건 리셋)
                 celShading: {
                     ...currentOpts.celShading,
                     randomSeed: 0
                 },
-                // 팔레트 옵션: 현재 상태 기반으로 '모두 켜기' 혹은 '특정 색만 켜기' 결정
-                // 여기선 단순화를 위해 'customColors'를 제외한 팔레트는
-                // '현재 모드'를 따르도록 설정
-                enableAllPalettes: true // 일단 기본 팔레트는 다 켜는걸로 가정 (복잡도 감소)
+                enableAllPalettes: true 
             }
         };
     };
 
     // ==========================================================================
-    // 1. 파일 업로드 (중복 방지 & 드래그앤드롭)
+    // 2. 파일 업로드 & 기본 조작
     // ==========================================================================
-    elements.imageUpload.addEventListener('change', (e) => {
-        if (e.target.files && e.target.files[0]) {
-            callbacks.handleFile(e.target.files[0]);
-        }
-        e.target.value = ''; // 재선택 가능하게 초기화
-    });
+    if (elements.imageUpload) {
+        elements.imageUpload.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                callbacks.handleFile(e.target.files[0]);
+            }
+            e.target.value = '';
+        });
+        elements.imageUpload.addEventListener('click', (e) => e.target.value = '');
+    }
 
-    elements.imageUpload.addEventListener('click', (e) => e.target.value = '');
-
+    // 드래그 앤 드롭
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         elements.appContainer.addEventListener(eventName, (e) => {
             e.preventDefault(); e.stopPropagation();
@@ -239,43 +213,35 @@ export const setupEventListeners = (callbacks) => {
         }
     });
 
-    // ==========================================================================
-    // 2. 모드 전환 (초기화 로직 강화)
-    // ==========================================================================
-    elements.imageMode.addEventListener('change', () => {
-        if (callbacks.setAppMode) {
-            callbacks.setAppMode('image');
-            // UI 리셋
-            if(elements.textEditorPanel) elements.textEditorPanel.style.display = 'none';
-            if(elements.imageControls) elements.imageControls.style.display = 'grid';
-            if(elements.textControls) elements.textControls.style.display = 'none';
-            
-            const canvas = elements.convertedCanvas;
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            elements.convertedCanvasContainer.classList.remove('has-image');
-            elements.imageUpload.disabled = false;
-        }
-    });
+    // 모드 전환 (이미지 <-> 텍스트)
+    if (elements.imageMode) {
+        elements.imageMode.addEventListener('change', () => {
+            if (callbacks.setAppMode) {
+                callbacks.setAppMode('image');
+                // UI 수동 제어 (필요시)
+                if(elements.textEditorPanel) elements.textEditorPanel.style.display = 'none';
+                if(elements.imageControls) elements.imageControls.style.display = 'grid';
+                if(elements.textControls) elements.textControls.style.display = 'none';
+            }
+        });
+    }
 
-    elements.textMode.addEventListener('change', () => {
-        if (callbacks.setAppMode) {
-            callbacks.setAppMode('text');
-            if(elements.textEditorPanel) elements.textEditorPanel.style.display = 'flex';
-            if(elements.imageControls) elements.imageControls.style.display = 'none';
-            if(elements.textControls) elements.textControls.style.display = 'block';
-            
-            state.originalImageObject = null;
-            const canvas = elements.convertedCanvas;
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            elements.convertedCanvasContainer.classList.remove('has-image');
-            
-            triggerConversion();
-        }
-    });
+    if (elements.textMode) {
+        elements.textMode.addEventListener('change', () => {
+            if (callbacks.setAppMode) {
+                callbacks.setAppMode('text');
+                if(elements.textEditorPanel) elements.textEditorPanel.style.display = 'flex';
+                if(elements.imageControls) elements.imageControls.style.display = 'none';
+                if(elements.textControls) elements.textControls.style.display = 'block';
+                
+                state.originalImageObject = null;
+                elements.convertedCanvasContainer.classList.remove('has-image');
+                triggerConversion();
+            }
+        });
+    }
 
-    // 텍스트 입력 감지 (필수)
+    // 텍스트 입력
     if (elements.editorTextarea) {
         elements.editorTextarea.addEventListener('input', (e) => {
             state.textState.content = e.target.value;
@@ -283,7 +249,7 @@ export const setupEventListeners = (callbacks) => {
         });
     }
 
-    // 텍스트 스타일 변경 감지
+    // 텍스트 스타일 변경
     const textStyleIds = ['fontSelect', 'fontSizeSlider', 'letterSpacingSlider', 'paddingSlider', 'strokeWidthSlider', 'textColorSelect', 'bgColorSelect', 'strokeColorSelect'];
     textStyleIds.forEach(id => {
         const el = elements[id];
@@ -299,7 +265,7 @@ export const setupEventListeners = (callbacks) => {
     });
 
     // ==========================================================================
-    // 3. 팔레트 및 옵션
+    // 3. 팔레트 모드 및 옵션 제어
     // ==========================================================================
     const paletteRadios = document.getElementsByName('paletteMode');
     paletteRadios.forEach(radio => {
@@ -316,13 +282,14 @@ export const setupEventListeners = (callbacks) => {
         });
     }
 
+    // 일반 슬라이더/옵션 제어
     const controlIds = [
         'scaleSlider', 'saturationSlider', 'brightnessSlider', 'contrastSlider',
         'ditheringSlider', 'ditheringAlgorithmSelect', 'patternTypeSelect', 'patternSizeSlider',
         'gradientAngleSlider', 'gradientStrengthSlider', 'highlightSensitivitySlider',
         'scaleWidth', 'scaleHeight', 'pixelScaleSlider',
         'celShadingLevelsSlider', 'celShadingColorSpaceSelect',
-        'celShadingOutlineThresholdSlider', 'celShadingOutlineColorSelect'
+        'celShadingOutlineThresholdSlider', 'celShadingOutlineColorSelect', 'colorMethodSelect'
     ];
 
     controlIds.forEach(id => {
@@ -350,7 +317,12 @@ export const setupEventListeners = (callbacks) => {
         }
     });
     
-    const toggleMap = { 'applyPattern': elements.patternOptions, 'applyGradient': elements.gradientOptions, 'celShadingApply': elements.celShadingOptions };
+    // 토글형 옵션 (패턴, 그라데이션, 만화필터)
+    const toggleMap = { 
+        'applyPattern': elements.patternOptions, 
+        'applyGradient': elements.gradientOptions, 
+        'celShadingApply': elements.celShadingOptions 
+    };
     Object.entries(toggleMap).forEach(([checkboxId, optionPanel]) => {
         if (elements[checkboxId]) {
             elements[checkboxId].addEventListener('change', (e) => {
@@ -361,6 +333,7 @@ export const setupEventListeners = (callbacks) => {
         }
     });
     
+    // 외곽선 토글
     if (elements.celShadingOutline) {
         elements.celShadingOutline.addEventListener('change', (e) => {
             const subSettings = document.getElementById('outline-sub-settings');
@@ -369,6 +342,7 @@ export const setupEventListeners = (callbacks) => {
         });
     }
 
+    // 랜덤 시드 변경 버튼
     if (elements.celShadingRetryBtn) {
         elements.celShadingRetryBtn.addEventListener('click', () => {
             if (typeof state.celShadingSeed === 'undefined') state.celShadingSeed = 0;
@@ -379,9 +353,9 @@ export const setupEventListeners = (callbacks) => {
 
     if (elements.highQualityMode) elements.highQualityMode.addEventListener('change', triggerConversion);
     if (elements.pixelatedScaling) elements.pixelatedScaling.addEventListener('change', triggerConversion);
-    
     if (elements.scaleModeSelect) elements.scaleModeSelect.addEventListener('change', (e) => callbacks.handleScaleModeChange(e.target.value));
     
+    // +/- 버튼
     document.querySelectorAll('.scale-mod-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -397,6 +371,7 @@ export const setupEventListeners = (callbacks) => {
         });
     });
 
+    // 리셋 버튼 (⟳)
     document.querySelectorAll('.reset-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -412,19 +387,18 @@ export const setupEventListeners = (callbacks) => {
     });
 
     // ==========================================================================
-    // 4. 캔버스 조작 (클릭 업로드, 휠 줌, 드래그)
+    // 4. 캔버스 조작 (클릭, 줌, 팬)
     // ==========================================================================
     if (elements.convertedCanvasContainer) {
-        // 클릭하여 업로드 (중복 방지)
         elements.convertedCanvasContainer.addEventListener('click', (e) => {
             if (state.appMode === 'text' || elements.appContainer.classList.contains('image-loaded')) return;
             if (state.appMode === 'image') {
                 e.stopPropagation();
-                elements.imageUpload.click();
+                if (elements.imageUpload) elements.imageUpload.click();
             }
         });
 
-        // 휠 줌 (Ctrl 없이, 2000%까지)
+        // 휠 줌
         elements.convertedCanvasContainer.addEventListener('wheel', (e) => {
             if (!state.originalImageObject && !state.finalDownloadableData && state.appMode !== 'text') return;
             e.preventDefault();
@@ -434,15 +408,9 @@ export const setupEventListeners = (callbacks) => {
             newZoom = Math.max(10, Math.min(2000, newZoom));
             
             if (callbacks.updateZoom) callbacks.updateZoom(newZoom);
-            else {
-                state.zoomLevel = newZoom;
-                updateTransform();
-                const display = document.getElementById('zoomLevelDisplay');
-                if (display) display.textContent = `${Math.round(state.zoomLevel)}%`;
-            }
         }, { passive: false });
 
-        // 드래그 이동
+        // 드래그
         let isDragging = false;
         let startX, startY;
         elements.convertedCanvasContainer.addEventListener('mousedown', (e) => {
@@ -481,7 +449,7 @@ export const setupEventListeners = (callbacks) => {
     }
 
     // ==========================================================================
-    // 5. 기타 기능 (색상 추가, 팔레트 I/O, 프리셋 등)
+    // 5. 색상 추가 및 기타 버튼
     // ==========================================================================
     if (elements.addColorBtn) {
         elements.addColorBtn.addEventListener('click', () => {
@@ -496,12 +464,6 @@ export const setupEventListeners = (callbacks) => {
                 if (callbacks.tryAddColor && callbacks.tryAddColor(rgb)) {
                     if(callbacks.clearAndResetInputFields) callbacks.clearAndResetInputFields();
                     populateColorSelects();
-                } else if (!isColorAlreadyAdded(rgb)) {
-                    createAddedColorItem(rgb, true, triggerConversion);
-                    clearAndResetInputFields();
-                    updatePaletteStatus();
-                    populateColorSelects();
-                    triggerConversion();
                 }
             }
         });
@@ -510,13 +472,6 @@ export const setupEventListeners = (callbacks) => {
     if (elements.resetAddedColorsBtn) {
         elements.resetAddedColorsBtn.addEventListener('click', () => {
             if (callbacks.resetAddedColors) callbacks.resetAddedColors();
-            else if (confirm("추가한 색상을 모두 삭제하시겠습니까?")) {
-                elements.addedColorsContainer.innerHTML = '';
-                updatePaletteStatus();
-                populateColorSelects();
-                triggerConversion();
-            }
-            populateColorSelects();
         });
     }
 
@@ -536,7 +491,6 @@ export const setupEventListeners = (callbacks) => {
     }
 
     if (elements.importPaletteBtn) elements.importPaletteBtn.addEventListener('click', () => elements.paletteUpload.click());
-
     if (elements.paletteUpload) {
         elements.paletteUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -550,8 +504,10 @@ export const setupEventListeners = (callbacks) => {
                         importedColors.forEach(rgb => {
                             if (!isColorAlreadyAdded(rgb)) { createAddedColorItem(rgb, true, triggerConversion); addedCount++; }
                         });
-                        if (addedCount > 0) { alert(`${addedCount}개의 색상을 불러왔습니다.`); updatePaletteStatus(); populateColorSelects(); triggerConversion(); }
-                        else alert('추가할 새로운 색상이 없습니다.');
+                        if (addedCount > 0) { 
+                            alert(`${addedCount}개의 색상을 불러왔습니다.`); 
+                            updatePaletteStatus(); populateColorSelects(); triggerConversion(); 
+                        } else alert('추가할 새로운 색상이 없습니다.');
                     } else alert('올바르지 않은 파일 형식입니다.');
                 } catch (err) { alert('파일 읽기 오류: ' + err.message); }
             };
@@ -560,14 +516,13 @@ export const setupEventListeners = (callbacks) => {
         });
     }
 
-    // [중요] 프리셋 추천 버튼 (originalData 변수 선언 문제 해결)
+    // 프리셋 추천 버튼
     if (elements.getStyleRecommendationsBtn) {
         elements.getStyleRecommendationsBtn.addEventListener('click', () => {
             if (!state.originalImageObject) return;
             showLoading(true);
             elements.getStyleRecommendationsBtn.disabled = true;
             
-            // 변수 선언 순서 수정 (중요!)
             const tempC = document.createElement('canvas');
             tempC.width = state.originalImageObject.width;
             tempC.height = state.originalImageObject.height;
@@ -575,49 +530,6 @@ export const setupEventListeners = (callbacks) => {
             ctx.drawImage(state.originalImageObject, 0, 0);
             const originalData = ctx.getImageData(0, 0, tempC.width, tempC.height);
 
-            // 현재 팔레트 수집 (옵션)
-            let currentPalette = [];
-            const activeBtns = document.querySelectorAll('.color-button[data-on="true"], .added-color-item[data-on="true"]');
-            activeBtns.forEach(btn => {
-                if (!btn.classList.contains('all-toggle-btn')) currentPalette.push(JSON.parse(btn.dataset.rgb));
-            });
-
-            conversionWorker.postMessage({
-                type: 'getStyleRecommendations',
-                imageData: originalData,
-                palette: currentPalette, // 팔레트 정보 전달
-                options: getOptions(),
-                
-                processId: state.processId
-            }, [originalData.data.buffer]);
-        });
-    }
-    
-    if (elements.myPresetsBtn) {
-        elements.myPresetsBtn.addEventListener('click', () => {
-            // 1. 이미지가 없으면 실행 불가
-            if (!state.originalImageObject) {
-                alert("이미지를 먼저 업로드해주세요.");
-                return;
-            }
-            // 2. 저장된 프리셋이 없으면 알림
-            if (state.sessionPresets.length === 0) {
-                alert("아직 보관함에 저장된 프리셋이 없습니다.\n'저장' 버튼을 눌러 현재 설정을 추가해보세요.");
-                return;
-            }
-
-            showLoading(true);
-            
-            // 3. 워커 호출 (onlyCustom: true 옵션 사용)
-            // (변수 준비: originalData 추출 등은 기존 추천 버튼과 동일)
-            const tempC = document.createElement('canvas');
-            tempC.width = state.originalImageObject.width;
-            tempC.height = state.originalImageObject.height;
-            const ctx = tempC.getContext('2d');
-            ctx.drawImage(state.originalImageObject, 0, 0);
-            const originalData = ctx.getImageData(0, 0, tempC.width, tempC.height);
-
-            // 현재 팔레트 (썸네일 생성용)
             let currentPalette = [];
             const activeBtns = document.querySelectorAll('.color-button[data-on="true"], .added-color-item[data-on="true"]');
             activeBtns.forEach(btn => {
@@ -629,10 +541,44 @@ export const setupEventListeners = (callbacks) => {
                 imageData: originalData,
                 palette: currentPalette,
                 options: getOptions(),
-                
-                extraPresets: state.sessionPresets, // 내 프리셋 목록 전달
-                onlyCustom: true,                   // [핵심] AI 추천 끄고 이것만 보여줘!
-                
+                processId: state.processId
+            }, [originalData.data.buffer]);
+        });
+    }
+    
+    // 프리셋 보관함 버튼
+    if (elements.myPresetsBtn) {
+        elements.myPresetsBtn.addEventListener('click', () => {
+            if (!state.originalImageObject) {
+                alert("이미지를 먼저 업로드해주세요.");
+                return;
+            }
+            if (state.sessionPresets.length === 0) {
+                alert("아직 보관함에 저장된 프리셋이 없습니다.\n'현재 설정 저장하기' 버튼을 눌러 추가해보세요.");
+                return;
+            }
+
+            showLoading(true);
+            const tempC = document.createElement('canvas');
+            tempC.width = state.originalImageObject.width;
+            tempC.height = state.originalImageObject.height;
+            const ctx = tempC.getContext('2d');
+            ctx.drawImage(state.originalImageObject, 0, 0);
+            const originalData = ctx.getImageData(0, 0, tempC.width, tempC.height);
+
+            let currentPalette = [];
+            const activeBtns = document.querySelectorAll('.color-button[data-on="true"], .added-color-item[data-on="true"]');
+            activeBtns.forEach(btn => {
+                if (!btn.classList.contains('all-toggle-btn')) currentPalette.push(JSON.parse(btn.dataset.rgb));
+            });
+
+            conversionWorker.postMessage({
+                type: 'getStyleRecommendations',
+                imageData: originalData,
+                palette: currentPalette,
+                options: getOptions(),
+                extraPresets: state.sessionPresets,
+                onlyCustom: true, 
                 processId: state.processId
             }, [originalData.data.buffer]);
         });
@@ -640,17 +586,7 @@ export const setupEventListeners = (callbacks) => {
 
     if (elements.closePresetPopupBtn) elements.closePresetPopupBtn.addEventListener('click', () => elements.presetPopupContainer.classList.add('hidden'));
     
-    if (elements.downloadBtn) {
-        elements.downloadBtn.addEventListener('click', () => {
-            if (!elements.convertedCanvas) return;
-            const link = document.createElement('a');
-            const originalName = state.originalFileName || 'noadot-image';
-            link.download = `${originalName}_converted.png`;
-            link.href = elements.convertedCanvas.toDataURL('image/png');
-            link.click();
-        });
-    }
-    
+    // 다국어 버튼
     document.querySelectorAll('#language-switcher button').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const lang = e.target.dataset.lang;
@@ -658,39 +594,31 @@ export const setupEventListeners = (callbacks) => {
         });
     });
 
+    // 출력 배율 슬라이더
     if (elements.exportScaleSlider) {
-        elements.exportScaleSlider.addEventListener('input', (e) => {
-            // 1. 슬라이더 값 읽기 (문자열 -> 숫자)
-            const val = parseInt(e.target.value, 10);
-            
-            // 2. 전역 상태(state)에 저장
-            state.exportScale = val;
-            
-            // 3. 화면에 숫자 업데이트 ("4x")
-            if (elements.exportScaleValue) {
-                elements.exportScaleValue.textContent = `${val}x`;
-            }
-            
-            // 4. 변환 다시 실행 (그래야 '변환 크기' 텍스트가 갱신됨)
-            // (이미지 처리가 아니라 텍스트 갱신 목적이지만, 가장 간단한 방법)
-            triggerConversion();
-        });
-    }
+    elements.exportScaleSlider.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value, 10);
+        state.exportScale = val;
+        if (elements.exportScaleValue) elements.exportScaleValue.textContent = `${val}x`;
+        updateOutputDimensionsDisplay();
+        // [추가] 텍스트 정보 즉시 갱신 (JS 모듈에서 import 해와야 함)
+        // 만약 ui.js에서 import { updateOutputDimensionsDisplay } from './ui.js' 했다면:
+        if (callbacks.updateOutputDimensionsDisplay) {
+             callbacks.updateOutputDimensionsDisplay();
+        } else {
+            // callbacks에 없다면 import한 함수 직접 호출 (구조에 따라 다름)
+             updateOutputDimensionsDisplay(); 
+        }
+    });
+}
 
-    // [수정] 다운로드 버튼 이벤트 (기존 거 찾아서 교체하세요!)
+    // 다운로드 버튼 (이벤트 교체 방식)
     if (elements.downloadBtn) {
-        // 기존에 있던 리스너를 지우기 위해 노드를 복제해서 교체하는 트릭을 씁니다.
         const newDownloadBtn = elements.downloadBtn.cloneNode(true);
         elements.downloadBtn.parentNode.replaceChild(newDownloadBtn, elements.downloadBtn);
-        elements.downloadBtn = newDownloadBtn; // 참조 갱신
+        elements.downloadBtn = newDownloadBtn; 
 
-        // 새 리스너 등록
         elements.downloadBtn.addEventListener('click', () => {
-            // ui.js에서 만든 함수 호출
-            // state.js에서 import 해와야 하지만, ui.js에 있으니 콜백으로 넘기거나
-            // ui.js의 downloadImageWithScale을 import 해야 합니다.
-            
-            // [가장 쉬운 방법] callbacks 객체에 담아서 호출
             if (callbacks.downloadImageWithScale) {
                 const name = state.originalFileName || 'image';
                 callbacks.downloadImageWithScale(name);

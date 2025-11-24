@@ -681,10 +681,38 @@ button.toggle-all { cursor: pointer; }
     transition: all 0.3s ease;
 }
 
+.neon-purple-light {
+    color: #FFFFFF !important;
+    text-shadow: -1px -1px 0 #4A148C, 1px -1px 0 #4A148C, -1px 1px 0 #4A148C, 1px 1px 0 #4A148C,
+                 0 0 5px #E040FB, 0 0 10px #D500F9; /* 밝은 자주색 광채 */
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+/* [신규] Dark Purple 네온 (업스케일 3x용) */
+.neon-purple-dark {
+    color: #FFFFFF !important;
+    text-shadow: -1px -1px 0 #311B92, 1px -1px 0 #311B92, -1px 1px 0 #311B92, 1px 1px 0 #311B92,
+                 0 0 5px #7C4DFF, 0 0 10px #651FFF; /* 깊은 보라색 광채 */
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+/* [신규] Red 네온 (업스케일 + 배율 중복용) - 경고성 강렬함 */
+.neon-red {
+    color: #FFFFFF !important;
+    text-shadow: -1px -1px 0 #B71C1C, 1px -1px 0 #B71C1C, -1px 1px 0 #B71C1C, 1px 1px 0 #B71C1C,
+                 0 0 5px #FF5252, 0 0 10px #FF1744; /* 붉은색 광채 */
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+
 /* 변환 크기 텍스트 기본 스타일 강화 (전환 효과) */
 #convertedDimensions {
     display: inline-block;
     transition: color 0.3s, text-shadow 0.3s;
+    padding: 0 4px;
 }
 
 .main-big-btn {

@@ -135,6 +135,47 @@ export const languageData = {
         cartoon_outline_color: "외곽선 색상",
         confirm_reset_colors: "추가한 색상을 모두 삭제하시겠습니까?", // [추가]
         resize_output_scale: "출력 배율",
+        // [신규] 색상 계산 방식 (드롭다운 옵션)
+        option_color_method_rgb: "일반 (RGB) - 빠름",
+        option_color_method_oklab: "고품질 (Oklab) - 권장",
+        option_color_method_ciede2000: "Wdot (CIEDE2000) - 정밀/느림",
+
+        // [신규] 업스케일 섹션
+        section_upscale: "5. 업스케일 (Upscale)",
+        upscale_1x: "1x (기본)",
+        upscale_2x: "2x (EPX)",
+        upscale_3x: "3x (EPX)",
+
+        // [신규] 툴팁 (마우스 올리면 뜨는 설명)
+        tooltip_upload_image: "클릭해서 이미지를 업로드하거나, 이곳으로 드래그하세요.",
+        tooltip_center_zoom: "화면을 중앙으로 맞추고 줌을 100%로 초기화합니다.",
+        
+        tooltip_resize_mode: "이미지 크기를 줄이는 방식을 선택합니다.\n- 픽셀: 지정한 픽셀만큼 줄임\n- 비율: % 단위로 줄임",
+        tooltip_pixel_scale: "원본 이미지에서 가로/세로 픽셀을 얼마나 뺄지 결정합니다.",
+        tooltip_export_scale: "다운로드할 때 이미지 크기를 정수 배로 키웁니다.\n(작은 픽셀 아트를 선명하게 크게 저장할 때 유용)",
+        
+        tooltip_dithering: "색상 수를 줄일 때 점을 찍어 부드럽게 표현하는 기법입니다.",
+        tooltip_pattern: "이미지 위에 특정한 무늬(격자, 빗살 등)를 덮어씌웁니다.",
+        tooltip_gradient: "이미지의 투명도나 밝기에 그라데이션 효과를 줍니다.",
+        
+        tooltip_pixelated_scaling: "체크 시: 도트가 뚜렷하게 리사이징됩니다 (Nearest Neighbor).\n해제 시: 부드럽게 리사이징됩니다 (Bilinear).",
+        tooltip_color_method: "색상 유사도를 계산하는 수학적 알고리즘입니다.\n- RGB: 빠르지만 부정확할 수 있음\n- Oklab: 사람이 보는 색감과 비슷함\n- Wdot: 가장 정밀하지만 연산이 느림",
+        
+        tooltip_cartoon_filter: "이미지를 만화처럼 단순화하고 외곽선을 그립니다.",
+        tooltip_retry_seed: "만화 필터의 색상 추출 알고리즘(K-means)의 랜덤 시드를 변경하여,\n같은 설정에서 다른 색상 조합을 찾아봅니다.",
+        
+        tooltip_palette_geopixels: "전 세계 지형 데이터에 최적화된 기본 팔레트입니다.",
+        tooltip_palette_wplace: "Wplace 프로젝트에서 사용되는 공식 팔레트입니다.",
+        tooltip_user_palette: "직접 색상 코드를 입력하거나, 이미지에서 추출하여 나만의 팔레트를 만듭니다.",
+        
+        tooltip_highlight_sensitivity: "이미지에서 '주요 색상'을 추출할 때, 얼마나 밝은 부분까지 포함할지 결정합니다.",
+        tooltip_upscale_options: "EPX 알고리즘을 사용하여 픽셀 깨짐 없이 해상도를 2배/3배로 늘립니다.",
+        
+        // 모달/팝업
+        modal_preset_save_title: "프리셋 저장 방식 선택",
+        modal_preset_name_title: "프리셋 이름 입력",
+        btn_save_file: "파일로 저장 (.json)",
+        btn_save_session: "보관함에 추가 (임시)",
         
     },
     en: {
@@ -260,6 +301,46 @@ export const languageData = {
         cartoon_outline_color: "Outline Color",
         confirm_reset_colors: "Are you sure you want to remove all added colors?", // [추가]
         resize_output_scale: "Output Scale",
+        option_color_method_rgb: "Standard (RGB) - Fast",
+        option_color_method_oklab: "High Quality (Oklab) - Recommended",
+        option_color_method_ciede2000: "Wdot (CIEDE2000) - Precise/Slow",
+
+        // [New] Upscale Section
+        section_upscale: "5. Upscale",
+        upscale_1x: "1x (Default)",
+        upscale_2x: "2x (EPX)",
+        upscale_3x: "3x (EPX)",
+
+        // [New] Tooltips
+        tooltip_upload_image: "Click to upload or drag & drop an image here.",
+        tooltip_center_zoom: "Reset zoom to 100% and center the canvas.",
+        
+        tooltip_resize_mode: "Choose how to resize the image.\n- Pixel: Reduce by specific pixels\n- Ratio: Reduce by percentage",
+        tooltip_pixel_scale: "Determines how many pixels to subtract from the width/height.",
+        tooltip_export_scale: "Multiplies the image size for download.\n(Useful for saving small pixel art in high resolution)",
+        
+        tooltip_dithering: "A technique to create the illusion of color depth using dots.",
+        tooltip_pattern: "Overlays a specific pattern (grid, diagonal, etc.) on the image.",
+        tooltip_gradient: "Applies a gradient effect to transparency or brightness.",
+        
+        tooltip_pixelated_scaling: "Checked: Sharp edges (Nearest Neighbor).\nUnchecked: Smooth edges (Bilinear).",
+        tooltip_color_method: "Mathematical algorithm for color similarity.\n- RGB: Fast but less accurate\n- Oklab: Perceptually uniform\n- Wdot: Most precise but slow",
+        
+        tooltip_cartoon_filter: "Simplifies the image and adds outlines like a cartoon.",
+        tooltip_retry_seed: "Changes the random seed for color extraction (K-means)\nto find a different color combination.",
+        
+        tooltip_palette_geopixels: "Default palette optimized for GeoPixels terrain.",
+        tooltip_palette_wplace: "Official palette used in the Wplace project.",
+        tooltip_user_palette: "Create your own palette by inputting codes or extracting from image.",
+        
+        tooltip_highlight_sensitivity: "Determines how sensitive the analyzer is to bright areas when extracting colors.",
+        tooltip_upscale_options: "Increases resolution by 2x/3x using the EPX algorithm without blurring.",
+
+        // Modals
+        modal_preset_save_title: "Save Preset As...",
+        modal_preset_name_title: "Enter Preset Name",
+        btn_save_file: "Save to File (.json)",
+        btn_save_session: "Add to Collection (Temp)",
 
     }
 };

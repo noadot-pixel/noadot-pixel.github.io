@@ -80,7 +80,7 @@
                 <h2 data-lang-key="section_resize">2. 크기 조절</h2>
                 <fieldset id="scaleControlsFieldset" disabled>
                     <div class="control-group">
-                        <label for="scaleModeSelect" data-lang-key="resize_mode">조절 방식</label>
+                        <label for="scaleModeSelect" data-lang-key="resize_mode" data-tooltip-key="tooltip_resize_mode">조절 방식</label>
                         <select id="scaleModeSelect">
                             <option value="pixel" data-lang-key="resize_pixel">픽셀 단위</option>
                             <option value="ratio" data-lang-key="resize_ratio">비율 단위</option>
@@ -94,7 +94,7 @@
                     </div>
                     <div id="pixel-scale-controls">
                          <div class="control-group">
-                            <label for="pixelScaleSlider" data-lang-key="resize_pixel_amount">픽셀 축소량</label>
+                            <label for="pixelScaleSlider" data-lang-key="resize_pixel_amount" data-tooltip-key="tooltip_pixel_scale">픽셀 축소량</label>
                             <input type="range" id="pixelScaleSlider" min="0" value="0">
                         </div>
                         <div class="control-group scale-control-group">
@@ -109,7 +109,7 @@
                         </div>
                     </div>
                     <div class="control-group" style="border-top: 1px dashed #ccc; padding-top: 15px; margin-top: 15px;">
-                        <label for="exportScaleSlider">
+                        <label for="exportScaleSlider" data-tooltip-key="tooltip_export_scale">
                             <span data-lang-key="resize_output_scale">출력 배율</span>: 
                             <span id="exportScaleValue">1x</span>
                             <span style="font-size:12px; font-weight:normal; color:#666; margin-left:5px;">(다운로드 시 적용)</span>
@@ -220,7 +220,7 @@
 
             <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
                 <input type="checkbox" id="applyPattern">
-                <label for="applyPattern" data-lang-key="option_apply_pattern"data-tooltip-key="tooltip_pattern">패턴 적용 (베타)</label>
+                <label for="celShadingApply" data-lang-key="option_cartoon_filter" data-tooltip-key="tooltip_cartoon_filter">만화 스타일 필터</label>
             </div>
             <div id="pattern-options" class="sub-options" style="display: none;">
                 <div class="control-group">
@@ -260,9 +260,14 @@
                 <input type="checkbox" id="pixelatedScaling" checked>
                 <label for="pixelatedScaling" data-lang-key="option_pixelated_scaling" data-tooltip-key="tooltip_pixelated_scaling">선명한 리사이징 (픽셀 아트용)</label>
             </div>
-            <div class="control-group checkbox-group">
-                <input type="checkbox" id="highQualityMode">
-                <label for="highQualityMode" data-lang-key="option_hq_mode" data-tooltip-key="tooltip_hq_mode">고품질 색상 계산 (느림)</label>
+            <div class="control-group">
+                <label for="colorMethodSelect" data-lang-key="option_color_method" data-tooltip-key="tooltip_color_method">색상 계산 방식</label>
+                <select id="colorMethodSelect" data-tooltip-key="tooltip_color_method">
+                    <option value="rgb" data-lang-key="option_color_method_rgb">일반 (RGB) - 빠름</option>
+                    <option value="oklab" selected data-lang-key="option_color_method_oklab">고품질 (Oklab) - 권장</option>
+                    <!-- [New] Wdot 옵션 추가 -->
+                    <option value="ciede2000" data-lang-key="option_color_method_ciede2000">Wdot (CIEDE2000) - 정밀/느림</option>
+                </select>
             </div>
             
             <!-- 만화 필터 메인 토글 -->
@@ -293,7 +298,12 @@
 
                     <!-- [신규] 3. 다른 색상 조합 시도 버튼 (랜덤 시드 변경) -->
                     <div class="control-group" style="justify-content: flex-end; margin-top: 5px;">
-                        <button id="celShadingRetryBtn" class="analyze-button" title="같은 설정으로 다시 색상을 추출해 봅니다." data-lang-key="btn_retry_color_combination" style="width: 100%;">
+                        <button id="celShadingRetryBtn" class="analyze-button" 
+                            data-lang-key="btn_retry_color_combination" 
+                            data-tooltip-key="tooltip_retry_seed"
+                            style="width: 100%;">
+                        🎲 다른 색상 조합 시도
+                    </button>
                             🎲 다른 색상 조합 시도
                         </button>
                     </div>
@@ -390,19 +400,19 @@
         </details>
 
         <section class="option-section">
-            <h2 data-lang-key="section_upscale">5. 업스케일 (Upscale)</h2>
-            <div class="radio-toggle" id="upscale-control-group">
-                <!-- 1배 (기본) -->
+            <h2 data-lang-key="section_upscale" data-tooltip-key="tooltip_upscale_options">5. 업스케일 (Upscale)</h2>
+            <div class="radio-toggle" id="upscale-control-group" data-tooltip-key="tooltip_upscale_options">
+                <!-- 1배 -->
                 <input type="radio" id="upscale1x" name="upscaleMode" value="1" checked>
-                <label for="upscale1x">1x (기본)</label>
+                <label for="upscale1x" data-lang-key="upscale_1x">1x (기본)</label>
 
-                <!-- 2배 (EPX) -->
+                <!-- 2배 -->
                 <input type="radio" id="upscale2x" name="upscaleMode" value="2">
-                <label for="upscale2x">2x (EPX)</label>
+                <label for="upscale2x" data-lang-key="upscale_2x">2x (EPX)</label>
 
-                <!-- 3배 (EPX 3x) -->
+                <!-- 3배 -->
                 <input type="radio" id="upscale3x" name="upscaleMode" value="3">
-                <label for="upscale3x">3x (EPX)</label>
+                <label for="upscale3x" data-lang-key="upscale_3x">3x (EPX)</label>
             </div>
         </section>
 

@@ -1,6 +1,17 @@
 // js/worker-handler.js
+
 import { state, CONFIG } from './state.js';
-import { elements, getOptions, updateColorRecommendations, updatePaletteUsage, updateTransform, showLoading, displayRecommendedPresetsInPopup } from './ui.js';
+import { 
+    // [핵심] 아까 만든 텍스트 업데이트 함수를 가져옵니다.
+    updateOutputDimensionsDisplay, 
+    elements, 
+    getOptions, 
+    updateColorRecommendations, 
+    updatePaletteUsage, 
+    updateTransform, 
+    showLoading, 
+    displayRecommendedPresetsInPopup 
+} from './ui.js';
 
 // 1. 워커 생성 (경로 안전성 강화)
 export const conversionWorker = new Worker(
@@ -8,20 +19,17 @@ export const conversionWorker = new Worker(
     { type: 'module' }
 );
 
-// [수정됨] 2. 진짜 에러 원인을 잡는 핸들러 추가
+// 2. 에러 핸들러 (파일 못 찾음 등)
 conversionWorker.onerror = (err) => {
     console.error("❌ [Worker Error] 워커 파일 로드 실패 또는 내부 문법 오류:", err);
-    console.log("힌트: 로컬 서버(Live Server)를 사용 중인지, 파일 경로(js/worker/image-worker.js)가 정확한지 확인하세요.");
-    
-    // 사용자에게 알림 (선택 사항)
-    // alert("이미지 처리 엔진을 불러오지 못했습니다. 페이지를 새로고침 해보세요.");
     showLoading(false);
 };
 
-// 3. 워커 메시지 수신 핸들러
+// 3. 워커 메시지 수신 핸들러 (여기가 제일 중요합니다!)
 conversionWorker.onmessage = (e) => {
     const { status, type, processId, message } = e.data;
 
+    // 에러 처리
     if (status === 'error') {
         console.error(`❌ [Worker Logic Error] ${message}`);
         alert(`작업 중 오류 발생: ${message}`);
@@ -32,33 +40,32 @@ conversionWorker.onmessage = (e) => {
         return;
     }
 
+    // [A] 업스케일 완료 (EPX 2x, 3x 등)
     if (type === 'upscaleResult') {
-        const { imageData } = e.data;
+        const { imageData, scale } = e.data;
         
-        // 1. 다운로드 데이터 교체 (이제 다운로드하면 업스케일된 게 받아짐)
+        // 1. 데이터 저장 (다운로드용)
         state.finalDownloadableData = imageData;
-        state.isUpscaled = true; // [New] 상태 변경
-        
-        // 2. 캔버스 다시 그리기
+        state.currentUpscaleFactor = scale;
+        state.isUpscaled = true;
+        state.latestConversionData = imageData; 
+        // 2. 캔버스 그리기
         const canvas = elements.convertedCanvas;
         canvas.width = imageData.width;
         canvas.height = imageData.height;
-        
         const ctx = canvas.getContext('2d');
         ctx.putImageData(imageData, 0, 0);
         
-        // 3. 정보 갱신
-        if (elements.convertedDimensions) {
-             elements.convertedDimensions.textContent = `${imageData.width} x ${imageData.height} px (EPX 2x)`;
-             elements.convertedDimensions.classList.add('neon-gold');
-        }
+        // 3. [핵심 수정] 수동으로 텍스트를 바꾸지 않고, 전용 함수를 호출합니다.
+        // 알아서 보라색/빨간색 네온을 계산해서 붙여줍니다.
+        updateOutputDimensionsDisplay();
         
         // 4. 로딩 끄기
         showLoading(false);
     }
 
-    // 프리셋 추천 결과
-    if (type === 'recommendationResult') {
+    // [B] 프리셋 추천 완료
+    else if (type === 'recommendationResult') {
         if (processId !== state.processId) return;
         const { fixed, recommended, others } = e.data.results;
         const allPresets = [...fixed, ...recommended, ...others];
@@ -67,31 +74,32 @@ conversionWorker.onmessage = (e) => {
         }
         showLoading(false);
         if (elements.getStyleRecommendationsBtn) elements.getStyleRecommendationsBtn.disabled = false;
+    }
 
-    // [중요] 이미지 변환 결과 처리
-    } else if (type === 'conversionResult') {
+    // [C] 일반 이미지 변환 완료 (가장 많이 실행됨)
+    else if (type === 'conversionResult') {
         if (processId !== state.processId) return;
         
         const { imageData, recommendations, usageMap } = e.data;
         
-        // 1. [중요] 원본 데이터 백업 (나중에 1x로 돌아올 때 씀)
+        // 1. 데이터 백업
         state.latestConversionData = imageData; 
+        state.originalConvertedData = imageData; 
         
-        // 2. 업스케일 UI 초기화 (변환할 때마다 1x로 리셋)
+        // 2. 재변환했으므로 업스케일 상태 초기화 (1x로 리셋)
         const radio1x = document.getElementById('upscale1x');
         if (radio1x) radio1x.checked = true;
         state.currentUpscaleFactor = 1;
 
-        // 3. 다운로드용 데이터 설정
+        // 3. 다운로드 데이터도 현재 변환본으로 설정
         state.finalDownloadableData = imageData;
         
-        // 4. 캔버스 그리기 (기존 코드)
+        // 4. 캔버스 그리기 (화면 표시용 리사이징 포함)
         const canvas = elements.convertedCanvas || document.getElementById('convertedCanvas');
         const container = elements.convertedCanvasContainer || document.getElementById('convertedCanvasContainer');
         
         if (container) container.classList.add('has-image');
         
-        // (캔버스 크기 설정 및 그리기)
         const displayWidth = (state.appMode === 'image' && state.originalImageObject) 
             ? state.originalImageObject.width : imageData.width;
         const displayHeight = (state.appMode === 'image' && state.originalImageObject) 
@@ -100,7 +108,6 @@ conversionWorker.onmessage = (e) => {
         canvas.width = displayWidth;
         canvas.height = displayHeight;
         
-        // 임시 캔버스로 그리기 (이미지 리사이징 처리)
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = imageData.width;
         tempCanvas.height = imageData.height;
@@ -111,13 +118,12 @@ conversionWorker.onmessage = (e) => {
         cCtx.imageSmoothingEnabled = !opts.pixelatedScaling;
         cCtx.drawImage(tempCanvas, 0, 0, displayWidth, displayHeight);
         
-        // 5. UI 업데이트 (기존 코드)
+        // 5. UI 업데이트
         if (elements.downloadBtn) elements.downloadBtn.disabled = false;
-        if (elements.convertedDimensions) {
-            // 1x 상태이므로 네온 효과 제거
-            elements.convertedDimensions.textContent = `${imageData.width} x ${imageData.height} px`;
-            elements.convertedDimensions.classList.remove('neon-gold');
-        }
+
+        // [핵심 수정] 여기서도 수동 조작을 빼고 전용 함수를 부릅니다.
+        // 출력 배율(exportScale)이 설정되어 있으면 알아서 금색 네온이 뜹니다.
+        updateOutputDimensionsDisplay();
 
         updateTransform();
         if (recommendations) updateColorRecommendations(recommendations, triggerConversion);
@@ -125,54 +131,19 @@ conversionWorker.onmessage = (e) => {
         
         showLoading(false);
     }
-
-    // ------------------------------------------------------------
-    // [B] 업스케일 결과 처리 (upscaleResult) - 신규 추가!
-    // ------------------------------------------------------------
-    else if (type === 'upscaleResult') {
-        const { imageData, scale } = e.data;
-        
-        // 1. 다운로드용 데이터 교체 (이제 다운로드하면 큰 이미지가 받아짐)
-        state.finalDownloadableData = imageData;
-        state.currentUpscaleFactor = scale;
-        
-        // 2. 캔버스 다시 그리기 (확대된 크기로)
-        const canvas = elements.convertedCanvas;
-        canvas.width = imageData.width;
-        canvas.height = imageData.height;
-        
-        const ctx = canvas.getContext('2d');
-        ctx.putImageData(imageData, 0, 0);
-        
-        // 3. 정보 텍스트 갱신 (금색 네온 효과 ✨)
-        if (elements.convertedDimensions) {
-             elements.convertedDimensions.textContent = `${imageData.width} x ${imageData.height} px (EPX ${scale}x)`;
-             elements.convertedDimensions.classList.add('neon-gold');
-        }
-        
-        // 4. 변환 완료 (로딩 끄기)
-        showLoading(false);
-        
-        // (줌 리셋은 선택사항, 보통 확대되면 다시 중앙 잡아주는 게 좋음)
-        // updateTransform(); 
-    }
 };
 
 export const triggerConversion = () => {
-    // 1. 프리셋 적용 중이면 중단 (기존 코드)
     if (state.isApplyingPreset) return;
 
-    // 2. [신규] 재변환 시 업스케일 상태 초기화
-    // (옵션을 바꾸면 이미지가 새로 그려지므로, '확대됨' 상태도 풀려야 버튼이 꼬이지 않습니다)
+    // 재변환 시 업스케일 풀기
     if (state.isUpscaled) {
         state.isUpscaled = false;
-        // UI 버튼도 '2x 확대' 모양으로 원상복구
         if (typeof window.updateUpscaleButtonState === 'function') {
             window.updateUpscaleButtonState();
         }
     }
 
-    // 3. 디바운싱(Debounce) 처리 (기존 코드)
     clearTimeout(state.timeoutId);
     state.timeoutId = setTimeout(() => {
         if (state.appMode === 'image' && state.originalImageObject) processImage();
@@ -184,28 +155,18 @@ export const getActivePaletteData = () => {
     let paletteSelectors = [];
     
     if (state.currentMode === 'geopixels') {
-        // [수정됨] 부모 ID(#geopixels-controls) 대신 자식 ID(#geoPixelColors)를 콕 집어서 지정
-        // 이렇게 해야 뒤에 있는 Wplace 색상들이 딸려오지 않습니다.
         paletteSelectors.push('#geoPixelColors .color-button[data-on="true"]');
-        
-        // 사용자 추가 색상 포함
         paletteSelectors.push('#user-palette-section .added-color-item[data-on="true"]');
         
-        // [중요] 체크박스가 실제로 체크되어 있을 때만 Wplace 팔레트 추가
-        // state 변수보다 DOM 상태를 직접 확인하는 것이 더 확실합니다.
         const wplaceCheckbox = document.getElementById('useWplaceInGeoMode');
         if (wplaceCheckbox && wplaceCheckbox.checked) {
             paletteSelectors.push('#wplace-palette-in-geo .color-button[data-on="true"]');
         }
     } else {
-        // Wplace 모드일 때
         paletteSelectors.push('#wplace-controls .color-button[data-on="true"]');
     }
 
-    // 선택된 버튼들 찾기
     const buttons = document.querySelectorAll(paletteSelectors.join(','));
-    
-    // 팔레트가 비었을 때 빈 배열 반환 (검은색/투명 출력의 원인이 됨 -> 정상 동작)
     if(buttons.length === 0) return []; 
     
     return Array.from(buttons).map(b => JSON.parse(b.dataset.rgb));
@@ -234,14 +195,12 @@ export const processImage = () => {
     if (!state.originalImageObject) return;
     
     const options = getOptions();
-    // [수정됨] UI 안전 참조 (elements 객체 사용 우선)
     const scaleSlider = elements.scaleSlider || document.getElementById('scaleSlider');
     const scaleWidth = elements.scaleWidth || document.getElementById('scaleWidth');
     const scaleHeight = elements.scaleHeight || document.getElementById('scaleHeight');
     const convertedDimensions = elements.convertedDimensions || document.getElementById('convertedDimensions');
     const container = elements.convertedCanvasContainer || document.getElementById('convertedCanvasContainer');
 
-    // [수정됨] 이미지가 처리되기 시작할 때 미리 클래스를 붙여둡니다.
     if (container) container.classList.add('has-image');
 
     let newWidth, newHeight;
@@ -256,6 +215,7 @@ export const processImage = () => {
         newHeight = Math.max(1, parseInt(scaleHeight.value, 10) || state.originalImageObject.height);
     }
     
+    // 처리 전 임시 텍스트 표시 (네온 없음)
     if (convertedDimensions) convertedDimensions.textContent = `${newWidth} x ${newHeight} px`;
 
     const tempCanvas = document.createElement('canvas');
@@ -267,23 +227,12 @@ export const processImage = () => {
     
     const imageDataForWorker = tempCtx.getImageData(0, 0, newWidth, newHeight);
     const palette = getActivePaletteData();
+    
     applyConversion(imageDataForWorker, palette, options);
-
-    if (convertedDimensions) {
-        const baseText = `${newWidth} x ${newHeight} px`;
-        const scale = state.exportScale || 1;
-        
-        if (scale > 1) {
-            const finalW = newWidth * scale;
-            const finalH = newHeight * scale;
-            convertedDimensions.textContent = `${baseText} ➜ ${finalW} x ${finalH} px (${scale}배)`;
-            convertedDimensions.classList.add('neon-gold');
-        } else {
-            convertedDimensions.textContent = baseText;
-            convertedDimensions.classList.remove('neon-gold');
-        }
-    }
-
+    
+    // [수정됨] 이전에 있던 "여기서 텍스트 업데이트하는 코드"를 삭제했습니다.
+    // 왜냐하면 워커가 작업이 끝나면 'conversionResult' 메시지를 보내고,
+    // 거기서 updateOutputDimensionsDisplay()가 호출되어 정확한 텍스트를 띄워줄 것이기 때문입니다.
 };
 
 export const processText = () => {
@@ -318,6 +267,7 @@ export const processText = () => {
 
     const canvasWidth = Math.ceil(maxWidth + padding * 2);
     const canvasHeight = Math.ceil(totalHeight + padding * 2);
+    
     if(dims) dims.textContent = `${canvasWidth} x ${canvasHeight} px`;
 
     const textCanvas = document.createElement('canvas');

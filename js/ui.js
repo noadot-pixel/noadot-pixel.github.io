@@ -5,6 +5,8 @@ export const elements = {};
 
 export const initElements = () => {
     // 1. ID와 변수명이 정확히 일치하는 것들
+    console.log("1. [ui.js] initElements 시작"); // 디버깅 로그
+
     const ids = [
         'imageUpload', 'convertedCanvas', 'convertedCanvasContainer',
         'downloadBtn', 'originalDimensions', 'convertedDimensions',
@@ -13,17 +15,17 @@ export const initElements = () => {
         'ditheringAlgorithmSelect', 'ditheringSlider', 'ditheringValue',
         'applyPattern', 'patternTypeSelect', 'patternSizeSlider', 'patternSizeValue',
         'applyGradient', 'gradientAngleSlider', 'gradientAngleValue', 'gradientStrengthSlider', 'gradientStrengthValue',
-        'highQualityMode', 'pixelatedScaling',
+        'colorMethodSelect', 'pixelatedScaling',
         'celShadingApply', 'celShadingLevelsSlider', 'celShadingLevelsValue',
         'celShadingColorSpaceSelect', 'celShadingRetryBtn', 
         'celShadingOutline', 'celShadingOutlineThresholdSlider', 'celShadingOutlineThresholdValue',
         'celShadingOutlineColorSelect', 
         'geopixelsMode', 'wplaceMode',
-        'useWplaceInGeoMode',
+        'useWplaceInGeoMode', 
         // 'addedColorsContainer', <-- [삭제] 얘는 ID가 달라서 여기서 찾으면 안 됩니다.
         'addHex', 'addR', 'addG', 'addB', 'addColorBtn', 'resetAddedColorsBtn',
         'hexInputFeedback', 'rgbInputFeedback', 'exportPaletteBtn', 'importPaletteBtn', 'paletteUpload',
-        'imageMode', 'textMode', 'imageControls', 'textControls', 'textEditorPanel', 'editorTextarea',
+        'imageMode', 'textMode',
         'fontSelect', 'uploadFontBtn', 'fontUpload', 'fontSizeSlider', 'fontSizeValue',
         'letterSpacingSlider', 'letterSpacingValue', 'paddingSlider', 'paddingValue',
         'strokeWidthSlider', 'strokeWidthValue',
@@ -32,12 +34,17 @@ export const initElements = () => {
         'analyzeColorsBtn', 'recommendedColorsPlaceholder',
         'convertedDimensionsLabel', 'centerBtn',
         'exportScaleSlider', 'exportScaleValue',
-        'savePresetBtn', 'loadPresetBtn', 'presetUpload', 'myPresetsBtn', 'upscaleBtn',
+        'savePresetBtn', 'loadPresetBtn', 'presetUpload', 'myPresetsBtn', 
     ];
 
     ids.forEach(id => {
         const el = document.getElementById(id);
-        if (el) elements[id] = el;
+        if (el) {
+            elements[id] = el;
+        } else {
+            // 없는 요소는 경고 로그 출력
+            console.warn(`⚠️ [ui.js] 요소를 찾을 수 없음: #${id}`);
+        }
     });
     
     
@@ -82,7 +89,13 @@ export const initElements = () => {
 
     // 스케일 컨트롤 안전 장치
     elements.pixelScaleControls = document.getElementById('pixel-scale-controls');
-    elements.ratioScaleControls = document.getElementById('ratio-scale-controls') || document.getElementById('ratio-scale-controls-group');
+    elements.ratioScaleControls = document.getElementById('ratio-scale-controls');
+    if (!elements.ratioScaleControls) {
+        // 혹시 ID가 그룹 div에 안 붙어있을 경우를 대비해 생성 (에러 방지)
+        elements.ratioScaleControls = document.createElement('div');
+    }
+    
+    console.log("2. [ui.js] initElements 완료. elements:", elements);
     if (!elements.pixelScaleControls) elements.pixelScaleControls = document.createElement('div');
     if (!elements.ratioScaleControls) elements.ratioScaleControls = document.createElement('div');
     
@@ -529,7 +542,7 @@ export const getOptions = () => {
         gradientAngle: parseInt(elements.gradientAngleSlider.value, 10),
         gradientStrength: parseInt(elements.gradientStrengthSlider.value, 10),
         
-        highQualityMode: elements.highQualityMode.checked,
+        colorMethod: elements.colorMethodSelect ? elements.colorMethodSelect.value : 'rgb',
         pixelatedScaling: elements.pixelatedScaling.checked,
         currentMode: state.currentMode,
         
@@ -738,4 +751,65 @@ export const downloadImageWithScale = (originalName) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+};
+
+export const updateOutputDimensionsDisplay = () => {
+    const el = document.getElementById('convertedDimensions');
+    
+    // 데이터가 없으면 N/A 처리하고 종료
+    if (!el || !state.latestConversionData) {
+        if (el) {
+            el.textContent = 'N/A';
+            el.classList.remove('neon-gold', 'neon-purple-light', 'neon-purple-dark', 'neon-red');
+        }
+        return;
+    }
+
+    // 1. 현재 캔버스의 크기와 설정값 가져오기
+    const currentW = state.latestConversionData.width;
+    const currentH = state.latestConversionData.height;
+    
+    const exportScale = state.exportScale || 1;           // 출력 배율 (슬라이더 값)
+    const upscaleFactor = state.currentUpscaleFactor || 1; // 업스케일 배율 (1, 2, 3)
+    
+    // 최종 파일로 저장될 크기 계산 (현재 크기 * 출력 배율)
+    const finalW = currentW * exportScale;
+    const finalH = currentH * exportScale;
+
+    // 2. 어떤 상태인지 확인 (조건 판별)
+    const isExportScaled = exportScale > 1;
+    const isUpscaled = upscaleFactor > 1;
+
+    // 3. 기존 네온 스타일 싹 지우기 (초기화)
+    el.classList.remove('neon-gold', 'neon-purple-light', 'neon-purple-dark', 'neon-red');
+    
+    let suffixText = "";
+
+    // [IF 03] 둘 다 적용됨 (가장 강력한 상태) -> 빨간색 네온
+    if (isUpscaled && isExportScaled) {
+        el.classList.add('neon-red');
+        suffixText = ` (${upscaleFactor}x EPX * ${exportScale}배)`;
+    }
+    // [IF 02] 업스케일만 적용됨 -> 보라색 네온
+    else if (isUpscaled) {
+        if (upscaleFactor === 2) {
+            el.classList.add('neon-purple-light');
+            suffixText = " (2x EPX)";
+        } else if (upscaleFactor >= 3) {
+            el.classList.add('neon-purple-dark');
+            suffixText = ` (${upscaleFactor}x EPX)`;
+        }
+    }
+    // [IF 01] 출력 배율만 높임 -> 금색 네온
+    else if (isExportScaled) {
+        el.classList.add('neon-gold');
+        suffixText = ` (${exportScale}배)`;
+    }
+    // [Default] 아무것도 안 함 -> 기본 흰색/검은색
+    else {
+        // 아무 클래스도 추가하지 않음
+    }
+
+    // 4. 화면에 글자 업데이트
+    el.textContent = `${finalW} x ${finalH} px${suffixText}`;
 };

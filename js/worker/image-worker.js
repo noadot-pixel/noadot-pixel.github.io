@@ -114,45 +114,66 @@ function applyGradientTransparency(imageData, options) {
 }
 
 function applyConversion(imageData, palette, options) {
-    // [안전장치] 팔레트가 없으면 빈 배열로 처리
     if (!palette) palette = []; 
 
-    const paletteOklab = options.highQualityMode && palette.length > 0 ? palette.map(c => ColorConverter.rgbToOklab(c)) : null;
+    // 1. 팔레트가 비었으면 투명(혹은 검은색) 처리
     const { width, height } = imageData;
-    
-    // 팔레트가 비었으면 검은색(혹은 투명) 이미지 반환
     if (palette.length === 0) {
-        const blackData = new Uint8ClampedArray(width * height * 4);
-        for (let i = 0; i < blackData.length; i += 4) { 
-            blackData[i + 3] = 255; // Alpha = 255 (Black)
-        }
-        return new ImageData(blackData, width, height);
+        return new ImageData(new Uint8ClampedArray(width * height * 4).fill(0), width, height);
     }
     
+    // 2. [핵심] 선택된 모드(colorMethod)에 따라 팔레트 미리 변환
+    let paletteConverted = null;
+    
+    // 사용자가 'Wdot 모드' 선택 시 -> Lab 값으로 변환
+    if (options.colorMethod === 'ciede2000') {
+        paletteConverted = palette.map(c => ColorConverter.rgbToLab(c));
+    } 
+    // 사용자가 '고품질(Oklab)' 선택 시 -> Oklab 값으로 변환
+    else if (options.colorMethod === 'oklab' || options.highQualityMode) {
+        paletteConverted = palette.map(c => ColorConverter.rgbToOklab(c));
+    }
+    // '일반(RGB)' 모드는 변환 불필요 (null 유지)
+
     const newData = new ImageData(width, height);
-    const ditherData = new Float32Array(imageData.data);
+    const ditherData = new Float32Array(imageData.data); // 오차 확산을 위한 Float 배열
     const ditherStr = options.dithering / 100.0;
     const algorithm = options.algorithm;
     
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const i = (y * width + x) * 4;
-            if (ditherData[i + 3] < 128) { newData.data[i + 3] = 0; continue; }
+            
+            // 투명 픽셀 건너뛰기
+            if (ditherData[i + 3] < 128) { 
+                newData.data[i + 3] = 0; 
+                continue; 
+            }
             
             const rClamped = clamp(ditherData[i], 0, 255);
             const gClamped = clamp(ditherData[i + 1], 0, 255);
             const bClamped = clamp(ditherData[i + 2], 0, 255);
-            const { color: newRgb } = findClosestColor(rClamped, gClamped, bClamped, palette, paletteOklab, options.highQualityMode);
+            
+            // 3. [핵심] 가장 가까운 색 찾기 (옵션 전달)
+            const { color: newRgb } = findClosestColor(
+                rClamped, gClamped, bClamped, 
+                palette, 
+                paletteConverted, 
+                options.colorMethod // 'rgb', 'oklab', 'ciede2000' 중 하나
+            );
             
             newData.data[i] = newRgb[0];
             newData.data[i+1] = newRgb[1];
             newData.data[i+2] = newRgb[2];
-            newData.data[i+3] = ditherData[i + 3];
+            newData.data[i+3] = 255; // 불투명
             
+            // 4. 디더링 (오차 확산) - 기존 코드와 동일
             if (ditherStr > 0 && algorithm !== 'none') {
                 const errR = (ditherData[i] - newRgb[0]) * ditherStr;
                 const errG = (ditherData[i + 1] - newRgb[1]) * ditherStr;
                 const errB = (ditherData[i + 2] - newRgb[2]) * ditherStr;
+                
+                // (distributeError 헬퍼 함수는 기존과 동일하므로 생략하거나 그대로 두세요)
                 const distributeError = (idx, amount) => {
                     ditherData[idx] += errR * amount; 
                     ditherData[idx + 1] += errG * amount; 
@@ -166,22 +187,23 @@ function applyConversion(imageData, palette, options) {
                         distributeError(i + width * 4, 5 / 16);
                         if (x < width - 1) distributeError(i + width * 4 + 4, 1 / 16);
                     }
-                } else if (algorithm === 'sierra') {
-                    if (x < width - 1) distributeError(i + 4, 2 / 4);
-                    if (y < height - 1) {
-                        if (x > 0) distributeError(i + width * 4 - 4, 1 / 4);
-                        distributeError(i + width * 4, 1 / 4);
-                    }
                 } else if (algorithm === 'atkinson') {
-                    const factor = 1 / 8;
-                    if (x < width - 1) distributeError(i + 4, factor);
-                    if (x < width - 2) distributeError(i + 8, factor);
+                    const f = 1/8;
+                    if (x < width - 1) distributeError(i + 4, f);
+                    if (x < width - 2) distributeError(i + 8, f);
                     if (y < height - 1) {
-                        if (x > 0) distributeError(i + width * 4 - 4, factor);
-                        distributeError(i + width * 4, factor);
-                        if (x < width - 1) distributeError(i + width * 4 + 4, factor);
+                        if (x > 0) distributeError(i + width * 4 - 4, f);
+                        distributeError(i + width * 4, f);
+                        if (x < width - 1) distributeError(i + width * 4 + 4, f);
                     }
-                    if (y < height - 2) distributeError(i + width * 8, factor);
+                    if (y < height - 2) distributeError(i + width * 8, f);
+                } else if (algorithm === 'sierra') {
+                    // (기존 Sierra 코드 유지)
+                    if (x < width - 1) distributeError(i + 4, 2/4); // 0.5
+                    if (y < height - 1) {
+                        if (x > 0) distributeError(i + width * 4 - 4, 1/4);
+                        distributeError(i + width * 4, 1/4);
+                    }
                 }
             }
         }
