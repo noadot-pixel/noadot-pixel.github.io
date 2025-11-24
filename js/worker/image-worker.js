@@ -310,16 +310,41 @@ function applyCelShadingFilterOptimized(imageData, palette, options) {
     const height = imageData.height;
     const data = imageData.data;
     
-    let clusterColors;
+    // 1. [레벨 적용] 먼저 이미지에서 지정된 레벨(k)만큼 주요 색상을 추출합니다.
+    // 예: levels가 4면, 이미지에서 가장 중요한 4가지 색을 뽑습니다.
+    const k = levels || 8;
+    let clusterColors = runHybridQuantization(imageData, k, randomSeed);
 
-    // [수정] 1. 팔레트가 있으면 우선 사용! (GeoPixels/Wplace 모드)
+    // 2. [팔레트 매핑] 선택된 팔레트가 있다면, 뽑힌 k개의 색을 팔레트 색으로 '스냅(Snap)' 합니다.
     if (palette && palette.length > 0) {
-        clusterColors = palette;
-    } else {
-        // 2. 없으면 자체 추출 (Hybrid Wu + K-Means)
-        clusterColors = runHybridQuantization(imageData, levels || 8, randomSeed);
+        // 추출된 각 색상(c1)에 대해 팔레트(p) 중 가장 가까운 것을 찾음
+        clusterColors = clusterColors.map(c1 => {
+            let minDist = Infinity;
+            let matchedColor = palette[0];
+
+            for (let j = 0; j < palette.length; j++) {
+                const p = palette[j];
+                // 단순 유클리드 거리 사용 (속도와 안정성 우선)
+                // 만약 더 정밀한 매핑을 원하면 여기서 RGB->Lab 변환을 추가할 수 있지만,
+                // 만화 필터 특성상 RGB 거리로도 충분히 좋습니다.
+                const dist = (c1[0]-p[0])**2 + (c1[1]-p[1])**2 + (c1[2]-p[2])**2;
+                
+                if (dist < minDist) {
+                    minDist = dist;
+                    matchedColor = p;
+                }
+            }
+            return matchedColor;
+        });
+        
+        // (옵션) 중복 색상 제거? 
+        // 아니요, 중복을 유지해야 색상 비중(Weight)이 자연스럽게 유지됩니다.
+        // 예: 4개 추출 -> [진한파랑, 연한파랑, 빨강, 검정]
+        // 팔레트에 파랑이 하나뿐이라면 -> [파랑, 파랑, 빨강, 검정] 
+        // 이렇게 되어야 이미지의 파란 영역이 자연스럽게 합쳐집니다.
     }
 
+    // 3. 픽셀 매핑 (이미지 전체를 순회하며 k개의 색 중 하나로 변경)
     const quantizedData = new Uint8ClampedArray(data.length);
     const colorCache = new Map(); 
     
@@ -334,6 +359,7 @@ function applyCelShadingFilterOptimized(imageData, palette, options) {
             bestColor = colorCache.get(key);
         } else {
             let minDist = Infinity;
+            // clusterColors는 정확히 k개(또는 그 이하)입니다.
             for (let c = 0; c < clusterColors.length; c++) {
                 const cc = clusterColors[c];
                 const dist = (r - cc[0])**2 + (g - cc[1])**2 + (b - cc[2])**2;
@@ -348,6 +374,7 @@ function applyCelShadingFilterOptimized(imageData, palette, options) {
         quantizedData[i+3] = 255;
     }
     
+    // 4. 외곽선 그리기
     if (outline) {
         const outR = outlineColor ? outlineColor[0] : 0;
         const outG = outlineColor ? outlineColor[1] : 0;
@@ -359,21 +386,26 @@ function applyCelShadingFilterOptimized(imageData, palette, options) {
             for (let x = 0; x < width; x++) {
                 const i = (y * width + x) * 4;
                 if (tempBuffer[i+3] === 0) continue;
+                
                 let isEdge = false;
+                // Compare Right
                 if (x < width - 1) {
                     const next = i + 4;
                     const dist = (tempBuffer[i] - tempBuffer[next])**2 + (tempBuffer[i+1] - tempBuffer[next+1])**2 + (tempBuffer[i+2] - tempBuffer[next+2])**2;
                     if (dist > thresholdSq) isEdge = true;
                 }
+                // Compare Down
                 if (!isEdge && y < height - 1) {
                     const down = i + width * 4;
                     const dist = (tempBuffer[i] - tempBuffer[down])**2 + (tempBuffer[i+1] - tempBuffer[down+1])**2 + (tempBuffer[i+2] - tempBuffer[down+2])**2;
                     if (dist > thresholdSq) isEdge = true;
                 }
+                
                 if (isEdge) { quantizedData[i] = outR; quantizedData[i+1] = outG; quantizedData[i+2] = outB; }
             }
         }
     }
+    
     return new ImageData(quantizedData, width, height);
 }
 
