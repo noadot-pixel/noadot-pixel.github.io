@@ -314,21 +314,16 @@ function applyCelShadingFilterOptimized(imageData, palette, options) {
     const height = imageData.height;
     const data = imageData.data;
     
-    // 1. K-Means 색상 팔레트 추출 (최적화된 샘플링 사용)
-    const k = levels || 8;
-    // 팔레트 색상들 추출
-    const clusterColors = runKMeansSampling(imageData, k, randomSeed);
+    // 1. [Hybrid] 하이브리드 알고리즘으로 팔레트 추출
+    // Wu의 속도 + K-Means의 유연함
+    const clusterColors = runHybridQuantization(imageData, levels || 8, randomSeed);
 
     // 2. 픽셀 매핑 (양자화) - 캐싱 적용
     const quantizedData = new Uint8ClampedArray(data.length);
-    const colorCache = new Map(); // RGB Key -> Cluster Color
+    const colorCache = new Map(); 
     
     for (let i = 0; i < data.length; i += 4) {
-        // 투명 픽셀 유지
-        if (data[i+3] < 128) {
-            quantizedData[i+3] = 0;
-            continue;
-        }
+        if (data[i+3] < 128) { quantizedData[i+3] = 0; continue; }
         
         const r = data[i], g = data[i+1], b = data[i+2];
         const key = (r << 16) | (g << 8) | b;
@@ -337,8 +332,8 @@ function applyCelShadingFilterOptimized(imageData, palette, options) {
         if (colorCache.has(key)) {
             bestColor = colorCache.get(key);
         } else {
-            // 가장 가까운 클러스터 찾기 (단순 유클리드 거리)
             let minDist = Infinity;
+            // 클러스터가 적으므로(보통 8~16개) 단순 반복문이 가장 빠름
             for (let c = 0; c < clusterColors.length; c++) {
                 const cc = clusterColors[c];
                 const dist = (r - cc[0])**2 + (g - cc[1])**2 + (b - cc[2])**2;
@@ -353,51 +348,161 @@ function applyCelShadingFilterOptimized(imageData, palette, options) {
         quantizedData[i+3] = 255;
     }
     
-    // 3. 외곽선 그리기
+    // 3. 외곽선 그리기 (기존 로직 유지)
     if (outline) {
         const outR = outlineColor ? outlineColor[0] : 0;
         const outG = outlineColor ? outlineColor[1] : 0;
         const outB = outlineColor ? outlineColor[2] : 0;
-        const thresholdSq = outlineThreshold * outlineThreshold; // 제곱 거리로 비교 (속도)
-
+        const thresholdSq = outlineThreshold * outlineThreshold;
         const tempBuffer = new Uint8ClampedArray(quantizedData);
         
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 const i = (y * width + x) * 4;
                 if (tempBuffer[i+3] === 0) continue;
-                
-                // 오른쪽, 아래쪽 픽셀과 색상 차이 비교 (Sobel 간소화)
                 let isEdge = false;
-                
-                // Compare Right
                 if (x < width - 1) {
                     const next = i + 4;
-                    const dist = (tempBuffer[i] - tempBuffer[next])**2 + 
-                                 (tempBuffer[i+1] - tempBuffer[next+1])**2 + 
-                                 (tempBuffer[i+2] - tempBuffer[next+2])**2;
+                    const dist = (tempBuffer[i] - tempBuffer[next])**2 + (tempBuffer[i+1] - tempBuffer[next+1])**2 + (tempBuffer[i+2] - tempBuffer[next+2])**2;
                     if (dist > thresholdSq) isEdge = true;
                 }
-                
-                // Compare Down
                 if (!isEdge && y < height - 1) {
                     const down = i + width * 4;
-                    const dist = (tempBuffer[i] - tempBuffer[down])**2 + 
-                                 (tempBuffer[i+1] - tempBuffer[down+1])**2 + 
-                                 (tempBuffer[i+2] - tempBuffer[down+2])**2;
+                    const dist = (tempBuffer[i] - tempBuffer[down])**2 + (tempBuffer[i+1] - tempBuffer[down+1])**2 + (tempBuffer[i+2] - tempBuffer[down+2])**2;
                     if (dist > thresholdSq) isEdge = true;
                 }
-                
-                if (isEdge) {
-                    quantizedData[i] = outR;
-                    quantizedData[i+1] = outG;
-                    quantizedData[i+2] = outB;
-                }
+                if (isEdge) { quantizedData[i] = outR; quantizedData[i+1] = outG; quantizedData[i+2] = outB; }
             }
         }
     }
-    
     return new ImageData(quantizedData, width, height);
+}
+
+function runHybridQuantization(imageData, k, seed) {
+    const { data, width, height } = imageData;
+    const totalPixels = width * height;
+    
+    // 1. 샘플링 (4000개) - 속도 확보
+    const maxSamples = 4000;
+    const step = Math.max(1, Math.floor(totalPixels / maxSamples));
+    const samples = [];
+    for (let i = 0; i < totalPixels; i += step) {
+        const idx = i * 4;
+        if (data[idx+3] > 128) {
+            samples.push([data[idx], data[idx+1], data[idx+2]]);
+        }
+    }
+    if (samples.length <= k) return samples;
+
+    // 2. [초기화] Wu 알고리즘으로 '최적의 시작점' 찾기
+    // (파이썬 코드의 핵심 로직을 경량화하여 사용)
+    let initialCentroids = runSimpleWu(samples, k);
+
+    // 3. [변주] 랜덤 시드가 있다면 시작점 흔들기 (Jitter)
+    // 사용자가 '주사위'를 눌렀을 때 다른 결과를 주기 위함
+    if (seed && seed > 0) {
+        let currentSeed = seed;
+        const customRandom = () => {
+            currentSeed = (currentSeed * 9301 + 49297) % 233280;
+            return (currentSeed / 233280) - 0.5; // -0.5 ~ 0.5
+        };
+
+        initialCentroids = initialCentroids.map(c => {
+            // 색상을 -30 ~ +30 정도 랜덤하게 비틉니다.
+            const r = clamp(c[0] + customRandom() * 60, 0, 255);
+            const g = clamp(c[1] + customRandom() * 60, 0, 255);
+            const b = clamp(c[2] + customRandom() * 60, 0, 255);
+            return [r, g, b];
+        });
+    }
+
+    // 4. [보정] K-Means 실행 (빠르게 수렴하도록 3회만 반복)
+    // 초기값이 이미 훌륭하므로(Wu) 많이 돌릴 필요가 없습니다.
+    let clusters = initialCentroids;
+    const maxIter = 3; 
+
+    for (let iter = 0; iter < maxIter; iter++) {
+        const sums = Array(k).fill(0).map(() => [0, 0, 0]);
+        const counts = Array(k).fill(0);
+        
+        // 할당
+        for (let i = 0; i < samples.length; i++) {
+            const s = samples[i];
+            let minDist = Infinity;
+            let bestCluster = 0;
+            for (let c = 0; c < k; c++) {
+                const dist = (s[0]-clusters[c][0])**2 + (s[1]-clusters[c][1])**2 + (s[2]-clusters[c][2])**2;
+                if (dist < minDist) { minDist = dist; bestCluster = c; }
+            }
+            sums[bestCluster][0] += s[0];
+            sums[bestCluster][1] += s[1];
+            sums[bestCluster][2] += s[2];
+            counts[bestCluster]++;
+        }
+        
+        // 업데이트
+        let changed = false;
+        for (let c = 0; c < k; c++) {
+            if (counts[c] === 0) continue;
+            const newR = sums[c][0] / counts[c];
+            const newG = sums[c][1] / counts[c];
+            const newB = sums[c][2] / counts[c];
+            
+            if (Math.abs(newR - clusters[c][0]) > 1) changed = true;
+            clusters[c] = [newR, newG, newB];
+        }
+        if (!changed) break;
+    }
+
+    return clusters.map(c => [Math.round(c[0]), Math.round(c[1]), Math.round(c[2])]);
+}
+
+// [Helper] 경량화된 Wu 알고리즘 (샘플 데이터용)
+function runSimpleWu(pixels, maxColors) {
+    // 초기 박스
+    let boxes = [{ pixels: pixels }];
+
+    while (boxes.length < maxColors) {
+        let maxScore = -1;
+        let splitIdx = -1;
+
+        // 가장 픽셀이 많은 박스 찾기
+        for (let i = 0; i < boxes.length; i++) {
+            if (boxes[i].pixels.length <= 1) continue;
+            if (boxes[i].pixels.length > maxScore) {
+                maxScore = boxes[i].pixels.length;
+                splitIdx = i;
+            }
+        }
+        if (splitIdx === -1) break;
+
+        const pix = boxes[splitIdx].pixels;
+        
+        // 가장 긴 축 찾기
+        let minR=255, maxR=0, minG=255, maxG=0, minB=255, maxB=0;
+        for(let p of pix) {
+            if(p[0]<minR) minR=p[0]; if(p[0]>maxR) maxR=p[0];
+            if(p[1]<minG) minG=p[1]; if(p[1]>maxG) maxG=p[1];
+            if(p[2]<minB) minB=p[2]; if(p[2]>maxB) maxB=p[2];
+        }
+        const dr = maxR-minR, dg = maxG-minG, db = maxB-minB;
+        const maxDim = Math.max(dr, dg, db);
+        const sortDim = (maxDim === dr) ? 0 : (maxDim === dg) ? 1 : 2;
+
+        // 정렬 및 분할 (Median Cut)
+        pix.sort((a, b) => a[sortDim] - b[sortDim]);
+        const mid = Math.floor(pix.length / 2);
+        
+        boxes.splice(splitIdx, 1, { pixels: pix.slice(0, mid) }, { pixels: pix.slice(mid) });
+    }
+
+    // 대표색 추출
+    return boxes.map(box => {
+        let r=0, g=0, b=0;
+        for(let p of box.pixels) { r+=p[0]; g+=p[1]; b+=p[2]; }
+        const n = box.pixels.length;
+        return [r/n, g/n, b/n];
+    });
 }
 
 // 3-2. K-Means 샘플링 (속도 최적화의 핵심)
