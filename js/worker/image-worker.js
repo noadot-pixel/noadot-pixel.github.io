@@ -1,7 +1,6 @@
 // js/worker/image-worker.js
 
 import { THRESHOLD_MAPS } from '../../data/patterns.js'; 
-// [수정] outlining.js 제거 (내부에 최적화 함수 구현), ciede2000 등 제거 (내부 구현)
 import { clamp, ColorConverter, findClosestColor, findTwoClosestColors } from './color.js';
 import { preprocessImageData } from './quantization.js';
 import { analyzeImageFeatures, calculateRecommendations, getStyleRecipesByTags } from './analysis.js';
@@ -30,6 +29,7 @@ function resizeImageData(imageData, targetWidth) {
     return new ImageData(newData, targetWidth, targetHeight);
 }
 
+// RGB -> Lab 변환 (Wdot 최적화용)
 function rgbToLabRaw(r, g, b) {
     let rN = r / 255, gN = g / 255, bN = b / 255;
     rN = (rN > 0.04045) ? Math.pow((rN + 0.055) / 1.055, 2.4) : rN / 12.92;
@@ -104,7 +104,6 @@ function applyConversion(imageData, palette, options) {
     const { width, height } = imageData;
     if (palette.length === 0) return new ImageData(new Uint8ClampedArray(width * height * 4).fill(0), width, height);
     
-    // [최적화] 팔레트 미리 변환
     let paletteConverted = null;
     if (options.colorMethod === 'ciede2000' || options.colorMethod === 'wdot') {
         paletteConverted = palette.map(c => rgbToLabRaw(c[0], c[1], c[2]));
@@ -117,7 +116,6 @@ function applyConversion(imageData, palette, options) {
     const ditherStr = options.dithering / 100.0;
     const algorithm = options.algorithm;
     
-    // [최적화] 캐시 생성
     const colorCache = new Map();
 
     for (let y = 0; y < height; y++) {
@@ -228,7 +226,6 @@ self.onmessage = async (e) => {
                         }
                     }
 
-                    // 썸네일용 팔레트 처리...
                     let usePalette = [];
                     if (presetValues.enablePaletteColors) {
                         const currentMode = baseOptions.currentMode || 'geopixels';
@@ -248,7 +245,7 @@ self.onmessage = async (e) => {
                     let finalThumb;
                     const processedThumb = preprocessImageData(thumbImageData, baseOptions);
                     if (baseOptions.celShading && baseOptions.celShading.apply) {
-                        // 썸네일도 최적화된 함수 사용
+                        // 썸네일 생성 시에도 팔레트 우선 적용 함수 사용
                         finalThumb = applyCelShadingFilterOptimized(processedThumb, usePalette, baseOptions);
                     } else {
                         finalThumb = applyConversion(processedThumb, usePalette, baseOptions);
@@ -274,8 +271,8 @@ self.onmessage = async (e) => {
         } else {
             const preprocessedData = preprocessImageData(imageData, options);
             
-            // [핵심 변경] 만화 필터 적용 시 최적화된 함수 사용!
             if (options.celShading && options.celShading.apply) {
+                // [핵심] 팔레트가 있으면 팔레트 사용, 없으면 추출 (수정됨)
                 finalImageData = applyCelShadingFilterOptimized(preprocessedData, palette, options);
             } else {
                 const convertedImage = applyConversion(preprocessedData, palette, options);
@@ -307,18 +304,22 @@ self.onmessage = async (e) => {
 // 3. Wdot(CIEDE2000) & 만화 필터 최적화 로직 (내부 내장)
 // ============================================================
 
-// 3-1. 만화 필터 최적화 (내부 구현)
 function applyCelShadingFilterOptimized(imageData, palette, options) {
     const { levels, outline, outlineThreshold, outlineColor, randomSeed } = options.celShading;
     const width = imageData.width;
     const height = imageData.height;
     const data = imageData.data;
     
-    // 1. [Hybrid] 하이브리드 알고리즘으로 팔레트 추출
-    // Wu의 속도 + K-Means의 유연함
-    const clusterColors = runHybridQuantization(imageData, levels || 8, randomSeed);
+    let clusterColors;
 
-    // 2. 픽셀 매핑 (양자화) - 캐싱 적용
+    // [수정] 1. 팔레트가 있으면 우선 사용! (GeoPixels/Wplace 모드)
+    if (palette && palette.length > 0) {
+        clusterColors = palette;
+    } else {
+        // 2. 없으면 자체 추출 (Hybrid Wu + K-Means)
+        clusterColors = runHybridQuantization(imageData, levels || 8, randomSeed);
+    }
+
     const quantizedData = new Uint8ClampedArray(data.length);
     const colorCache = new Map(); 
     
@@ -333,7 +334,6 @@ function applyCelShadingFilterOptimized(imageData, palette, options) {
             bestColor = colorCache.get(key);
         } else {
             let minDist = Infinity;
-            // 클러스터가 적으므로(보통 8~16개) 단순 반복문이 가장 빠름
             for (let c = 0; c < clusterColors.length; c++) {
                 const cc = clusterColors[c];
                 const dist = (r - cc[0])**2 + (g - cc[1])**2 + (b - cc[2])**2;
@@ -348,7 +348,6 @@ function applyCelShadingFilterOptimized(imageData, palette, options) {
         quantizedData[i+3] = 255;
     }
     
-    // 3. 외곽선 그리기 (기존 로직 유지)
     if (outline) {
         const outR = outlineColor ? outlineColor[0] : 0;
         const outG = outlineColor ? outlineColor[1] : 0;
@@ -381,8 +380,6 @@ function applyCelShadingFilterOptimized(imageData, palette, options) {
 function runHybridQuantization(imageData, k, seed) {
     const { data, width, height } = imageData;
     const totalPixels = width * height;
-    
-    // 1. 샘플링 (4000개) - 속도 확보
     const maxSamples = 4000;
     const step = Math.max(1, Math.floor(totalPixels / maxSamples));
     const samples = [];
@@ -394,21 +391,17 @@ function runHybridQuantization(imageData, k, seed) {
     }
     if (samples.length <= k) return samples;
 
-    // 2. [초기화] Wu 알고리즘으로 '최적의 시작점' 찾기
-    // (파이썬 코드의 핵심 로직을 경량화하여 사용)
+    // Wu 알고리즘으로 초기화
     let initialCentroids = runSimpleWu(samples, k);
 
-    // 3. [변주] 랜덤 시드가 있다면 시작점 흔들기 (Jitter)
-    // 사용자가 '주사위'를 눌렀을 때 다른 결과를 주기 위함
+    // 랜덤 시드 적용 (Jitter)
     if (seed && seed > 0) {
         let currentSeed = seed;
         const customRandom = () => {
             currentSeed = (currentSeed * 9301 + 49297) % 233280;
-            return (currentSeed / 233280) - 0.5; // -0.5 ~ 0.5
+            return (currentSeed / 233280) - 0.5;
         };
-
         initialCentroids = initialCentroids.map(c => {
-            // 색상을 -30 ~ +30 정도 랜덤하게 비틉니다.
             const r = clamp(c[0] + customRandom() * 60, 0, 255);
             const g = clamp(c[1] + customRandom() * 60, 0, 255);
             const b = clamp(c[2] + customRandom() * 60, 0, 255);
@@ -416,16 +409,12 @@ function runHybridQuantization(imageData, k, seed) {
         });
     }
 
-    // 4. [보정] K-Means 실행 (빠르게 수렴하도록 3회만 반복)
-    // 초기값이 이미 훌륭하므로(Wu) 많이 돌릴 필요가 없습니다.
+    // K-Means 보정
     let clusters = initialCentroids;
     const maxIter = 3; 
-
     for (let iter = 0; iter < maxIter; iter++) {
         const sums = Array(k).fill(0).map(() => [0, 0, 0]);
         const counts = Array(k).fill(0);
-        
-        // 할당
         for (let i = 0; i < samples.length; i++) {
             const s = samples[i];
             let minDist = Infinity;
@@ -434,51 +423,32 @@ function runHybridQuantization(imageData, k, seed) {
                 const dist = (s[0]-clusters[c][0])**2 + (s[1]-clusters[c][1])**2 + (s[2]-clusters[c][2])**2;
                 if (dist < minDist) { minDist = dist; bestCluster = c; }
             }
-            sums[bestCluster][0] += s[0];
-            sums[bestCluster][1] += s[1];
-            sums[bestCluster][2] += s[2];
+            sums[bestCluster][0] += s[0]; sums[bestCluster][1] += s[1]; sums[bestCluster][2] += s[2];
             counts[bestCluster]++;
         }
-        
-        // 업데이트
         let changed = false;
         for (let c = 0; c < k; c++) {
             if (counts[c] === 0) continue;
-            const newR = sums[c][0] / counts[c];
-            const newG = sums[c][1] / counts[c];
-            const newB = sums[c][2] / counts[c];
-            
-            if (Math.abs(newR - clusters[c][0]) > 1) changed = true;
+            const newR = sums[c][0] / counts[c]; const newG = sums[c][1] / counts[c]; const newB = sums[c][2] / counts[c];
+            if (Math.abs(newR - clusters[c][0]) > 1 || Math.abs(newG - clusters[c][1]) > 1) changed = true;
             clusters[c] = [newR, newG, newB];
         }
         if (!changed) break;
     }
-
     return clusters.map(c => [Math.round(c[0]), Math.round(c[1]), Math.round(c[2])]);
 }
 
-// [Helper] 경량화된 Wu 알고리즘 (샘플 데이터용)
 function runSimpleWu(pixels, maxColors) {
-    // 초기 박스
     let boxes = [{ pixels: pixels }];
-
     while (boxes.length < maxColors) {
         let maxScore = -1;
         let splitIdx = -1;
-
-        // 가장 픽셀이 많은 박스 찾기
         for (let i = 0; i < boxes.length; i++) {
             if (boxes[i].pixels.length <= 1) continue;
-            if (boxes[i].pixels.length > maxScore) {
-                maxScore = boxes[i].pixels.length;
-                splitIdx = i;
-            }
+            if (boxes[i].pixels.length > maxScore) { maxScore = boxes[i].pixels.length; splitIdx = i; }
         }
         if (splitIdx === -1) break;
-
         const pix = boxes[splitIdx].pixels;
-        
-        // 가장 긴 축 찾기
         let minR=255, maxR=0, minG=255, maxG=0, minB=255, maxB=0;
         for(let p of pix) {
             if(p[0]<minR) minR=p[0]; if(p[0]>maxR) maxR=p[0];
@@ -488,15 +458,10 @@ function runSimpleWu(pixels, maxColors) {
         const dr = maxR-minR, dg = maxG-minG, db = maxB-minB;
         const maxDim = Math.max(dr, dg, db);
         const sortDim = (maxDim === dr) ? 0 : (maxDim === dg) ? 1 : 2;
-
-        // 정렬 및 분할 (Median Cut)
         pix.sort((a, b) => a[sortDim] - b[sortDim]);
         const mid = Math.floor(pix.length / 2);
-        
         boxes.splice(splitIdx, 1, { pixels: pix.slice(0, mid) }, { pixels: pix.slice(mid) });
     }
-
-    // 대표색 추출
     return boxes.map(box => {
         let r=0, g=0, b=0;
         for(let p of box.pixels) { r+=p[0]; g+=p[1]; b+=p[2]; }
@@ -505,89 +470,13 @@ function runSimpleWu(pixels, maxColors) {
     });
 }
 
-// 3-2. K-Means 샘플링 (속도 최적화의 핵심)
-function runKMeansSampling(imageData, k, seed) {
-    const { data, width, height } = imageData;
-    const totalPixels = width * height;
-    const maxSamples = 4000; // 최대 4000개만 샘플링
-    const step = Math.max(1, Math.floor(totalPixels / maxSamples));
-    
-    // 1. 샘플 수집
-    const samples = [];
-    for (let i = 0; i < totalPixels; i += step) {
-        const idx = i * 4;
-        if (data[idx+3] > 128) {
-            samples.push([data[idx], data[idx+1], data[idx+2]]);
-        }
-    }
-    if (samples.length < k) return samples; // 샘플 부족 시 그대로 반환
-
-    // 2. 초기 중심점 설정 (Random)
-    // 간단한 시드 기반 랜덤 (JS Math.random은 시드 설정 불가하므로 간단히 구현)
-    let clusters = [];
-    let currentSeed = seed;
-    const customRandom = () => {
-        currentSeed = (currentSeed * 9301 + 49297) % 233280;
-        return currentSeed / 233280;
-    };
-    
-    for (let i = 0; i < k; i++) {
-        const rIdx = Math.floor(customRandom() * samples.length);
-        clusters.push([...samples[rIdx]]);
-    }
-
-    // 3. K-Means 반복 (최대 5회로 제한해도 충분함)
-    const maxIter = 5;
-    for (let iter = 0; iter < maxIter; iter++) {
-        const sums = Array(k).fill(0).map(() => [0, 0, 0]);
-        const counts = Array(k).fill(0);
-        
-        // 할당 단계
-        for (let i = 0; i < samples.length; i++) {
-            const s = samples[i];
-            let minDist = Infinity;
-            let bestCluster = 0;
-            
-            for (let c = 0; c < k; c++) {
-                const dist = (s[0]-clusters[c][0])**2 + (s[1]-clusters[c][1])**2 + (s[2]-clusters[c][2])**2;
-                if (dist < minDist) { minDist = dist; bestCluster = c; }
-            }
-            
-            sums[bestCluster][0] += s[0];
-            sums[bestCluster][1] += s[1];
-            sums[bestCluster][2] += s[2];
-            counts[bestCluster]++;
-        }
-        
-        // 업데이트 단계
-        let changed = false;
-        for (let c = 0; c < k; c++) {
-            if (counts[c] === 0) continue;
-            const newR = sums[c][0] / counts[c];
-            const newG = sums[c][1] / counts[c];
-            const newB = sums[c][2] / counts[c];
-            
-            if (Math.abs(newR - clusters[c][0]) > 1 || Math.abs(newG - clusters[c][1]) > 1) changed = true;
-            clusters[c] = [newR, newG, newB];
-        }
-        if (!changed) break;
-    }
-    
-    return clusters.map(c => [Math.round(c[0]), Math.round(c[1]), Math.round(c[2])]);
-}
-
-// 3-3. Wdot 최적화 로직
 function findNearestWdot(inputLab, originalPalette, paletteConverted) {
     let minDist = Infinity;
     let nearest = originalPalette[0];
-
     for (let i = 0; i < paletteConverted.length; i++) {
         const targetLab = paletteConverted[i];
         const dist = ciede2000Internal(inputLab, targetLab);
-        if (dist < minDist) {
-            minDist = dist;
-            nearest = originalPalette[i];
-        }
+        if (dist < minDist) { minDist = dist; nearest = originalPalette[i]; }
     }
     return nearest;
 }
