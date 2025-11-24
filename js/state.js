@@ -22,6 +22,7 @@ export const state = {
     originalImageObject: null,
     originalFileName: 'image',
     currentZoom: 100,
+    latestRecommendations: [], 
     isDragging: false,
     isUpscaled: false,
     latestConversionData: null, 

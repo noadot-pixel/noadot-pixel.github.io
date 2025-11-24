@@ -3,7 +3,7 @@
 export const languageData = {
     ko: {
         app_title: "NoaDot - 이미지/텍스트 변환기",
-        app_header: "🎨 NoaDot v5.10",
+        app_header: "🎨 노아도트 v6.0",
         // ... (기존 텍스트는 동일) ...!
         section_mode: "1. 모드 선택",
         mode_image: "🖼️ 이미지",
@@ -136,6 +136,7 @@ export const languageData = {
         confirm_reset_colors: "추가한 색상을 모두 삭제하시겠습니까?", // [추가]
         resize_output_scale: "출력 배율",
         // [신규] 색상 계산 방식 (드롭다운 옵션)
+        option_color_method : "색상 계산 방식",
         option_color_method_rgb: "일반 (RGB) - 빠름",
         option_color_method_oklab: "고품질 (Oklab) - 권장",
         option_color_method_ciede2000: "Wdot (CIEDE2000) - 정밀/느림",
@@ -176,11 +177,42 @@ export const languageData = {
         modal_preset_name_title: "프리셋 이름 입력",
         btn_save_file: "파일로 저장 (.json)",
         btn_save_session: "보관함에 추가 (임시)",
+
+
+        // 놓친 것들 모음집 kr
+        size_change_download: "(다운로드 시 적용)",
+        preset_recommended: "프리셋 추천",
+        preset_save: "프리셋\n저장하기",
+        preset_load: "프리셋\n불러오기",
+        preset_storage : "프리셋\n보관함",
+        btn_analyze_colors: "색상 분석",
+        popup_preset_title: "✨ 추천 스타일 프리셋",
+
         
+        // [신규] 프리셋 저장 모달
+        modal_preset_save_title: "프리셋을 어떻게 저장하시겠습니까?",
+        modal_preset_save_desc: "현재 적용된 모든 옵션과 추가된 색상이 저장됩니다.",
+        btn_save_file: "📂 파일로 저장하기 (.json)",
+        btn_save_session: "✨ 스타일 프리셋 목록에 추가",
+        btn_close: "닫기 (X)",
+
+
+        // [모달 2: 프리셋 이름 입력]
+        modal_name_title: "프리셋 이름 지정",
+        modal_name_desc: "저장할 프리셋의 이름을 입력해주세요.",
+        placeholder_preset_name: "예: 나만의 흑백 스타일",
+        btn_confirm_save: "저장하기",
+        btn_cancel: "취소",
+        
+        // [신규] 색상 추천 태그
+        tag_dominant: "고비율 색상",
+        tag_shadow: "어두운 톤 (명암)",
+        tag_highlight: "밝은 톤 (하이라이트)",
+        tag_kmean: "주요 군집 (K-Means)",
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
-        app_header: "🎨 NoaDot v4.0",
+        app_header: "🎨 NoaDot v6.0",
         section_mode: "1. Select Mode",
         mode_image: "🖼️ Image",
         mode_text: "✏️ Text",
@@ -301,6 +333,7 @@ export const languageData = {
         cartoon_outline_color: "Outline Color",
         confirm_reset_colors: "Are you sure you want to remove all added colors?", // [추가]
         resize_output_scale: "Output Scale",
+        option_color_method : "Algorithm option",
         option_color_method_rgb: "Standard (RGB) - Fast",
         option_color_method_oklab: "High Quality (Oklab) - Recommended",
         option_color_method_ciede2000: "Wdot (CIEDE2000) - Precise/Slow",
@@ -342,5 +375,34 @@ export const languageData = {
         btn_save_file: "Save to File (.json)",
         btn_save_session: "Add to Collection (Temp)",
 
+        // 놓친 것들 모음집 en
+        size_change_download: "Apply when download",
+        preset_recommended: "preset recommended",
+        preset_save: "preset\nsave",
+        preset_load: "preset\nload",
+        preset_storage : "preset\nstorage",
+        btn_analyze_colors: "color amalysis",
+        popup_preset_title: "✨ recommended style preset",
+
+        // [New] Preset Save Modal
+        modal_preset_save_title: "How would you like to save?",
+        modal_preset_save_desc: "All current options and added colors will be saved.",
+        btn_save_file: "📂 Save to File (.json)",
+        btn_save_session: "✨ Add to Preset Collection",
+        btn_close: "Close",
+
+        // [Modal 2: Preset Name Input]
+        modal_name_title: "Enter Preset Name",
+        modal_name_desc: "Please enter a name for your preset.",
+        placeholder_preset_name: "Ex: My Custom Style",
+        btn_confirm_save: "Save",
+        btn_cancel: "Cancel",
+        
+        
+        // [New] Color Recommendation Tags
+        tag_dominant: "Dominant Color",
+        tag_shadow: "Shadow Tone",
+        tag_highlight: "Highlight Tone",
+        tag_kmean: "Major Cluster (K-Means)",
     }
 };

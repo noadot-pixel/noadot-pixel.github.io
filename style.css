@@ -781,3 +781,47 @@ button.toggle-all { cursor: pointer; }
 .sub-preset-btn:active {
     transform: translateY(0);
 }
+
+.text-icon-link {
+    text-decoration: none;
+    display: flex; /* a태그 높이 문제 방지 */
+}
+
+/* 호버 효과 (이미지와 동일하게 확대) */
+.text-icon-link:hover .wdot-icon {
+    transform: scale(1.1);
+    background-color: #000; /* 호버 시 완전 검정 */
+}
+
+/* (참고) 기존 이미지 아이콘 스타일 유지/보완 */
+
+.wdot-icon {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 28px;  /* 다른 이미지 아이콘(GitHub 등)과 높이 맞춤 */
+    height: 28px;
+    background-color: #333; /* 로고 배경색 (진한 회색/검정) */
+    color: white;
+    font-weight: 900; /* 아주 굵게 */
+    font-family: 'Verdana', sans-serif; /* 깔끔한 산세리프 폰트 */
+    font-size: 16px;
+    border-radius: 50%; /* 원형 아이콘 */
+    transition: transform 0.2s, background-color 0.2s;
+    line-height: 1;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.external-links {
+    display: flex;
+    gap: 12px; /* 간격 살짝 조정 */
+    align-items: center;
+}
+
+/* 구분선 (언어 선택기와 아이콘 사이) */
+.link-separator {
+    width: 1px;
+    height: 24px;
+    background-color: #ddd;
+    margin: 0 5px;
+}

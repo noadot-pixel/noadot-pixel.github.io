@@ -85,7 +85,9 @@ conversionWorker.onmessage = (e) => {
         // 1. 데이터 백업
         state.latestConversionData = imageData; 
         state.originalConvertedData = imageData; 
-        
+        if (recommendations) {
+            state.latestRecommendations = recommendations;
+        }
         // 2. 재변환했으므로 업스케일 상태 초기화 (1x로 리셋)
         const radio1x = document.getElementById('upscale1x');
         if (radio1x) radio1x.checked = true;

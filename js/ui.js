@@ -266,7 +266,24 @@ export const setLanguage = (lang) => {
         }
     });
     document.querySelectorAll('#language-switcher button').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.lang === lang);
+        btn.addEventListener('click', (e) => {
+            // 1. 클릭한 버튼의 언어 코드(ko 또는 en) 가져오기
+            const lang = e.target.dataset.lang;
+            
+            // 2. 전체 언어 설정 변경 (기존 기능)
+            if (callbacks.setLanguage) {
+                callbacks.setLanguage(lang);
+            }
+            
+            // 3. [추가된 기능] 추천 색상 목록(UI) 새로고침
+            // state.js에 저장해둔 '최신 추천 목록(latestRecommendations)'이 있다면,
+            // 현재 언어에 맞춰서 다시 그려달라고(updateColorRecommendations) 요청합니다.
+            if (state.latestRecommendations && state.latestRecommendations.length > 0) {
+                // updateColorRecommendations 함수는 ui.js에서 import 해와야 합니다.
+                // 두 번째 인자인 triggerConversion은 '+' 버튼을 눌렀을 때 실행될 함수입니다.
+                updateColorRecommendations(state.latestRecommendations, triggerConversion);
+            }
+        });
     });
 };
 
@@ -605,25 +622,97 @@ export const getOptions = () => {
 export const updateColorRecommendations = (recommendations, callback) => {
     if (!elements.recommendationReportContainer) return;
     elements.recommendationReportContainer.innerHTML = '';
+    
     if (!recommendations || recommendations.length === 0) {
         elements.recommendationReportContainer.style.display = 'none';
         elements.recommendedColorsPlaceholder.style.display = 'block';
         return;
     }
+    
     elements.recommendationReportContainer.style.display = 'grid';
     elements.recommendedColorsPlaceholder.style.display = 'none';
+    
     recommendations.forEach(rec => {
-        const btn = document.createElement('button'); btn.className = 'recommendation-item';
+        const btn = document.createElement('button'); 
+        btn.className = 'recommendation-item';
+        
         const hex = rgbToHex(rec.rgb[0], rec.rgb[1], rec.rgb[2]);
-        const colorBox = document.createElement('div'); colorBox.className = 'rec-color-box'; colorBox.style.backgroundColor = `rgb(${rec.rgb.join(',')})`;
-        const textInfo = document.createElement('div'); textInfo.className = 'rec-text-info'; textInfo.innerHTML = `<span class="rec-hex">${hex}</span><span class="rec-desc">${rec.type}</span>`;
-        const addBtn = document.createElement('span'); addBtn.className = 'rec-add-icon'; addBtn.textContent = '+';
-        if (isColorAlreadyAdded(rec.rgb)) { btn.classList.add('added'); addBtn.textContent = '✔'; }
+        const colorBox = document.createElement('div'); 
+        colorBox.className = 'rec-color-box'; 
+        colorBox.style.backgroundColor = `rgb(${rec.rgb.join(',')})`;
+        
+        // ▼▼▼ [핵심 수정] 태그 텍스트 다국어 처리 ▼▼▼
+        // 워커가 보내준 rec.type 값에 따라 언어 데이터에서 텍스트를 찾습니다.
+        // 만약 워커가 한글("고비율 색상")을 그대로 보내고 있다면, 그걸 키로 매핑하거나
+        // 워커를 수정해서 영어 키("dominant")를 보내게 해야 합니다.
+        // 여기서는 워커 수정 없이 UI에서 처리하는 매핑 테이블을 사용합니다.
+        
+        const tagMap = {
+            // 워커가 보낼 수 있는 모든 한글/영어 케이스 등록
+            "고비율 색상": "tag_dominant",
+            "Dominant": "tag_dominant",
+            
+            "명암 대표색": "tag_shadow",
+            "Shadow": "tag_shadow",
+            "어두운 톤": "tag_shadow",
+            
+            "하이라이트": "tag_highlight", // [추가]
+            "Highlight": "tag_highlight",
+            "밝은 톤": "tag_highlight",
+
+            "주요 군집": "tag_kmean",
+            "K-Means": "tag_kmean"
+        };
+
+        // 1. 매핑 키 찾기 (없으면 undefined)
+        let langKey = tagMap[rec.type];
+
+        // 2. 만약 매핑된 키가 없으면, 혹시 rec.type 자체가 "하이라이트" 같은 문자열일 수 있으니
+        //    부분 일치라도 검사 (안전장치)
+        if (!langKey) {
+            if (rec.type.includes("하이라이트") || rec.type.includes("Highlight")) langKey = "tag_highlight";
+            else if (rec.type.includes("명암") || rec.type.includes("Shadow")) langKey = "tag_shadow";
+            else if (rec.type.includes("고비율") || rec.type.includes("Dominant")) langKey = "tag_dominant";
+        }
+
+        // 3. 언어 데이터 가져오기 (최종)
+        const currentLang = state.language || 'ko';
+        // langKey가 있으면 번역하고, 없으면 원래 텍스트(rec.type) 그대로 사용
+        let displayType = (langKey && window.languageData[currentLang][langKey]) 
+                          ? window.languageData[currentLang][langKey] 
+                          : rec.type;
+        
+        // 3. 만약 언어 데이터에 없으면 원래 텍스트 그대로 출력 (안전장치)
+        if (!displayType) displayType = rec.type;
+        
+        const textInfo = document.createElement('div'); 
+        textInfo.className = 'rec-text-info'; 
+        textInfo.innerHTML = `<span class="rec-hex">${hex}</span><span class="rec-desc">${displayType}</span>`;
+        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+        const addBtn = document.createElement('span'); 
+        addBtn.className = 'rec-add-icon'; 
+        addBtn.textContent = '+';
+        
+        if (isColorAlreadyAdded(rec.rgb)) { 
+            btn.classList.add('added'); 
+            addBtn.textContent = '✔'; 
+        }
+        
         btn.onclick = () => {
             if (isColorAlreadyAdded(rec.rgb)) return;
-            if (createAddedColorItem(rec, true, callback)) { btn.classList.add('added'); addBtn.textContent = '✔'; updatePaletteStatus(); if (callback) callback(); }
+            if (createAddedColorItem(rec, true, callback)) { 
+                btn.classList.add('added'); 
+                addBtn.textContent = '✔'; 
+                updatePaletteStatus(); 
+                if (callback) callback(); 
+            }
         };
-        btn.appendChild(colorBox); btn.appendChild(textInfo); btn.appendChild(addBtn); elements.recommendationReportContainer.appendChild(btn);
+        
+        btn.appendChild(colorBox); 
+        btn.appendChild(textInfo); 
+        btn.appendChild(addBtn); 
+        elements.recommendationReportContainer.appendChild(btn);
     });
 };
 

@@ -2,7 +2,7 @@
 import { state, CONFIG, hexToRgb } from './state.js';
 import { 
     elements, updateTransform, populateColorSelects, updatePaletteStatus, updateOutputDimensionsDisplay,
-    createAddedColorItem, clearAndResetInputFields, updateScaleUIVisibility,
+    createAddedColorItem, clearAndResetInputFields, updateScaleUIVisibility, updateColorRecommendations, 
     showLoading, isColorAlreadyAdded, getOptions, updateUpscaleButtonState // updateUpscaleButtonState 추가
 } from './ui.js';
 import { triggerConversion, conversionWorker } from './worker-handler.js';
@@ -487,6 +487,50 @@ export const setupEventListeners = (callbacks) => {
             document.body.appendChild(downloadAnchorNode);
             downloadAnchorNode.click();
             downloadAnchorNode.remove();
+        });
+    }
+
+    if (elements.loadPresetBtn && elements.presetUpload) {
+        elements.loadPresetBtn.addEventListener('click', () => {
+            elements.presetUpload.click(); // 숨겨진 <input type="file"> 실행
+        });
+    }
+
+    // 2. [파일 처리] 사용자가 파일을 선택하면 -> 읽어서 적용함
+    if (elements.presetUpload) {
+        elements.presetUpload.addEventListener('change', (e) => {
+            // 선택된 파일 가져오기
+            const file = e.target.files[0];
+            if (!file) return; // 파일이 없으면 취소
+
+            // 파일을 읽는 도구 생성
+            const reader = new FileReader();
+
+            // 다 읽었을 때 실행할 일
+            reader.onload = (event) => {
+                try {
+                    // 1. 텍스트를 JSON 객체로 변환
+                    const presetData = JSON.parse(event.target.result);
+                    
+                    // 2. 전역 함수 applyPreset 실행 (script.js에 있는 함수)
+                    if (typeof window.applyPreset === 'function') {
+                        window.applyPreset(presetData);
+                        alert("프리셋이 성공적으로 적용되었습니다! 🎉");
+                    } else {
+                        console.error("❌ 오류: applyPreset 함수를 찾을 수 없습니다.");
+                        alert("시스템 오류: 프리셋 적용 함수가 연결되지 않았습니다.");
+                    }
+                } catch (err) {
+                    console.error("파일 파싱 오류:", err);
+                    alert("올바른 프리셋 파일이 아닙니다.\n(.json 파일인지 확인해주세요)");
+                }
+            };
+            
+            // 파일 읽기 시작! (텍스트 형식으로)
+            reader.readAsText(file);
+            
+            // (중요) 같은 파일을 다시 선택해도 작동하도록 입력값 초기화
+            e.target.value = '';
         });
     }
 
