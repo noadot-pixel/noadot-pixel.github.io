@@ -315,33 +315,52 @@ function applyCelShadingFilterOptimized(imageData, palette, options) {
     const k = levels || 8;
     let clusterColors = runHybridQuantization(imageData, k, randomSeed);
 
-    // 2. [팔레트 매핑] 선택된 팔레트가 있다면, 뽑힌 k개의 색을 팔레트 색으로 '스냅(Snap)' 합니다.
+    // 2. [수정된 팔레트 매핑] 중복을 최대한 피해서 다양하게 할당하기
     if (palette && palette.length > 0) {
-        // 추출된 각 색상(c1)에 대해 팔레트(p) 중 가장 가까운 것을 찾음
-        clusterColors = clusterColors.map(c1 => {
-            let minDist = Infinity;
-            let matchedColor = palette[0];
+        // 팔레트 색상들의 사용 여부를 체크할 Set
+        const usedPaletteIndices = new Set();
+        const newClusters = [];
 
+        // 추출된 색상들을 순회하며 매칭
+        for (let i = 0; i < clusterColors.length; i++) {
+            const extracted = clusterColors[i];
+            let bestIdx = -1;
+            let minDist = Infinity;
+
+            // 1차 시도: 아직 안 쓴 팔레트 색상 중에서 가장 가까운 것 찾기
             for (let j = 0; j < palette.length; j++) {
+                if (usedPaletteIndices.has(j)) continue; // 이미 쓴 색은 패스
+
                 const p = palette[j];
-                // 단순 유클리드 거리 사용 (속도와 안정성 우선)
-                // 만약 더 정밀한 매핑을 원하면 여기서 RGB->Lab 변환을 추가할 수 있지만,
-                // 만화 필터 특성상 RGB 거리로도 충분히 좋습니다.
-                const dist = (c1[0]-p[0])**2 + (c1[1]-p[1])**2 + (c1[2]-p[2])**2;
+                const dist = (extracted[0]-p[0])**2 + (extracted[1]-p[1])**2 + (extracted[2]-p[2])**2;
                 
                 if (dist < minDist) {
                     minDist = dist;
-                    matchedColor = p;
+                    bestIdx = j;
                 }
             }
-            return matchedColor;
-        });
-        
-        // (옵션) 중복 색상 제거? 
-        // 아니요, 중복을 유지해야 색상 비중(Weight)이 자연스럽게 유지됩니다.
-        // 예: 4개 추출 -> [진한파랑, 연한파랑, 빨강, 검정]
-        // 팔레트에 파랑이 하나뿐이라면 -> [파랑, 파랑, 빨강, 검정] 
-        // 이렇게 되어야 이미지의 파란 영역이 자연스럽게 합쳐집니다.
+
+            // 만약 팔레트가 부족해서 안 쓴 색이 없다면? (혹은 너무 멀다면?)
+            // 어쩔 수 없이 전체 팔레트 중에서 다시 찾음 (중복 허용)
+            if (bestIdx === -1) {
+                minDist = Infinity;
+                for (let j = 0; j < palette.length; j++) {
+                    const p = palette[j];
+                    const dist = (extracted[0]-p[0])**2 + (extracted[1]-p[1])**2 + (extracted[2]-p[2])**2;
+                    if (dist < minDist) {
+                        minDist = dist;
+                        bestIdx = j;
+                    }
+                }
+            }
+
+            // 결정된 색상 등록
+            if (bestIdx !== -1) {
+                usedPaletteIndices.add(bestIdx);
+                newClusters.push(palette[bestIdx]);
+            }
+        }
+        clusterColors = newClusters;
     }
 
     // 3. 픽셀 매핑 (이미지 전체를 순회하며 k개의 색 중 하나로 변경)
