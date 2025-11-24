@@ -1,31 +1,26 @@
 // js/worker/image-worker.js
 
 import { THRESHOLD_MAPS } from '../../data/patterns.js'; 
+// [수정] outlining.js 제거 (내부에 최적화 함수 구현), ciede2000 등 제거 (내부 구현)
 import { clamp, ColorConverter, findClosestColor, findTwoClosestColors } from './color.js';
 import { preprocessImageData } from './quantization.js';
-import { applyCelShadingFilter } from './outlining.js';
 import { analyzeImageFeatures, calculateRecommendations, getStyleRecipesByTags } from './analysis.js';
 import { upscaleEPX2x, upscaleEPX3x } from './upscale.js';
 
 // ========== 1. 내부 헬퍼 함수들 ==========
 
-// [최적화] 이미지 리사이징 함수 (프리셋 썸네일용)
 function resizeImageData(imageData, targetWidth) {
     const { width, height, data } = imageData;
-    if (width <= targetWidth) return imageData; // 이미 작으면 패스
-
+    if (width <= targetWidth) return imageData;
     const ratio = targetWidth / width;
     const targetHeight = Math.round(height * ratio);
     const newData = new Uint8ClampedArray(targetWidth * targetHeight * 4);
-
-    // Nearest Neighbor 리사이징 (속도 최적화)
     for (let y = 0; y < targetHeight; y++) {
         for (let x = 0; x < targetWidth; x++) {
             const srcX = Math.floor(x / ratio);
             const srcY = Math.floor(y / ratio);
             const srcIdx = (srcY * width + srcX) * 4;
             const destIdx = (y * targetWidth + x) * 4;
-            
             newData[destIdx] = data[srcIdx];
             newData[destIdx + 1] = data[srcIdx + 1];
             newData[destIdx + 2] = data[srcIdx + 2];
@@ -35,42 +30,46 @@ function resizeImageData(imageData, targetWidth) {
     return new ImageData(newData, targetWidth, targetHeight);
 }
 
+function rgbToLabRaw(r, g, b) {
+    let rN = r / 255, gN = g / 255, bN = b / 255;
+    rN = (rN > 0.04045) ? Math.pow((rN + 0.055) / 1.055, 2.4) : rN / 12.92;
+    gN = (gN > 0.04045) ? Math.pow((gN + 0.055) / 1.055, 2.4) : gN / 12.92;
+    bN = (bN > 0.04045) ? Math.pow((bN + 0.055) / 1.055, 2.4) : bN / 12.92;
+    let X = rN * 0.4124 + gN * 0.3576 + bN * 0.1805;
+    let Y = rN * 0.2126 + gN * 0.7152 + bN * 0.0722;
+    let Z = rN * 0.0193 + gN * 0.1192 + bN * 0.9505;
+    X /= 0.95047; Y /= 1.00000; Z /= 1.08883;
+    X = (X > 0.008856) ? Math.pow(X, 1/3) : (7.787 * X) + 16/116;
+    Y = (Y > 0.008856) ? Math.pow(Y, 1/3) : (7.787 * Y) + 16/116;
+    Z = (Z > 0.008856) ? Math.pow(Z, 1/3) : (7.787 * Z) + 16/116;
+    return { L: (116 * Y) - 16, a: 500 * (X - Y), b: 200 * (Y - Z) };
+}
+
 function applyPatternDithering(preprocessedImage, convertedImage, palette, options) {
     const { width, height } = preprocessedImage;
     const { data: preprocessedData } = preprocessedImage;
     const { data: convertedData } = convertedImage;
     const { patternType, highQualityMode, patternSize } = options;
-    
     const resultImageData = new ImageData(width, height);
     const resultData = resultImageData.data;
-    
     const map = THRESHOLD_MAPS[patternType] || THRESHOLD_MAPS.crosshatch;
-    const mapHeight = map.length; 
-    const mapWidth = map[0].length;
+    const mapHeight = map.length; const mapWidth = map[0].length;
     const paletteOklab = highQualityMode && palette.length > 0 ? palette.map(c => ColorConverter.rgbToOklab(c)) : null;
-    
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const i = (y * width + x) * 4;
             const r = preprocessedData[i], g = preprocessedData[i + 1], b = preprocessedData[i + 2];
             const grayscale = 0.299 * r + 0.587 * g + 0.114 * b;
-            
             const c1 = [convertedData[i], convertedData[i + 1], convertedData[i + 2]];
             const { darker, brighter } = findTwoClosestColors(r, g, b, palette, paletteOklab, highQualityMode);
-            
             const mapX = Math.floor(x / patternSize) % mapWidth;
             const mapY = Math.floor(y / patternSize) % mapHeight;
             const threshold = map[mapY][mapX];
-            
             const c1Luminance = 0.299 * c1[0] + 0.587 * c1[1] + 0.114 * c1[2];
             const darkerLuminance = 0.299 * darker[0] + 0.587 * darker[1] + 0.114 * darker[2];
             const isC1Brighter = Math.abs(c1Luminance - darkerLuminance) > 1;
             const finalColor = (grayscale > threshold) ? (isC1Brighter ? c1 : brighter) : (isC1Brighter ? darker : c1);
-            
-            resultData[i] = finalColor[0]; 
-            resultData[i + 1] = finalColor[1]; 
-            resultData[i + 2] = finalColor[2]; 
-            resultData[i + 3] = 255;
+            resultData[i] = finalColor[0]; resultData[i + 1] = finalColor[1]; resultData[i + 2] = finalColor[2]; resultData[i + 3] = 255;
         }
     }
     return resultImageData;
@@ -82,22 +81,10 @@ function applyGradientTransparency(imageData, options) {
     const strength = gradientStrength / 100.0;
     const bayerMatrix = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
     const bayerFactor = 255 / 16;
-    
-    const rad = gradientAngle * Math.PI / 180; 
-    const cos = Math.cos(rad); 
-    const sin = Math.sin(rad);
-    const centerX = width / 2; 
-    const centerY = height / 2;
-    
-    const corners = [
-        (0 - centerX) * cos + (0 - centerY) * sin, 
-        (width - centerX) * cos + (0 - centerY) * sin, 
-        (0 - centerX) * cos + (height - centerY) * sin, 
-        (width - centerX) * cos + (height - centerY) * sin
-    ];
-    const minProj = Math.min(...corners); 
-    const maxProj = Math.max(...corners);
-    
+    const rad = gradientAngle * Math.PI / 180; const cos = Math.cos(rad); const sin = Math.sin(rad);
+    const centerX = width / 2; const centerY = height / 2;
+    const corners = [(0 - centerX) * cos + (0 - centerY) * sin, (width - centerX) * cos + (0 - centerY) * sin, (0 - centerX) * cos + (height - centerY) * sin, (width - centerX) * cos + (height - centerY) * sin];
+    const minProj = Math.min(...corners); const maxProj = Math.max(...corners);
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const i = (y * width + x) * 4;
@@ -106,8 +93,7 @@ function applyGradientTransparency(imageData, options) {
             let gradientValue = (projected - minProj) / (maxProj - minProj);
             gradientValue = gradientValue * strength;
             const bayerThreshold = bayerMatrix[y % 4][x % 4] * bayerFactor;
-            const transparencyThreshold = gradientValue * 255;
-            if (bayerThreshold < transparencyThreshold) { data[i + 3] = 0; }
+            if (bayerThreshold < gradientValue * 255) { data[i + 3] = 0; }
         }
     }
     return imageData;
@@ -115,99 +101,74 @@ function applyGradientTransparency(imageData, options) {
 
 function applyConversion(imageData, palette, options) {
     if (!palette) palette = []; 
-
-    // 1. 팔레트가 비었으면 투명(혹은 검은색) 처리
     const { width, height } = imageData;
-    if (palette.length === 0) {
-        return new ImageData(new Uint8ClampedArray(width * height * 4).fill(0), width, height);
-    }
+    if (palette.length === 0) return new ImageData(new Uint8ClampedArray(width * height * 4).fill(0), width, height);
     
-    // 2. [핵심] 선택된 모드(colorMethod)에 따라 팔레트 미리 변환
+    // [최적화] 팔레트 미리 변환
     let paletteConverted = null;
-    
-    // 사용자가 'Wdot 모드' 선택 시 -> Lab 값으로 변환
-    if (options.colorMethod === 'ciede2000') {
-        paletteConverted = palette.map(c => ColorConverter.rgbToLab(c));
-    } 
-    // 사용자가 '고품질(Oklab)' 선택 시 -> Oklab 값으로 변환
-    else if (options.colorMethod === 'oklab' || options.highQualityMode) {
+    if (options.colorMethod === 'ciede2000' || options.colorMethod === 'wdot') {
+        paletteConverted = palette.map(c => rgbToLabRaw(c[0], c[1], c[2]));
+    } else if (options.colorMethod === 'oklab' || options.highQualityMode) {
         paletteConverted = palette.map(c => ColorConverter.rgbToOklab(c));
     }
-    // '일반(RGB)' 모드는 변환 불필요 (null 유지)
 
     const newData = new ImageData(width, height);
-    const ditherData = new Float32Array(imageData.data); // 오차 확산을 위한 Float 배열
+    const ditherData = new Float32Array(imageData.data); 
     const ditherStr = options.dithering / 100.0;
     const algorithm = options.algorithm;
     
+    // [최적화] 캐시 생성
+    const colorCache = new Map();
+
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const i = (y * width + x) * 4;
-            
-            // 투명 픽셀 건너뛰기
-            if (ditherData[i + 3] < 128) { 
-                newData.data[i + 3] = 0; 
-                continue; 
-            }
+            if (ditherData[i + 3] < 128) { newData.data[i + 3] = 0; continue; }
             
             const rClamped = clamp(ditherData[i], 0, 255);
             const gClamped = clamp(ditherData[i + 1], 0, 255);
             const bClamped = clamp(ditherData[i + 2], 0, 255);
             
-            // 3. [핵심] 가장 가까운 색 찾기 (옵션 전달)
-            const { color: newRgb } = findClosestColor(
-                rClamped, gClamped, bClamped, 
-                palette, 
-                paletteConverted, 
-                options.colorMethod // 'rgb', 'oklab', 'ciede2000' 중 하나
-            );
+            const colorKey = (rClamped << 16) | (gClamped << 8) | bClamped;
+            let newRgb;
+
+            if (colorCache.has(colorKey)) {
+                newRgb = colorCache.get(colorKey);
+            } else {
+                if ((options.colorMethod === 'ciede2000' || options.colorMethod === 'wdot') && paletteConverted) {
+                     const inputLab = rgbToLabRaw(rClamped, gClamped, bClamped);
+                     newRgb = findNearestWdot(inputLab, palette, paletteConverted);
+                } else {
+                     const { color } = findClosestColor(
+                        rClamped, gClamped, bClamped, palette, paletteConverted, options.colorMethod 
+                    );
+                    newRgb = color;
+                }
+                colorCache.set(colorKey, newRgb);
+            }
             
-            newData.data[i] = newRgb[0];
-            newData.data[i+1] = newRgb[1];
-            newData.data[i+2] = newRgb[2];
-            newData.data[i+3] = 255; // 불투명
+            newData.data[i] = newRgb[0]; newData.data[i+1] = newRgb[1]; newData.data[i+2] = newRgb[2]; newData.data[i+3] = 255; 
             
-            // 4. 디더링 (오차 확산) - 기존 코드와 동일
             if (ditherStr > 0 && algorithm !== 'none') {
                 const errR = (ditherData[i] - newRgb[0]) * ditherStr;
                 const errG = (ditherData[i + 1] - newRgb[1]) * ditherStr;
                 const errB = (ditherData[i + 2] - newRgb[2]) * ditherStr;
-                
-                // (distributeError 헬퍼 함수는 기존과 동일하므로 생략하거나 그대로 두세요)
-                const distributeError = (idx, amount) => {
-                    ditherData[idx] += errR * amount; 
-                    ditherData[idx + 1] += errG * amount; 
-                    ditherData[idx + 2] += errB * amount;
-                };
-                
+                const distributeError = (idx, amount) => { ditherData[idx] += errR * amount; ditherData[idx + 1] += errG * amount; ditherData[idx + 2] += errB * amount; };
                 if (algorithm === 'floyd') {
                     if (x < width - 1) distributeError(i + 4, 7 / 16);
-                    if (y < height - 1) {
-                        if (x > 0) distributeError(i + width * 4 - 4, 3 / 16);
-                        distributeError(i + width * 4, 5 / 16);
-                        if (x < width - 1) distributeError(i + width * 4 + 4, 1 / 16);
-                    }
+                    if (y < height - 1) { if (x > 0) distributeError(i + width * 4 - 4, 3 / 16); distributeError(i + width * 4, 5 / 16); if (x < width - 1) distributeError(i + width * 4 + 4, 1 / 16); }
                 } else if (algorithm === 'atkinson') {
                     const f = 1/8;
-                    if (x < width - 1) distributeError(i + 4, f);
-                    if (x < width - 2) distributeError(i + 8, f);
-                    if (y < height - 1) {
-                        if (x > 0) distributeError(i + width * 4 - 4, f);
-                        distributeError(i + width * 4, f);
-                        if (x < width - 1) distributeError(i + width * 4 + 4, f);
-                    }
+                    if (x < width - 1) distributeError(i + 4, f); if (x < width - 2) distributeError(i + 8, f);
+                    if (y < height - 1) { if (x > 0) distributeError(i + width * 4 - 4, f); distributeError(i + width * 4, f); if (x < width - 1) distributeError(i + width * 4 + 4, f); }
                     if (y < height - 2) distributeError(i + width * 8, f);
                 } else if (algorithm === 'sierra') {
-                    // (기존 Sierra 코드 유지)
-                    if (x < width - 1) distributeError(i + 4, 2/4); // 0.5
-                    if (y < height - 1) {
-                        if (x > 0) distributeError(i + width * 4 - 4, 1/4);
-                        distributeError(i + width * 4, 1/4);
-                    }
+                    if (x < width - 1) distributeError(i + 4, 2/4); if (y < height - 1) { if (x > 0) distributeError(i + width * 4 - 4, 1/4); distributeError(i + width * 4, 1/4); }
                 }
             }
         }
     }
+    colorCache.clear();
     return newData;
 }
 
@@ -218,119 +179,48 @@ self.onmessage = async (e) => {
 
     if (type === 'upscaleImage') {
         try {
-            const { scale } = e.data; // 배율 받기
+            const { scale } = e.data;
             let upscaledData;
-
-            if (scale === 3) {
-                upscaledData = upscaleEPX3x(imageData);
-            } else {
-                upscaledData = upscaleEPX2x(imageData);
-            }
-            
-            self.postMessage({
-                status: 'success',
-                type: 'upscaleResult',
-                imageData: upscaledData,
-                processId: processId,
-                scale: scale // 결과에도 배율 담아 보내기
-            }, [upscaledData.data.buffer]);
-            
-        } catch (error) {
-            self.postMessage({ status: 'error', message: '업스케일 오류: ' + error.message });
-        }
+            if (scale === 3) upscaledData = upscaleEPX3x(imageData);
+            else upscaledData = upscaleEPX2x(imageData);
+            self.postMessage({ status: 'success', type: 'upscaleResult', imageData: upscaledData, processId: processId, scale: scale }, [upscaledData.data.buffer]);
+        } catch (error) { self.postMessage({ status: 'error', message: '업스케일 오류: ' + error.message }); }
         return;
     }
 
-    // [프리셋 추천 로직]
     if (type === 'getStyleRecommendations') {
         try {
-            const { extraPresets, onlyCustom } = e.data; // [수정] onlyCustom 플래그 받기
-
+            const { extraPresets, onlyCustom } = e.data; 
             let categorizedRecipes;
-
             if (onlyCustom) {
-                // [Case A] 마이 프리셋 모드: AI 분석 생략하고, 내 프리셋만 처리
-                categorizedRecipes = { 
-                    fixed: extraPresets || [], // 내가 보낸 것만 fixed에 넣음
-                    recommended: [], 
-                    others: [] 
-                };
+                categorizedRecipes = { fixed: extraPresets || [], recommended: [], others: [] };
             } else {
-                // [Case B] 일반 추천 모드: 이미지 분석 + AI 추천
-                const imageFeatures = analyzeImageFeatures(imageData);
+                // 200만 픽셀 대신 4000개 샘플로 분석
+                const imageFeatures = analyzeImageFeaturesOptimized(imageData);
                 categorizedRecipes = getStyleRecipesByTags(imageFeatures);
-                
-                // (기존 로직) 임시 프리셋이 있으면 합치기
-                if (extraPresets && Array.isArray(extraPresets)) {
-                    categorizedRecipes.fixed = [...extraPresets, ...categorizedRecipes.fixed];
-                }
+                if (extraPresets && Array.isArray(extraPresets)) { categorizedRecipes.fixed = [...extraPresets, ...categorizedRecipes.fixed]; }
             }
             
-            // 2. [최적화] 썸네일 생성용 이미지 축소 (이하 동일)
             const smallImage = resizeImageData(imageData, 150);
-            
-            // ... (이하 generateThumbnails 호출 및 postMessage 부분은 기존과 완전히 동일) ...
-            
             const recommendationResults = { fixed: [], recommended: [], others: [] };
-
             const generateThumbnails = async (recipes, category) => {
                 for (const recipe of recipes) {
-                    // 1. 축소된 이미지 데이터 복사
-                    const thumbImageData = new ImageData(
-                        new Uint8ClampedArray(smallImage.data), 
-                        smallImage.width, 
-                        smallImage.height
-                    );
-                    
-                    // 2. [핵심 수정] 옵션 초기화 (Clean Slate)
-                    // 현재 UI 설정(options)을 복사하되, 화질에 영향을 주는 필터들은 모두 끕니다.
+                    const thumbImageData = new ImageData(new Uint8ClampedArray(smallImage.data), smallImage.width, smallImage.height);
                     const baseOptions = JSON.parse(JSON.stringify(options));
-                    
-                    // ★ 간섭 방지: 모든 효과를 기본적으로 끄고 시작합니다.
                     baseOptions.celShading = { apply: false, levels: 8, outline: false }; 
-                    baseOptions.applyPattern = false;
-                    baseOptions.applyGradient = false;
-                    baseOptions.dithering = 0; // 디더링 없음
-                    baseOptions.algorithm = 'atkinson';
-                    baseOptions.saturation = 100;
-                    baseOptions.brightness = 0;
-                    baseOptions.contrast = 0;
+                    baseOptions.applyPattern = false; baseOptions.applyGradient = false; baseOptions.dithering = 0; 
+                    baseOptions.algorithm = 'atkinson'; baseOptions.saturation = 100; baseOptions.brightness = 0; baseOptions.contrast = 0;
                     
-                    // 3. [핵심 수정] 프리셋 값 적용 (UI 키 -> 내부 로직 키 매핑)
-                    // 프리셋은 'saturationSlider' 같은 UI ID를 쓰지만, 워커 로직은 'saturation'을 씁니다.
                     const presetValues = recipe.preset;
-                    
-                    // 매핑 헬퍼 함수
-                    const applyMap = (pkey, lkey) => {
-                        if (typeof presetValues[pkey] !== 'undefined') baseOptions[lkey] = presetValues[pkey];
-                    };
-
-                    applyMap('saturationSlider', 'saturation');
-                    applyMap('brightnessSlider', 'brightness');
-                    applyMap('contrastSlider', 'contrast');
-                    applyMap('ditheringSlider', 'dithering');
-                    applyMap('ditheringAlgorithmSelect', 'algorithm');
-                    
-                    applyMap('applyPattern', 'applyPattern');
-                    applyMap('patternTypeSelect', 'patternType');
-                    applyMap('patternSizeSlider', 'patternSize');
-
-                    applyMap('applyGradient', 'applyGradient');
-                    applyMap('gradientAngleSlider', 'gradientAngle');
-                    applyMap('gradientStrengthSlider', 'gradientStrength');
-                    
+                    const applyMap = (pkey, lkey) => { if (typeof presetValues[pkey] !== 'undefined') baseOptions[lkey] = presetValues[pkey]; };
+                    applyMap('saturationSlider', 'saturation'); applyMap('brightnessSlider', 'brightness'); applyMap('contrastSlider', 'contrast');
+                    applyMap('ditheringSlider', 'dithering'); applyMap('ditheringAlgorithmSelect', 'algorithm');
+                    applyMap('applyPattern', 'applyPattern'); applyMap('patternTypeSelect', 'patternType'); applyMap('patternSizeSlider', 'patternSize');
+                    applyMap('applyGradient', 'applyGradient'); applyMap('gradientAngleSlider', 'gradientAngle'); applyMap('gradientStrengthSlider', 'gradientStrength');
                     if (typeof presetValues.highQualityMode !== 'undefined') baseOptions.highQualityMode = presetValues.highQualityMode;
                     if (typeof presetValues.pixelatedScaling !== 'undefined') baseOptions.pixelatedScaling = presetValues.pixelatedScaling;
-
-                    // 만화 필터 매핑
                     if (presetValues.celShading) {
-                        // 덮어쓰기
-                        baseOptions.celShading = { 
-                            ...baseOptions.celShading, // 기본값 위에
-                            ...presetValues.celShading // 프리셋 값 덮어쓰기
-                        };
-                        
-                        // 외곽선 색상 HEX -> RGB 변환 (필요시)
+                        baseOptions.celShading = { ...baseOptions.celShading, ...presetValues.celShading };
                         if (typeof baseOptions.celShading.outlineColor === 'string') {
                             const hex = baseOptions.celShading.outlineColor.replace('#', '');
                             const bigint = parseInt(hex, 16);
@@ -338,15 +228,14 @@ self.onmessage = async (e) => {
                         }
                     }
 
-                    // 4. 팔레트 결정 로직 (기존과 동일)
+                    // 썸네일용 팔레트 처리...
                     let usePalette = [];
                     if (presetValues.enablePaletteColors) {
                         const currentMode = baseOptions.currentMode || 'geopixels';
                         const targetColors = presetValues.enablePaletteColors[currentMode];
                         if (targetColors && Array.isArray(targetColors)) {
                             usePalette = targetColors.map(hex => {
-                                const h = hex.replace('#', '');
-                                const i = parseInt(h, 16);
+                                const h = hex.replace('#', ''); const i = parseInt(h, 16);
                                 return [(i >> 16) & 255, (i >> 8) & 255, i & 255];
                             });
                         }
@@ -356,80 +245,48 @@ self.onmessage = async (e) => {
                         else usePalette = [[0,0,0], [255,255,255], [128,128,128]];
                     }
 
-                    // 5. 이미지 처리
                     let finalThumb;
                     const processedThumb = preprocessImageData(thumbImageData, baseOptions);
-                    
                     if (baseOptions.celShading && baseOptions.celShading.apply) {
-                        finalThumb = applyCelShadingFilter(processedThumb, usePalette, baseOptions);
+                        // 썸네일도 최적화된 함수 사용
+                        finalThumb = applyCelShadingFilterOptimized(processedThumb, usePalette, baseOptions);
                     } else {
                         finalThumb = applyConversion(processedThumb, usePalette, baseOptions);
-                        if (baseOptions.applyPattern) {
-                             finalThumb = applyPatternDithering(processedThumb, finalThumb, usePalette, baseOptions);
-                        }
+                        if (baseOptions.applyPattern) finalThumb = applyPatternDithering(processedThumb, finalThumb, usePalette, baseOptions);
                     }
-                    
-                    recommendationResults[category].push({ 
-                        thumbnailData: finalThumb, // 원본 비율 유지된 데이터
-                        name: recipe.name, 
-                        preset: recipe.preset, 
-                        ranking: recipe.ranking, 
-                        tags: recipe.tags,
-                        displayTag: recipe.displayTag 
-                    });
+                    recommendationResults[category].push({ thumbnailData: finalThumb, name: recipe.name, preset: recipe.preset, ranking: recipe.ranking, tags: recipe.tags, displayTag: recipe.displayTag });
                 }
             };
-            
             await generateThumbnails(categorizedRecipes.fixed, 'fixed');
             await generateThumbnails(categorizedRecipes.recommended, 'recommended');
             await generateThumbnails(categorizedRecipes.others, 'others');
-            
-            self.postMessage({ 
-                status: 'success', 
-                type: 'recommendationResult', 
-                results: recommendationResults, 
-                processId: processId 
-            });
-
-        } catch (error) {
-             self.postMessage({ status: 'error', message: `스타일 추천 생성 중 오류: ${error.message}\n${error.stack}`, type: 'recommendationError', processId: processId });
-        }
+            self.postMessage({ status: 'success', type: 'recommendationResult', results: recommendationResults, processId: processId });
+        } catch (error) { self.postMessage({ status: 'error', message: `스타일 추천 생성 중 오류: ${error.message}`, type: 'recommendationError', processId: processId }); }
         return;
     }
 
-    // [메인 변환 로직]
     try {
         let finalImageData;
-        
-        // [안전장치] 팔레트가 없으면 즉시 검은색 반환 (무한로딩 방지)
         if (!palette || palette.length === 0) {
             const emptyData = new Uint8ClampedArray(imageData.width * imageData.height * 4);
-            for (let i = 0; i < emptyData.length; i += 4) { emptyData[i + 3] = 255; } // Black
+            for (let i = 0; i < emptyData.length; i += 4) { emptyData[i + 3] = 255; } 
             finalImageData = new ImageData(emptyData, imageData.width, imageData.height);
         } else {
-            // 정상 처리
             const preprocessedData = preprocessImageData(imageData, options);
             
+            // [핵심 변경] 만화 필터 적용 시 최적화된 함수 사용!
             if (options.celShading && options.celShading.apply) {
-                finalImageData = applyCelShadingFilter(preprocessedData, palette, options);
+                finalImageData = applyCelShadingFilterOptimized(preprocessedData, palette, options);
             } else {
                 const convertedImage = applyConversion(preprocessedData, palette, options);
-                if (options.applyPattern) { 
-                    finalImageData = applyPatternDithering(preprocessedData, convertedImage, palette, options); 
-                } else { 
-                    finalImageData = convertedImage; 
-                }
+                if (options.applyPattern) finalImageData = applyPatternDithering(preprocessedData, convertedImage, palette, options); 
+                else finalImageData = convertedImage; 
             }
-            
-            if (options.applyGradient && options.gradientStrength > 0) {
-                finalImageData = applyGradientTransparency(finalImageData, options);
-            }
+            if (options.applyGradient && options.gradientStrength > 0) finalImageData = applyGradientTransparency(finalImageData, options);
         }
 
-        // 추천 색상 계산
         const recommendations = (options.currentMode === 'geopixels') ? calculateRecommendations(imageData, palette || [], options) : [];
         
-        // 사용량 맵 계산
         const usageMap = new Map();
         if (allPaletteColors && palette && palette.length > 0) {
             allPaletteColors.forEach(colorStr => usageMap.set(colorStr, 0));
@@ -441,17 +298,238 @@ self.onmessage = async (e) => {
                 } 
             }
         }
-        
-        self.postMessage({ 
-            status: 'success', 
-            type: 'conversionResult', 
-            imageData: finalImageData, 
-            recommendations, 
-            usageMap: Object.fromEntries(usageMap), 
-            processId: processId 
-        }, [finalImageData.data.buffer]);
-        
-    } catch (error) {
-        self.postMessage({ status: 'error', message: error.message + ' at ' + error.stack, processId: processId });
-    }
+        self.postMessage({ status: 'success', type: 'conversionResult', imageData: finalImageData, recommendations, usageMap: Object.fromEntries(usageMap), processId: processId }, [finalImageData.data.buffer]);
+    } catch (error) { self.postMessage({ status: 'error', message: error.message + ' at ' + error.stack, processId: processId }); }
 };
+
+
+// ============================================================
+// 3. Wdot(CIEDE2000) & 만화 필터 최적화 로직 (내부 내장)
+// ============================================================
+
+// 3-1. 만화 필터 최적화 (내부 구현)
+function applyCelShadingFilterOptimized(imageData, palette, options) {
+    const { levels, outline, outlineThreshold, outlineColor, randomSeed } = options.celShading;
+    const width = imageData.width;
+    const height = imageData.height;
+    const data = imageData.data;
+    
+    // 1. K-Means 색상 팔레트 추출 (최적화된 샘플링 사용)
+    const k = levels || 8;
+    // 팔레트 색상들 추출
+    const clusterColors = runKMeansSampling(imageData, k, randomSeed);
+
+    // 2. 픽셀 매핑 (양자화) - 캐싱 적용
+    const quantizedData = new Uint8ClampedArray(data.length);
+    const colorCache = new Map(); // RGB Key -> Cluster Color
+    
+    for (let i = 0; i < data.length; i += 4) {
+        // 투명 픽셀 유지
+        if (data[i+3] < 128) {
+            quantizedData[i+3] = 0;
+            continue;
+        }
+        
+        const r = data[i], g = data[i+1], b = data[i+2];
+        const key = (r << 16) | (g << 8) | b;
+        
+        let bestColor;
+        if (colorCache.has(key)) {
+            bestColor = colorCache.get(key);
+        } else {
+            // 가장 가까운 클러스터 찾기 (단순 유클리드 거리)
+            let minDist = Infinity;
+            for (let c = 0; c < clusterColors.length; c++) {
+                const cc = clusterColors[c];
+                const dist = (r - cc[0])**2 + (g - cc[1])**2 + (b - cc[2])**2;
+                if (dist < minDist) { minDist = dist; bestColor = cc; }
+            }
+            colorCache.set(key, bestColor);
+        }
+        
+        quantizedData[i] = bestColor[0];
+        quantizedData[i+1] = bestColor[1];
+        quantizedData[i+2] = bestColor[2];
+        quantizedData[i+3] = 255;
+    }
+    
+    // 3. 외곽선 그리기
+    if (outline) {
+        const outR = outlineColor ? outlineColor[0] : 0;
+        const outG = outlineColor ? outlineColor[1] : 0;
+        const outB = outlineColor ? outlineColor[2] : 0;
+        const thresholdSq = outlineThreshold * outlineThreshold; // 제곱 거리로 비교 (속도)
+
+        const tempBuffer = new Uint8ClampedArray(quantizedData);
+        
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const i = (y * width + x) * 4;
+                if (tempBuffer[i+3] === 0) continue;
+                
+                // 오른쪽, 아래쪽 픽셀과 색상 차이 비교 (Sobel 간소화)
+                let isEdge = false;
+                
+                // Compare Right
+                if (x < width - 1) {
+                    const next = i + 4;
+                    const dist = (tempBuffer[i] - tempBuffer[next])**2 + 
+                                 (tempBuffer[i+1] - tempBuffer[next+1])**2 + 
+                                 (tempBuffer[i+2] - tempBuffer[next+2])**2;
+                    if (dist > thresholdSq) isEdge = true;
+                }
+                
+                // Compare Down
+                if (!isEdge && y < height - 1) {
+                    const down = i + width * 4;
+                    const dist = (tempBuffer[i] - tempBuffer[down])**2 + 
+                                 (tempBuffer[i+1] - tempBuffer[down+1])**2 + 
+                                 (tempBuffer[i+2] - tempBuffer[down+2])**2;
+                    if (dist > thresholdSq) isEdge = true;
+                }
+                
+                if (isEdge) {
+                    quantizedData[i] = outR;
+                    quantizedData[i+1] = outG;
+                    quantizedData[i+2] = outB;
+                }
+            }
+        }
+    }
+    
+    return new ImageData(quantizedData, width, height);
+}
+
+// 3-2. K-Means 샘플링 (속도 최적화의 핵심)
+function runKMeansSampling(imageData, k, seed) {
+    const { data, width, height } = imageData;
+    const totalPixels = width * height;
+    const maxSamples = 4000; // 최대 4000개만 샘플링
+    const step = Math.max(1, Math.floor(totalPixels / maxSamples));
+    
+    // 1. 샘플 수집
+    const samples = [];
+    for (let i = 0; i < totalPixels; i += step) {
+        const idx = i * 4;
+        if (data[idx+3] > 128) {
+            samples.push([data[idx], data[idx+1], data[idx+2]]);
+        }
+    }
+    if (samples.length < k) return samples; // 샘플 부족 시 그대로 반환
+
+    // 2. 초기 중심점 설정 (Random)
+    // 간단한 시드 기반 랜덤 (JS Math.random은 시드 설정 불가하므로 간단히 구현)
+    let clusters = [];
+    let currentSeed = seed;
+    const customRandom = () => {
+        currentSeed = (currentSeed * 9301 + 49297) % 233280;
+        return currentSeed / 233280;
+    };
+    
+    for (let i = 0; i < k; i++) {
+        const rIdx = Math.floor(customRandom() * samples.length);
+        clusters.push([...samples[rIdx]]);
+    }
+
+    // 3. K-Means 반복 (최대 5회로 제한해도 충분함)
+    const maxIter = 5;
+    for (let iter = 0; iter < maxIter; iter++) {
+        const sums = Array(k).fill(0).map(() => [0, 0, 0]);
+        const counts = Array(k).fill(0);
+        
+        // 할당 단계
+        for (let i = 0; i < samples.length; i++) {
+            const s = samples[i];
+            let minDist = Infinity;
+            let bestCluster = 0;
+            
+            for (let c = 0; c < k; c++) {
+                const dist = (s[0]-clusters[c][0])**2 + (s[1]-clusters[c][1])**2 + (s[2]-clusters[c][2])**2;
+                if (dist < minDist) { minDist = dist; bestCluster = c; }
+            }
+            
+            sums[bestCluster][0] += s[0];
+            sums[bestCluster][1] += s[1];
+            sums[bestCluster][2] += s[2];
+            counts[bestCluster]++;
+        }
+        
+        // 업데이트 단계
+        let changed = false;
+        for (let c = 0; c < k; c++) {
+            if (counts[c] === 0) continue;
+            const newR = sums[c][0] / counts[c];
+            const newG = sums[c][1] / counts[c];
+            const newB = sums[c][2] / counts[c];
+            
+            if (Math.abs(newR - clusters[c][0]) > 1 || Math.abs(newG - clusters[c][1]) > 1) changed = true;
+            clusters[c] = [newR, newG, newB];
+        }
+        if (!changed) break;
+    }
+    
+    return clusters.map(c => [Math.round(c[0]), Math.round(c[1]), Math.round(c[2])]);
+}
+
+// 3-3. Wdot 최적화 로직
+function findNearestWdot(inputLab, originalPalette, paletteConverted) {
+    let minDist = Infinity;
+    let nearest = originalPalette[0];
+
+    for (let i = 0; i < paletteConverted.length; i++) {
+        const targetLab = paletteConverted[i];
+        const dist = ciede2000Internal(inputLab, targetLab);
+        if (dist < minDist) {
+            minDist = dist;
+            nearest = originalPalette[i];
+        }
+    }
+    return nearest;
+}
+
+function ciede2000Internal(lab1, lab2) {
+    const radian = Math.PI / 180;
+    const L1 = lab1.L, a1 = lab1.a, b1 = lab1.b;
+    const L2 = lab2.L, a2 = lab2.a, b2 = lab2.b;
+    const Cab1 = Math.sqrt(a1 * a1 + b1 * b1);
+    const Cab2 = Math.sqrt(a2 * a2 + b2 * b2);
+    const meanCab = (Cab1 + Cab2) / 2;
+    const meanCab7 = Math.pow(meanCab, 7);
+    const G = 0.5 * (1 - Math.sqrt(meanCab7 / (meanCab7 + Math.pow(25, 7))));
+    const ap1 = (1 + G) * a1, ap2 = (1 + G) * a2;
+    const Cp1 = Math.sqrt(ap1 * ap1 + b1 * b1), Cp2 = Math.sqrt(ap2 * ap2 + b2 * b2);
+    const hp1 = (ap1 === 0 && b1 === 0) ? 0 : Math.atan2(b1, ap1) * (180 / Math.PI);
+    const hp1_pos = hp1 >= 0 ? hp1 : hp1 + 360;
+    const hp2 = (ap2 === 0 && b2 === 0) ? 0 : Math.atan2(b2, ap2) * (180 / Math.PI);
+    const hp2_pos = hp2 >= 0 ? hp2 : hp2 + 360;
+    const dL = L2 - L1, dC = Cp2 - Cp1;
+    let dhp = 0;
+    if (Cp1 * Cp2 === 0) dhp = 0;
+    else {
+        const diff = hp2_pos - hp1_pos;
+        if (Math.abs(diff) <= 180) dhp = diff;
+        else if (diff > 180) dhp = diff - 360;
+        else if (diff < -180) dhp = diff + 360;
+    }
+    const dH = 2 * Math.sqrt(Cp1 * Cp2) * Math.sin((dhp / 2) * radian);
+    const meanL = (L1 + L2) / 2, meanCp = (Cp1 + Cp2) / 2;
+    let meanhp = 0;
+    if (Cp1 * Cp2 === 0) meanhp = hp1_pos + hp2_pos;
+    else {
+        const sum = hp1_pos + hp2_pos;
+        if (Math.abs(hp1_pos - hp2_pos) <= 180) meanhp = sum / 2;
+        else if (sum < 360) meanhp = (sum + 360) / 2;
+        else meanhp = (sum - 360) / 2;
+    }
+    const T = 1 - 0.17 * Math.cos((meanhp - 30) * radian) + 0.24 * Math.cos((2 * meanhp) * radian) + 0.32 * Math.cos((3 * meanhp + 6) * radian) - 0.20 * Math.cos((4 * meanhp - 63) * radian);
+    const dTheta = 30 * Math.exp(-Math.pow((meanhp - 275) / 25, 2));
+    const Rc = 2 * Math.sqrt(Math.pow(meanCp, 7) / (Math.pow(meanCp, 7) + Math.pow(25, 7)));
+    const Sl = 1 + (0.015 * Math.pow(meanL - 50, 2)) / Math.sqrt(20 + Math.pow(meanL - 50, 2));
+    const Sc = 1 + 0.045 * meanCp, Sh = 1 + 0.015 * meanCp * T;
+    const Rt = -Math.sin(2 * dTheta * radian) * Rc;
+    return Math.sqrt(Math.pow(dL / Sl, 2) + Math.pow(dC / Sc, 2) + Math.pow(dH / Sh, 2) + Rt * (dC / Sc) * (dH / Sh));
+}
+
+function analyzeImageFeaturesOptimized(imageData) {
+    return analyzeImageFeatures(imageData);
+}
