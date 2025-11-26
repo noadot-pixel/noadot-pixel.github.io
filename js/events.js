@@ -249,6 +249,25 @@ export const setupEventListeners = (callbacks) => {
         });
     }
 
+    if (elements.uploadFontBtn && elements.fontUpload) {
+        elements.uploadFontBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // 혹시 모를 기본 동작 방지
+            elements.fontUpload.click();
+        });
+    }
+
+    // 2. 파일 선택 시 -> 폰트 로딩 처리 (script.js의 handleFontUpload 호출)
+    if (elements.fontUpload) {
+        elements.fontUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && callbacks.handleFontUpload) {
+                callbacks.handleFontUpload(file);
+            }
+            // 같은 파일을 다시 올려도 작동하도록 초기화
+            e.target.value = '';
+        });
+    }
+
     // 텍스트 스타일 변경
     const textControlMap = [
         { id: 'fontSelect', key: 'fontFamily' },
