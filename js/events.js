@@ -250,15 +250,48 @@ export const setupEventListeners = (callbacks) => {
     }
 
     // 텍스트 스타일 변경
-    const textStyleIds = ['fontSelect', 'fontSizeSlider', 'letterSpacingSlider', 'paddingSlider', 'strokeWidthSlider', 'textColorSelect', 'bgColorSelect', 'strokeColorSelect'];
-    textStyleIds.forEach(id => {
-        const el = elements[id];
+    const textControlMap = [
+        { id: 'fontSelect', key: 'fontFamily' },
+        { id: 'fontSizeSlider', key: 'fontSize', isNumber: true },
+        { id: 'letterSpacingSlider', key: 'letterSpacing', isNumber: true },
+        { id: 'paddingSlider', key: 'padding', isNumber: true },
+        { id: 'strokeWidthSlider', key: 'strokeWidth', isNumber: true }
+    ];
+
+    textControlMap.forEach(item => {
+        const el = elements[item.id];
         if (el) {
-            el.addEventListener('input', (e) => {
-                const display = document.getElementById(id.replace('Slider', 'Value'));
-                if (display) display.textContent = el.value;
-                const key = id.replace('Select', '').replace('Slider', '');
-                if (state.textState.hasOwnProperty(key)) state.textState[key] = (el.type === 'range') ? parseInt(el.value) : el.value;
+            // select는 change, slider는 input 이벤트 사용
+            const evtType = el.tagName === 'SELECT' ? 'change' : 'input';
+            
+            el.addEventListener(evtType, (e) => {
+                // 값 저장
+                state.textState[item.key] = item.isNumber ? parseInt(e.target.value, 10) : e.target.value;
+                
+                // 슬라이더 숫자 표시 업데이트
+                if (item.isNumber) {
+                    const displayId = item.id.replace('Slider', 'Value');
+                    const displayEl = document.getElementById(displayId);
+                    if (displayEl) displayEl.textContent = e.target.value;
+                }
+                triggerConversion();
+            });
+        }
+    });
+
+    // 2. 색상 선택기 (드롭다운) - 별도 관리
+    const textColorIds = [
+        { id: 'textColorSelect', key: 'textColor' },
+        { id: 'bgColorSelect', key: 'bgColor' },
+        { id: 'strokeColorSelect', key: 'strokeColor' }
+    ];
+
+    textColorIds.forEach(item => {
+        const el = elements[item.id];
+        if (el) {
+            // 드롭다운은 반드시 'change' 이벤트를 써야 함
+            el.addEventListener('change', (e) => {
+                state.textState[item.key] = e.target.value; // HEX 값 저장
                 triggerConversion();
             });
         }

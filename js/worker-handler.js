@@ -237,12 +237,15 @@ export const processImage = () => {
     // 거기서 updateOutputDimensionsDisplay()가 호출되어 정확한 텍스트를 띄워줄 것이기 때문입니다.
 };
 
+// js/worker-handler.js 내부
+
 export const processText = () => {
     const { content, fontFamily, fontSize, isBold, isItalic, letterSpacing, padding, textColor, bgColor, strokeColor, strokeWidth } = state.textState;
     const canvas = elements.convertedCanvas || document.getElementById('convertedCanvas');
     const container = elements.convertedCanvasContainer || document.getElementById('convertedCanvasContainer');
     const dims = elements.convertedDimensions || document.getElementById('convertedDimensions');
 
+    // 1. 텍스트가 없으면 화면 지우고 종료
     if (!content) {
         if (container) container.classList.remove('has-image');
         const cCtx = canvas.getContext('2d');
@@ -250,6 +253,7 @@ export const processText = () => {
         return;
     }
 
+    // 2. 폰트 및 크기 계산용 임시 컨텍스트
     const tempCtx = document.createElement('canvas').getContext('2d');
     let fontStyle = '';
     if (isItalic) fontStyle += 'italic ';
@@ -272,13 +276,24 @@ export const processText = () => {
     
     if(dims) dims.textContent = `${canvasWidth} x ${canvasHeight} px`;
 
+    // 3. 실제 그리기용 캔버스 생성
     const textCanvas = document.createElement('canvas');
     textCanvas.width = canvasWidth;
     textCanvas.height = canvasHeight;
     const ctx = textCanvas.getContext('2d', { willReadFrequently: true });
 
-    ctx.fillStyle = `rgb(${bgColor})`;
+    // ▼▼▼ [핵심] 색상 포맷 자동 변환 함수 ▼▼▼
+    const toCssColor = (val) => {
+        if (!val) return '#000000'; // 값이 없으면 검은색
+        if (typeof val === 'string' && val.startsWith('#')) return val; // #FFFFFF면 그대로
+        return `rgb(${val})`; // 255,255,255면 rgb()로 감싸기
+    };
+
+    // 배경색 칠하기
+    ctx.fillStyle = toCssColor(bgColor);
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    
+    // 텍스트 설정
     ctx.font = tempCtx.font;
     ctx.letterSpacing = tempCtx.letterSpacing;
     ctx.textAlign = 'left';
@@ -286,23 +301,31 @@ export const processText = () => {
 
     let currentY = padding;
     lines.forEach((line, index) => {
+        // 윤곽선 그리기
         if (strokeWidth > 0) {
-            ctx.strokeStyle = `rgb(${strokeColor})`;
+            ctx.strokeStyle = toCssColor(strokeColor);
             ctx.lineWidth = strokeWidth;
             ctx.strokeText(line, padding, currentY);
         }
-        ctx.fillStyle = `rgb(${textColor})`;
+        // 글자 채우기
+        ctx.fillStyle = toCssColor(textColor);
         ctx.fillText(line, padding, currentY);
+        
         currentY += (lineMetrics[index].actualBoundingBoxAscent || fontSize * 2) + (lineMetrics[index].actualBoundingBoxDescent || 0);
     });
 
+    // 4. 이미지 데이터 추출 및 변환 준비
     const textImageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
     const palette = getActivePaletteData();
     const options = getOptions();
+    
+    // 텍스트 모드에서는 불필요한 필터 끄기
     options.celShading.apply = false;
     options.applyPattern = false;
     options.applyGradient = false;
 
     if (container) container.classList.add('has-image');
+    
+    // 5. 변환 실행 (이 파일 하단에 정의된 함수 호출)
     applyConversion(textImageData, palette, options);
 };

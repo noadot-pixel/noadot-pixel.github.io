@@ -416,7 +416,18 @@ export const populateColorSelects = () => {
         .filter(btn => !btn.classList.contains('all-toggle-btn')) // A버튼 제외
         .map(btn => {
             const rgb = JSON.parse(btn.dataset.rgb);
-            return { rgb: rgb, hex: rgbToHex(rgb[0], rgb[1], rgb[2]), name: btn.dataset.name || 'Color' };
+            
+            // ▼▼▼ [수정 1] 이름이 없거나 'null' 문자열이면 빈칸으로 만듦 ▼▼▼
+            let name = btn.dataset.name;
+            if (!name || name === 'null' || name === 'undefined') {
+                name = '';
+            }
+            
+            return { 
+                rgb: rgb, 
+                hex: rgbToHex(rgb[0], rgb[1], rgb[2]), 
+                name: name 
+            };
         });
 
     // 2. 사용자 추가 색상 수집
