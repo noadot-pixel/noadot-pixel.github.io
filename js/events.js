@@ -505,18 +505,89 @@ export const setupEventListeners = (callbacks) => {
     // ==========================================================================
     if (elements.addColorBtn) {
         elements.addColorBtn.addEventListener('click', () => {
-            let rgb = null;
-            if (elements.addHex.value.trim()) {
-                rgb = hexToRgb(elements.addHex.value.trim());
-                if (!rgb) { if(elements.hexInputFeedback) elements.hexInputFeedback.textContent = '유효하지 않은 HEX 코드입니다.'; return; }
-            } else if (elements.addR.value && elements.addG.value && elements.addB.value) {
-                rgb = [parseInt(elements.addR.value), parseInt(elements.addG.value), parseInt(elements.addB.value)];
+            const hexInput = elements.addHex.value.trim();
+            const rInput = elements.addR.value;
+            const gInput = elements.addG.value;
+            const bInput = elements.addB.value;
+
+            let colorsToAdd = [];
+
+            // ---------------------------------------------------------
+            // Case 1: RGB 입력칸(숫자칸)을 사용한 경우
+            // ---------------------------------------------------------
+            if (rInput && gInput && bInput) {
+                colorsToAdd.push([parseInt(rInput), parseInt(gInput), parseInt(bInput)]);
             }
-            if (rgb) {
-                if (callbacks.tryAddColor && callbacks.tryAddColor(rgb)) {
-                    if(callbacks.clearAndResetInputFields) callbacks.clearAndResetInputFields();
-                    populateColorSelects();
+            
+            // ---------------------------------------------------------
+            // Case 2: HEX 입력칸(텍스트칸)을 사용한 경우 (스마트 파싱)
+            // ---------------------------------------------------------
+            else if (hexInput) {
+                // 2-1. HEX 코드 패턴 찾기 (# 붙거나 안 붙은 6자리 영문/숫자)
+                // 예: "#FF0000 #00FF00" 또는 "FF0000, 00FF00"
+                const hexMatches = hexInput.match(/#?([0-9A-Fa-f]{6})/g);
+
+                if (hexMatches && hexMatches.length > 0) {
+                    // HEX 코드가 발견되면 전부 추가
+                    hexMatches.forEach(hex => {
+                        // #이 없으면 붙여서 변환
+                        const formatted = hex.startsWith('#') ? hex : '#' + hex;
+                        const rgbObj = hexToRgb(formatted);
+                        if (rgbObj) colorsToAdd.push([rgbObj.r, rgbObj.g, rgbObj.b]);
+                    });
+                } 
+                // 2-2. HEX가 없다면 숫자 추출 시도 (RGB 모드)
+                // 예: "R:12 G:255 B:100", "12, 255, 100", "12 255 100"
+                else {
+                    // 문자열에서 숫자만 싹 긁어모음
+                    const numbers = hexInput.match(/\d+/g);
+                    
+                    if (numbers && numbers.length >= 3) {
+                        // 3개씩 묶어서 RGB로 인식
+                        for (let i = 0; i < numbers.length; i += 3) {
+                            if (i + 2 < numbers.length) {
+                                const r = parseInt(numbers[i]);
+                                const g = parseInt(numbers[i+1]);
+                                const b = parseInt(numbers[i+2]);
+                                
+                                // 유효성 검사 (0~255)
+                                if (r <= 255 && g <= 255 && b <= 255) {
+                                    colorsToAdd.push([r, g, b]);
+                                }
+                            }
+                        }
+                    }
                 }
+            }
+
+            // ---------------------------------------------------------
+            // 결과 처리: 찾은 색상들 모두 등록
+            // ---------------------------------------------------------
+            if (colorsToAdd.length > 0) {
+                let addedCount = 0;
+                colorsToAdd.forEach(rgb => {
+                    // tryAddColor는 중복 체크 후 추가 성공 시 true 반환
+                    if (callbacks.tryAddColor(rgb)) {
+                        addedCount++;
+                    }
+                });
+
+                if (addedCount > 0) {
+                    // 성공 시 입력창 비우기 및 갱신
+                    if (callbacks.clearAndResetInputFields) callbacks.clearAndResetInputFields();
+                    populateColorSelects();
+                    
+                    // 1개면 조용히 넘어가고, 여러 개면 알림
+                    if (addedCount > 1) {
+                        alert(`${addedCount}개의 색상이 추가되었습니다.`);
+                    }
+                } else {
+                    // 이미 다 있는 색상이면
+                    if (elements.hexInputFeedback) elements.hexInputFeedback.textContent = '이미 추가된 색상입니다.';
+                }
+            } else {
+                // 파싱 실패
+                if (elements.hexInputFeedback) elements.hexInputFeedback.textContent = '유효한 색상 형식이 아닙니다.';
             }
         });
     }
