@@ -841,3 +841,54 @@ button.toggle-all { cursor: pointer; }
     background-color: #ddd;
     margin: 0 5px;
 }
+
+/* style.css 추가/수정 */
+
+.compare-icon-btn {
+    position: absolute; 
+    top: 10px; 
+    right: 10px; 
+    z-index: 20; /* 다른 요소들보다 위에 */
+    /* 1. 크기 & 모양 */
+    width: 42px;          /* 큼직하게 */
+    height: 42px;
+    border-radius: 8px;   /* 엣지 있는 둥근 사각형 */
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    pointer-events: auto;
+    
+    /* 2. 색상 & 투명도 */
+    background-color: rgba(255, 255, 255, 0.3); /* 흰색 30% */
+    color: #333;          /* 아이콘 색상 (진한 회색) */
+    border: 2px solid #555; /* 진한 회색 테두리 */
+    
+    /* 3. 효과 */
+    transition: all 0.2s ease;
+    backdrop-filter: blur(2px); /* 뒤가 흐릿하게 보여서 고급스러움 */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* 마우스 올렸을 때 (조금 더 잘 보이게) */
+.compare-icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.8);
+    border-color: #333;
+    transform: scale(1.05);
+}
+
+/* 눌렀을 때 (확실한 피드백) */
+.compare-icon-btn:active {
+    background-color: #4A90E2; /* 파란색 강조 */
+    color: white;
+    border-color: #217dbb;
+    transform: scale(0.95);
+}
+
+/* 아이콘(SVG) 크기 */
+.compare-icon-btn svg {
+    width: 28px;
+    height: 28px;
+    fill: currentColor; /* 버튼 색상 따라감 */
+}

@@ -55,6 +55,11 @@
                         <div class="top-right-ui">
                             <div id="zoomLevelDisplay">100%</div>
                             <div id="loading-indicator"></div>
+                            <button id="compareBtn" class="compare-icon-btn" title="원본 비교 (누르고 있기)" data-tooltip-key="tooltip_compare_hold">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                                    <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                     
@@ -88,6 +93,10 @@
                 <div id="imageDimensionsDisplay">
                     <span class="image-only-info"><span data-lang-key="info_original_size">원본 크기</span>: <strong id="originalDimensions">N/A</strong></span>
                     <span id="convertedDimensionsLabel" data-lang-key="info_converted_size">변환 크기</span>: <strong id="convertedDimensions">N/A</strong>
+                </div>
+                <div style="margin-top: 5px; font-size: 12px; color: #666;">
+                    <span data-lang-key="info_total_pixels">총 픽셀 수</span>: 
+                    <strong id="totalPixelCount" style="font-weight: 900; color: #333; font-size: 13px;">0</strong>
                 </div>
             </section>
             <section>

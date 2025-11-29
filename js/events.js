@@ -21,6 +21,88 @@ export const setupEventListeners = (callbacks) => {
     // ==========================================================================
     // 1. 업스케일 및 프리셋 저장 관련 이벤트
     // ==========================================================================
+    if (elements.compareBtn && elements.convertedCanvasContainer) {
+        const canvas = elements.convertedCanvas;
+        const container = elements.convertedCanvasContainer;
+        
+        // 오버레이용 이미지 태그 생성 (한 번만)
+        let overlayImg = document.getElementById('compare-overlay-img');
+        if (!overlayImg) {
+            overlayImg = document.createElement('img');
+            overlayImg.id = 'compare-overlay-img';
+            overlayImg.style.position = 'absolute';
+            overlayImg.style.zIndex = '50'; // 캔버스보다 높게
+            overlayImg.style.pointerEvents = 'none'; // 클릭 통과
+            overlayImg.style.display = 'none'; // 평소엔 숨김
+            
+            // [핵심] 캔버스와 똑같은 렌더링 방식 적용
+            // 원본을 보여줄 때도 픽셀이 뭉개지지 않게 할지, 부드럽게 할지 결정
+            // 보통 원본 비교는 부드럽게(bicubic) 보여주는 게 맞습니다.
+            overlayImg.style.imageRendering = 'auto'; 
+            
+            // 캔버스 바로 뒤(또는 앞)에 형제로 추가
+            // (container 안에 canvas와 overlayImg가 같이 있어야 위치 잡기 쉬움)
+            canvas.parentNode.insertBefore(overlayImg, canvas.nextSibling);
+        }
+
+        const startCompare = (e) => {
+            if (e.cancelable) e.preventDefault();
+            if (e.type !== 'mouseenter') e.stopPropagation();
+
+            if (!state.originalImageObject) return;
+
+            // 1. 비율 왜곡 검사 (기존 로직 유지)
+            const origRatio = state.originalImageObject.width / state.originalImageObject.height;
+            const currRatio = canvas.width / canvas.height;
+            if (Math.abs(origRatio - currRatio) > 0.15) {
+                // showToast 함수가 정의되어 있다고 가정
+                if (typeof showToast === 'function') showToast("원본 비율과 차이가 커서 비교할 수 없습니다.");
+                else alert("비율 차이가 커서 비교 불가");
+                return;
+            }
+
+            // 2. [핵심] 오버레이 이미지 속성 동기화
+            overlayImg.src = state.originalImageObject.src;
+            
+            // 크기 맞춤 (CSS 크기)
+            // canvas.style.width가 설정되어 있다면 그걸 따르고, 
+            // 없다면 내부 픽셀 크기에 맞춰 늘려야 함.
+            // 가장 확실한 건 캔버스의 현재 계산된 스타일을 가져오는 것
+            const computedStyle = window.getComputedStyle(canvas);
+            overlayImg.style.width = computedStyle.width;
+            overlayImg.style.height = computedStyle.height;
+            overlayImg.style.top = computedStyle.top;
+            overlayImg.style.left = computedStyle.left;
+            
+            // 줌/팬 상태(transform) 복사
+            overlayImg.style.transform = canvas.style.transform;
+            overlayImg.style.transformOrigin = canvas.style.transformOrigin;
+
+            // 3. 교체 (캔버스 숨기고 오버레이 보이기)
+            overlayImg.style.display = 'block';
+            canvas.style.opacity = '0';
+            
+            // 컨테이너 배경 숨기기 (옵션)
+            container.classList.add('comparing');
+        };
+
+        const endCompare = (e) => {
+            if (e && e.cancelable) e.preventDefault();
+            
+            // 복구
+            if (overlayImg) overlayImg.style.display = 'none';
+            if (canvas) canvas.style.opacity = '1';
+            
+            container.classList.remove('comparing');
+        };
+
+        const btn = elements.compareBtn;
+        btn.addEventListener('mousedown', startCompare);
+        btn.addEventListener('mouseup', endCompare);
+        btn.addEventListener('mouseleave', endCompare);
+        btn.addEventListener('touchstart', startCompare, { passive: false });
+        btn.addEventListener('touchend', endCompare, { passive: false });
+    }
     
     // 업스케일 라디오 버튼 (1x, 2x, 3x)
     const upscaleRadios = document.getElementsByName('upscaleMode');

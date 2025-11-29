@@ -209,6 +209,21 @@ export const languageData = {
         tag_shadow: "어두운 톤 (명암)",
         tag_highlight: "밝은 톤 (하이라이트)",
         tag_kmean: "주요 군집 (K-Means)",
+
+        // [신규] UI 텍스트
+        info_total_pixels: "총 픽셀 수",
+        tooltip_compare_hold: "꾹 눌러서 원본 이미지와 비교하기",
+
+        // [신규] 시스템 메시지 (Alert/Confirm)
+        alert_reset_confirm: "모든 설정을 초기화하시겠습니까?",
+        alert_reset_colors: "추가한 색상을 모두 삭제하시겠습니까?",
+        alert_no_image: "이미지를 먼저 업로드해주세요.",
+        alert_mode_switch_text: "텍스트 모드로 전환하시겠습니까?\n(현재 작업 중인 이미지는 초기화됩니다.)",
+        alert_mode_switch_image: "이미지 모드로 전환하시겠습니까?\n(작성 중인 텍스트는 초기화됩니다.)",
+        alert_preset_applied: "프리셋이 성공적으로 적용되었습니다! 🎉",
+        alert_preset_error: "잘못된 프리셋 파일입니다.\n(.json 형식인지 확인해주세요)",
+        alert_save_session: "보관함에 저장되었습니다.",
+        alert_font_error: "지원하지 않거나 손상된 폰트 파일입니다.",
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
@@ -404,5 +419,20 @@ export const languageData = {
         tag_shadow: "Shadow Tone",
         tag_highlight: "Highlight Tone",
         tag_kmean: "Major Cluster (K-Means)",
+
+        // [New] UI Texts
+        info_total_pixels: "Total Pixels",
+        tooltip_compare_hold: "Hold to compare with original",
+
+        // [New] System Messages
+        alert_reset_confirm: "Are you sure you want to reset all settings?",
+        alert_reset_colors: "Are you sure you want to remove all added colors?",
+        alert_no_image: "Please upload an image first.",
+        alert_mode_switch_text: "Switch to Text Mode?\n(Current image will be reset.)",
+        alert_mode_switch_image: "Switch to Image Mode?\n(Current text will be reset.)",
+        alert_preset_applied: "Preset applied successfully! 🎉",
+        alert_preset_error: "Invalid preset file.\n(Please check if it is a .json file)",
+        alert_save_session: "Saved to collection.",
+        alert_font_error: "Unsupported or corrupted font file."
     }
 };

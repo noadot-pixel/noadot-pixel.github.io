@@ -10,7 +10,8 @@ import {
     updatePaletteUsage, 
     updateTransform, 
     showLoading, 
-    displayRecommendedPresetsInPopup 
+    displayRecommendedPresetsInPopup,
+    updateTotalPixelCount, 
 } from './ui.js';
 
 // 1. 워커 생성 (경로 안전성 강화)
@@ -81,7 +82,19 @@ conversionWorker.onmessage = (e) => {
         if (processId !== state.processId) return;
         
         const { imageData, recommendations, usageMap } = e.data;
+        let pixelCount = 0;
+        const data = imageData.data;
         
+        // 픽셀 데이터(RGBA)를 4칸씩 건너뛰며 알파값(A)만 확인
+        for (let i = 3; i < data.length; i += 4) {
+            // 투명도가 128(약 50%) 이상인 픽셀만 '보이는 픽셀'로 카운트
+            if (data[i] >= 128) { 
+                pixelCount++;
+            }
+        }
+        
+        // UI 업데이트 함수 호출 (1,234 형식으로 표기됨)
+        updateTotalPixelCount(pixelCount);
         // 1. 데이터 백업
         state.latestConversionData = imageData; 
         state.originalConvertedData = imageData; 

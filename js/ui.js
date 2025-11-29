@@ -34,7 +34,7 @@ export const initElements = () => {
         'analyzeColorsBtn', 'recommendedColorsPlaceholder',
         'convertedDimensionsLabel', 'centerBtn',
         'exportScaleSlider', 'exportScaleValue',
-        'savePresetBtn', 'loadPresetBtn', 'presetUpload', 'myPresetsBtn', 
+        'savePresetBtn', 'loadPresetBtn', 'presetUpload', 'myPresetsBtn', 'compareBtn',
     ];
 
     ids.forEach(id => {
@@ -958,4 +958,17 @@ export const updateOutputDimensionsDisplay = () => {
 
     // 4. 화면에 글자 업데이트
     el.textContent = `${finalW} x ${finalH} px${suffixText}`;
+};
+
+export const updateTotalPixelCount = (count) => {
+    const el = document.getElementById('totalPixelCount');
+    
+    if (el) {
+        // 숫자가 없으면 0으로 처리, 있으면 3자리마다 콤마(1,234) 찍어서 표시
+        const displayCount = count ? count.toLocaleString() : '0';
+        el.textContent = displayCount;
+    } else {
+        // (디버깅용) 만약 HTML에 ID가 없다면 콘솔에 경고
+        // console.warn("Element #totalPixelCount not found!");
+    }
 };
