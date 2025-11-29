@@ -3,7 +3,7 @@ import { state, CONFIG, hexToRgb } from './state.js';
 import { 
     elements, updateTransform, populateColorSelects, updatePaletteStatus, updateOutputDimensionsDisplay,
     createAddedColorItem, clearAndResetInputFields, updateScaleUIVisibility, updateColorRecommendations, 
-    showLoading, isColorAlreadyAdded, getOptions, updateUpscaleButtonState // updateUpscaleButtonState 추가
+    showLoading, isColorAlreadyAdded, getOptions, updateUpscaleButtonState, getAlertMsg // updateUpscaleButtonState 추가
 } from './ui.js';
 import { triggerConversion, conversionWorker } from './worker-handler.js';
 
@@ -57,7 +57,7 @@ export const setupEventListeners = (callbacks) => {
             if (Math.abs(origRatio - currRatio) > 0.15) {
                 // showToast 함수가 정의되어 있다고 가정
                 if (typeof showToast === 'function') showToast("원본 비율과 차이가 커서 비교할 수 없습니다.");
-                else alert("비율 차이가 커서 비교 불가");
+                alert(getAlertMsg('alert_2much_error'));
                 return;
             }
 
@@ -148,7 +148,7 @@ export const setupEventListeners = (callbacks) => {
     if (elements.upscaleBtn) {
         elements.upscaleBtn.addEventListener('click', () => {
             if (!state.finalDownloadableData) {
-                alert("먼저 이미지를 변환해주세요.");
+                alert(getAlertMsg('alert_first_gene'));
                 return;
             }
 
@@ -198,7 +198,7 @@ export const setupEventListeners = (callbacks) => {
             state.sessionPresets.unshift(newPreset);
             
             if (presetChoiceModal) presetChoiceModal.classList.add('hidden');
-            alert("보관함에 저장되었습니다.\n[📂 프리셋 보관함] 버튼을 눌러 확인하세요.");
+            alert(getAlertMsg('alert_save_session'));
         });
     }
 
@@ -661,7 +661,14 @@ export const setupEventListeners = (callbacks) => {
                     
                     // 1개면 조용히 넘어가고, 여러 개면 알림
                     if (addedCount > 1) {
-                        alert(`${addedCount}개의 색상이 추가되었습니다.`);
+                        let message = getAlertMsg('alert_palette_imported');
+    
+                        // 2. 문장 안의 '{n}'을 실제 숫자(addedCount)로 바꿔치기 합니다.
+                        // (결과: "5개의 색상을 불러왔습니다." 또는 "5 colors imported.")
+                        message = message.replace('{n}', addedCount);
+                        
+                        // 3. 완성된 문장을 띄웁니다.
+                        alert(message);
                     }
                 } else {
                     // 이미 다 있는 색상이면
@@ -683,7 +690,7 @@ export const setupEventListeners = (callbacks) => {
     if (elements.exportPaletteBtn) {
         elements.exportPaletteBtn.addEventListener('click', () => {
             const items = elements.addedColorsContainer.querySelectorAll('.added-color-item');
-            if (items.length === 0) { alert('내보낼 사용자 색상이 없습니다.'); return; }
+            if (items.length === 0) { alert(getAlertMsg('alert_no_color_to_export')); return; }
             const colors = Array.from(items).map(item => JSON.parse(item.dataset.rgb));
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(colors));
             const downloadAnchorNode = document.createElement('a');
@@ -720,14 +727,14 @@ export const setupEventListeners = (callbacks) => {
                     // 2. 전역 함수 applyPreset 실행 (script.js에 있는 함수)
                     if (typeof window.applyPreset === 'function') {
                         window.applyPreset(presetData);
-                        alert("프리셋이 성공적으로 적용되었습니다! 🎉");
+                        alert(getAlertMsg('alert_preset_applied'));
                     } else {
                         console.error("❌ 오류: applyPreset 함수를 찾을 수 없습니다.");
-                        alert("시스템 오류: 프리셋 적용 함수가 연결되지 않았습니다.");
+                        alert(getAlertMsg('alert_logic_error'));
                     }
                 } catch (err) {
                     console.error("파일 파싱 오류:", err);
-                    alert("올바른 프리셋 파일이 아닙니다.\n(.json 파일인지 확인해주세요)");
+                    alert(getAlertMsg('alert_preset_error'));
                 }
             };
             
@@ -754,11 +761,12 @@ export const setupEventListeners = (callbacks) => {
                             if (!isColorAlreadyAdded(rgb)) { createAddedColorItem(rgb, true, triggerConversion); addedCount++; }
                         });
                         if (addedCount > 0) { 
-                            alert(`${addedCount}개의 색상을 불러왔습니다.`); 
+                            const msg = getAlertMsg('alert_palette_imported');
+                            alert(msg.replace('{n}', addedCount));
                             updatePaletteStatus(); populateColorSelects(); triggerConversion(); 
-                        } else alert('추가할 새로운 색상이 없습니다.');
-                    } else alert('올바르지 않은 파일 형식입니다.');
-                } catch (err) { alert('파일 읽기 오류: ' + err.message); }
+                        } else alert(getAlertMsg('alert_no_addcolor'));
+                    } else alert(getAlertMsg('alert_long_filecode'));
+                } catch (err) { alert(getAlertMsg('alert_error_general') + err.message); }
             };
             reader.readAsText(file);
             e.target.value = '';
@@ -799,11 +807,11 @@ export const setupEventListeners = (callbacks) => {
     if (elements.myPresetsBtn) {
         elements.myPresetsBtn.addEventListener('click', () => {
             if (!state.originalImageObject) {
-                alert("이미지를 먼저 업로드해주세요.");
+                alert(getAlertMsg('alert_no_image'));
                 return;
             }
             if (state.sessionPresets.length === 0) {
-                alert("아직 보관함에 저장된 프리셋이 없습니다.\n'현재 설정 저장하기' 버튼을 눌러 추가해보세요.");
+                alert(getAlertMsg('alert_unload_preset'));
                 return;
             }
 

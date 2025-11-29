@@ -1,149 +1,183 @@
 // js/worker/analysis.js
 
-// [중요] 데이터 파일 경로: presets.js (s 붙음)
-import { PRESET_RECIPES } from '../../data/presets.js'; 
+// 1. 헬퍼 함수들
+const rgbToHsv = (r, g, b) => {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, v = max;
+    const d = max - min;
+    s = max === 0 ? 0 : d / max;
+    if (max === min) h = 0;
+    else {
+        switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+    return [h * 360, s * 100, v * 100];
+};
 
-export function analyzeImageFeatures(imageData) {
-    // ... (내용은 이전 코드와 동일, 그대로 두시면 됩니다)
-    // 여기에 로직 코드가 있어야 합니다!
-    // (분량상 생략합니다. 이전 답변의 analysis.js 코드를 그대로 쓰세요)
-    const { data, width, height } = imageData;
-    const tags = new Set();
-    let totalLuminance = 0; let totalSaturation = 0; let monochromaticPixels = 0; let edgePixels = 0;
-    const totalPixels = width * height;
-    const lumThresholds = { dark: 85, bright: 170 };
-    let darkCount = 0, midCount = 0, brightCount = 0;
-    
-    for (let y = 1; y < height - 1; y++) {
-        for (let x = 1; x < width - 1; x++) {
-            const i = (y * width + x) * 4;
-            const r = data[i], g = data[i + 1], b = data[i + 2];
-            const max = Math.max(r, g, b); const min = Math.min(r, g, b);
-            const luminance = (max + min) / 2;
-            let saturation = 0;
-            if (max !== min) { saturation = luminance > 128 ? (max - min) / (510 - max - min) : (max - min) / (max + min); }
-            totalLuminance += luminance; totalSaturation += saturation;
-            if (saturation < 0.15) monochromaticPixels++;
-            if (luminance < lumThresholds.dark) darkCount++; else if (luminance < lumThresholds.bright) midCount++; else brightCount++;
-            
-            const getLum = (dx, dy) => { const ni = ((y + dy) * width + (x + dx)) * 4; return data[ni] * 0.299 + data[ni + 1] * 0.587 + data[ni + 2] * 0.114; };
-            const gx = getLum(1, 0) - getLum(-1, 0); const gy = getLum(0, 1) - getLum(0, -1);
-            const magnitude = Math.sqrt(gx * gx + gy * gy);
-            if (magnitude > 50) edgePixels++;
+// 이미지 리사이징 (분석 속도 향상용)
+const resizeForAnalysis = (imageData, targetWidth = 128) => {
+    const { width, height, data } = imageData;
+    if (width <= targetWidth) return imageData;
+    const ratio = targetWidth / width;
+    const targetHeight = Math.round(height * ratio);
+    const newData = new Uint8ClampedArray(targetWidth * targetHeight * 4);
+    for (let y = 0; y < targetHeight; y++) {
+        for (let x = 0; x < targetWidth; x++) {
+            const sx = Math.floor(x / ratio); const sy = Math.floor(y / ratio);
+            const si = (sy * width + sx) * 4; const di = (y * targetWidth + x) * 4;
+            newData[di] = data[si]; newData[di+1] = data[si+1]; newData[di+2] = data[si+2]; newData[di+3] = data[si+3];
         }
     }
-    if (monochromaticPixels / totalPixels > 0.9) tags.add('isMonochromatic');
-    if (totalSaturation / totalPixels > 0.3) tags.add('isColorful');
-    const avgLuminance = totalLuminance / totalPixels;
-    if (avgLuminance < 85) tags.add('isDark');
-    if (avgLuminance > 170) tags.add('isBright');
-    if (darkCount / totalPixels > 0.2 && brightCount / totalPixels > 0.2) tags.add('isContrasting');
-    if (midCount / totalPixels > 0.7) tags.add('isLowContrast');
-    if (width < 256 || height < 256) tags.add('isLowResolution');
-    if (width > 1024 || height > 1024) tags.add('isHighResolution');
-    if (edgePixels / totalPixels < 0.1) tags.add('isSimple');
-    if (edgePixels / totalPixels > 0.25) tags.add('isComplex');
-    return tags;
-}
+    return { data: newData, width: targetWidth, height: targetHeight };
+};
 
-export function calculateRecommendations(imageData, activePalette, options) {
-    // (이전 코드 그대로)
-    const { highlightSensitivity = 0 } = options;
-    const { data, width, height } = imageData;
-    const allExistingColors = new Set(activePalette.map(rgb => rgb.join(',')));
-    const colorStats = new Map();
-    let totalPixels = 0;
+// 2. 핵심: 공간 분할 및 분석 (Segmentation)
+export const analyzeImageFeatures = (originalImageData) => {
+    // A. 속도를 위해 이미지 축소 (128px 너비)
+    const img = resizeForAnalysis(originalImageData, 128);
+    const { width, height, data } = img;
+    
+    // B. 엣지(외곽선) 맵 생성
+    const isEdge = new Uint8Array(width * height); // 1: 벽, 0: 빈공간
+    const threshold = 30; // 색상 차이 임계값 (이보다 크면 벽으로 인식)
+
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const i = (y * width + x) * 4;
-            if (data[i + 3] < 128) continue;
-            totalPixels++;
-            const r = data[i], g = data[i + 1], b = data[i + 2];
-            const key = `${r},${g},${b}`;
-            if (allExistingColors.has(key)) continue;
-            if (!colorStats.has(key)) {
-                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-                colorStats.set(key, { rgb: [r, g, b], count: 0, luminance, maxVolatility: 0 });
+            if (data[i+3] < 128) { isEdge[y*width+x] = 1; continue; } // 투명은 벽 취급
+
+            // 오른쪽 픽셀과 비교
+            if (x < width - 1) {
+                const ni = i + 4;
+                const diff = Math.abs(data[i]-data[ni]) + Math.abs(data[i+1]-data[ni+1]) + Math.abs(data[i+2]-data[ni+2]);
+                if (diff > threshold) isEdge[y*width+x] = 1;
             }
-            const entry = colorStats.get(key);
-            entry.count++;
-            if (highlightSensitivity > 0) {
-                let volatility = 0;
-                for (let dy = -highlightSensitivity; dy <= highlightSensitivity; dy++) {
-                    for (let dx = -highlightSensitivity; dx <= highlightSensitivity; dx++) {
-                        if ((dx === 0 && dy === 0) || (Math.abs(dx) + Math.abs(dy) > highlightSensitivity)) continue;
-                        const nx = x + dx, ny = y + dy;
-                        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                            const ni = (ny * width + nx) * 4;
-                            volatility += (r - data[ni]) ** 2 + (g - data[ni + 1]) ** 2 + (b - data[ni + 2]) ** 2;
-                        }
-                    }
-                }
-                if (volatility > entry.maxVolatility) entry.maxVolatility = volatility;
+            // 아래쪽 픽셀과 비교
+            if (y < height - 1) {
+                const di = i + width * 4;
+                const diff = Math.abs(data[i]-data[di]) + Math.abs(data[i+1]-data[di+1]) + Math.abs(data[i+2]-data[di+2]);
+                if (diff > threshold) isEdge[y*width+x] = 1;
             }
         }
     }
-    if (totalPixels === 0 || colorStats.size === 0) return [];
-    const candidates = Array.from(colorStats.values());
-    const highUsage = []; const highlights = [];
-    candidates.forEach(stats => {
-        const usage = stats.count / totalPixels;
-        if (usage > 0.01) { highUsage.push({ ...stats, type: '고비율 색상', score: usage }); }
-        const volatilityScore = Math.sqrt(stats.maxVolatility);
-        if (highlightSensitivity > 0 && volatilityScore > 1000) { highlights.push({ ...stats, type: '하이라이트 색상', score: volatilityScore }); }
-    });
-    const shadows = candidates.filter(c => c.luminance < 85);
-    const midtones = candidates.filter(c => c.luminance >= 85 && c.luminance < 170);
-    const highlightsRange = candidates.filter(c => c.luminance >= 170);
-    const getMostUsed = (group) => group.sort((a, b) => b.count - a.count)[0];
-    const smhRecommendations = [];
-    const shadowRep = getMostUsed(shadows);
-    const midtoneRep = getMostUsed(midtones);
-    const highlightRep = getMostUsed(highlightsRange);
-    if (shadowRep) smhRecommendations.push({ ...shadowRep, type: '명암 대표색', subType: '어두운 영역' });
-    if (midtoneRep) smhRecommendations.push({ ...midtoneRep, type: '명암 대표색', subType: '중간 영역' });
-    if (highlightRep) smhRecommendations.push({ ...highlightRep, type: '명암 대표색', subType: '밝은 영역' });
-    const finalSmh = smhRecommendations.filter((v, i, a) => a.findIndex(t => (t.rgb.join(',') === v.rgb.join(','))) === i);
-    return [ ...highUsage.sort((a, b) => b.score - a.score).slice(0, 5), ...highlights.sort((a, b) => b.score - a.score).slice(0, 5), ...finalSmh ];
-}
 
-export function getStyleRecipesByTags(imageFeatures) {
-    if (!PRESET_RECIPES || PRESET_RECIPES.length === 0) { 
-        return { fixed: [], recommended: [], others: [] }; 
-    }
+    // C. 영역 채우기 (Connected Component Labeling)
+    // 벽으로 막힌 공간마다 번호(ID)를 붙입니다.
+    const labels = new Int32Array(width * height).fill(-1);
+    const regions = []; // { id, count, r, g, b }
+    let currentLabel = 0;
 
-    // 1. 고정 프리셋 (ranking === false)
-    const fixedRecipes = PRESET_RECIPES.filter(r => r.ranking === false).map(r => ({
-        ...r,
-        score: 999, // 정렬용 가산점
-        displayTag: '고정' // 화면에 표시할 태그 텍스트
-    }));
-
-    // 2. 랭킹 대상 프리셋 (ranking !== false)
-    const rankableRecipes = PRESET_RECIPES.filter(r => r.ranking !== false);
+    // 스택 기반 Flood Fill
+    const stack = [];
     
-    // 점수 계산
-    const scoredRecipes = rankableRecipes.map(recipe => {
-        let score = 0;
-        if (recipe.tags && recipe.tags.length > 0) {
-            recipe.tags.forEach(tag => {
-                if (imageFeatures.has(tag)) {
-                    score++; // 태그 매칭 시 1점 추가
-                }
-            });
-        }
-        
-        // 태그 결정 (점수가 있으면 '추천', 없으면 태그 없음)
-        let displayTag = null;
-        if (score > 0) displayTag = '추천'; // '강력 추천' 등 구분 없이 '추천'으로 통일
+    for (let idx = 0; idx < width * height; idx++) {
+        // 이미 방문했거나 벽이면 패스
+        if (labels[idx] !== -1 || isEdge[idx] === 1) continue;
 
-        return { ...recipe, score, displayTag };
+        // 새로운 방 발견!
+        labels[idx] = currentLabel;
+        const region = { id: currentLabel, count: 0, r: 0, g: 0, b: 0 };
+        stack.push(idx);
+
+        while (stack.length > 0) {
+            const curr = stack.pop();
+            const cx = curr % width;
+            const cy = Math.floor(curr / width);
+            
+            // 색상 누적
+            const pi = curr * 4;
+            region.r += data[pi];
+            region.g += data[pi+1];
+            region.b += data[pi+2];
+            region.count++;
+
+            // 4방향 탐색
+            const neighbors = [
+                curr - 1, curr + 1, curr - width, curr + width
+            ];
+            
+            // 상하좌우 유효성 체크 및 연결
+            if (cx > 0 && labels[curr-1] === -1 && isEdge[curr-1] === 0) { labels[curr-1]=currentLabel; stack.push(curr-1); }
+            if (cx < width-1 && labels[curr+1] === -1 && isEdge[curr+1] === 0) { labels[curr+1]=currentLabel; stack.push(curr+1); }
+            if (cy > 0 && labels[curr-width] === -1 && isEdge[curr-width] === 0) { labels[curr-width]=currentLabel; stack.push(curr-width); }
+            if (cy < height-1 && labels[curr+width] === -1 && isEdge[curr+width] === 0) { labels[curr+width]=currentLabel; stack.push(curr+width); }
+        }
+
+        // 방이 완성되면 평균색 계산
+        region.r = Math.round(region.r / region.count);
+        region.g = Math.round(region.g / region.count);
+        region.b = Math.round(region.b / region.count);
+        regions.push(region);
+        currentLabel++;
+    }
+
+    // D. [예외 처리] 노이즈 제거
+    // 전체 픽셀의 0.5%도 안 되는 아주 작은 방(자투리 그라데이션 등)은 버립니다.
+    const minPixelCount = (width * height) * 0.005; 
+    const validRegions = regions.filter(r => r.count > minPixelCount);
+
+    // E. 정렬 (크기순) -> 고비율 색상
+    validRegions.sort((a, b) => b.count - a.count);
+
+    return { validRegions };
+};
+
+// 3. 추천 로직 (UI 연결)
+export const calculateRecommendations = (imageData, currentPalette, options) => {
+    // 공간 분석 실행
+    const { validRegions } = analyzeImageFeatures(imageData);
+    
+    const recommendations = [];
+    const usedHexSet = new Set(currentPalette.map(p => ((1 << 24) + (p[0] << 16) + (p[1] << 8) + p[2]).toString(16).slice(1)));
+
+    const addRec = (rgb, type) => {
+        const hex = ((1 << 24) + (rgb[0] << 16) + (rgb[1] << 8) + rgb[2]).toString(16).slice(1);
+        if (!usedHexSet.has(hex)) {
+            recommendations.push({ rgb, type });
+            usedHexSet.add(hex);
+        }
+    };
+
+    // A. [공간 기반] 주요 오브젝트 색상 (가장 큰 덩어리 5개)
+    // 픽셀 수만 많은 게 아니라, '하나의 큰 덩어리'를 이루는 색입니다.
+    validRegions.slice(0, 5).forEach(r => {
+        addRec([r.r, r.g, r.b], "고비율 색상"); // UI 매핑에 맞춰 이름 유지
     });
 
-    // 3. 추천(점수 > 0)과 일반(점수 0) 분류
-    // 점수 높은 순으로 정렬
-    const recommendedRecipes = scoredRecipes.filter(r => r.score > 0).sort((a, b) => b.score - a.score);
-    const otherRecipes = scoredRecipes.filter(r => r.score === 0);
+    // B. [공간 기반] 포인트/하이라이트 색상 (작지만 강렬한 방)
+    // 크기는 작지만(전체의 20% 미만), 채도나 명도가 뚜렷한 방을 찾습니다.
+    const pointRegions = validRegions.filter(r => {
+        // 너무 크면 포인트 아님
+        if (r.count > (validRegions[0].count * 0.5)) return false;
+        
+        const [h, s, v] = rgbToHsv(r.r, r.g, r.b);
+        // 채도가 높거나(Vivid) 아주 밝거나(Highlight)
+        return (s > 60) || (v > 90);
+    });
 
-    return { fixed: fixedRecipes, recommended: recommendedRecipes, others: otherRecipes };
-}
+    // 포인트 중에서도 가장 뚜렷한 것 2개 추천
+    pointRegions.slice(0, 2).forEach(r => {
+        const [h, s, v] = rgbToHsv(r.r, r.g, r.b);
+        const type = (v > 90) ? "밝은 톤" : "어두운 톤"; // 임시 매핑 (새 태그 만들기 전까지)
+        addRec([r.r, r.g, r.b], type);
+    });
+
+    // C. [백업] 만약 포인트 색상을 못 찾았으면 기존 방식(절대값)으로 찾음
+    if (recommendations.length < 6) {
+        // 어두운 색 찾기
+        const dark = validRegions.find(r => {
+            const [h, s, v] = rgbToHsv(r.r, r.g, r.b);
+            return v < 40;
+        });
+        if (dark) addRec([dark.r, dark.g, dark.b], "어두운 톤");
+    }
+
+    return recommendations;
+};
+
+export const getStyleRecipesByTags = () => ({ fixed: [], recommended: [], others: [] });

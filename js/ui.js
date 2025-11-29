@@ -5,7 +5,6 @@ export const elements = {};
 
 export const initElements = () => {
     // 1. ID와 변수명이 정확히 일치하는 것들
-    console.log("1. [ui.js] initElements 시작"); // 디버깅 로그
 
     const ids = [
         'imageUpload', 'convertedCanvas', 'convertedCanvasContainer',
@@ -30,8 +29,7 @@ export const initElements = () => {
         'letterSpacingSlider', 'letterSpacingValue', 'paddingSlider', 'paddingValue',
         'strokeWidthSlider', 'strokeWidthValue',
         'textColorSelect', 'bgColorSelect', 'strokeColorSelect',
-        'getStyleRecommendationsBtn', 'highlightSensitivitySlider', 'highlightSensitivityValue',
-        'analyzeColorsBtn', 'recommendedColorsPlaceholder',
+        'getStyleRecommendationsBtn', 'recommendedColorsPlaceholder',
         'convertedDimensionsLabel', 'centerBtn',
         'exportScaleSlider', 'exportScaleValue',
         'savePresetBtn', 'loadPresetBtn', 'presetUpload', 'myPresetsBtn', 'compareBtn',
@@ -95,7 +93,6 @@ export const initElements = () => {
         elements.ratioScaleControls = document.createElement('div');
     }
     
-    console.log("2. [ui.js] initElements 완료. elements:", elements);
     if (!elements.pixelScaleControls) elements.pixelScaleControls = document.createElement('div');
     if (!elements.ratioScaleControls) elements.ratioScaleControls = document.createElement('div');
     
@@ -109,6 +106,17 @@ export const initElements = () => {
     // 디버깅: 요소가 잘 잡혔는지 확인
     if (!elements.textEditorPanel) console.error("⚠️ 'text-editor-panel'을 찾지 못했습니다.");
     if (!elements.imageControls) console.error("⚠️ 'image-controls'를 찾지 못했습니다.");
+};
+
+export const getAlertMsg = (key) => {
+    // 현재 언어 가져오기 (없으면 'ko')
+    const lang = (state && state.language) ? state.language : 'ko';
+    
+    // 데이터가 없으면 키(key) 자체를 반환 (에러 방지)
+    if (!window.languageData || !window.languageData[lang]) return key;
+    
+    // 해당 언어의 메시지 반환 (없으면 키 반환)
+    return window.languageData[lang][key] || key;
 };
 
 export const updateUpscaleButtonState = () => {
@@ -631,7 +639,7 @@ export const getOptions = () => {
             outlineColor: outlineColor, // [수정됨] 안전하게 변환된 값 사용
             randomSeed: state.celShadingSeed || 0 
         },
-        highlightSensitivity: parseInt(elements.highlightSensitivitySlider.value, 10)
+        // highlightSensitivity: parseInt(elements.highlightSensitivitySlider.value, 10)
     };
     return opts;
 };
@@ -673,12 +681,14 @@ export const updateColorRecommendations = (recommendations, callback) => {
             "Shadow": "tag_shadow",
             "어두운 톤": "tag_shadow",
             
-            "하이라이트": "tag_highlight", // [추가]
-            "Highlight": "tag_highlight",
             "밝은 톤": "tag_highlight",
 
             "주요 군집": "tag_kmean",
-            "K-Means": "tag_kmean"
+            "K-Means": "tag_kmean",
+
+            // [신규] 보색 매핑
+            "추천 보색 (Harmony)": "tag_harmony",
+            "Harmony": "tag_harmony"
         };
 
         // 1. 매핑 키 찾기 (없으면 undefined)

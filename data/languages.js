@@ -222,8 +222,23 @@ export const languageData = {
         alert_mode_switch_image: "이미지 모드로 전환하시겠습니까?\n(작성 중인 텍스트는 초기화됩니다.)",
         alert_preset_applied: "프리셋이 성공적으로 적용되었습니다! 🎉",
         alert_preset_error: "잘못된 프리셋 파일입니다.\n(.json 형식인지 확인해주세요)",
-        alert_save_session: "보관함에 저장되었습니다.",
+        alert_save_session: "보관함에 저장되었습니다.\n[📂 프리셋 보관함] 버튼을 눌러 확인하세요.",
+        alert_unload_preset: "아직 보관함에 저장된 프리셋이 없습니다.\n'현재 설정 저장하기' 버튼을 눌러 추가해보세요.",
         alert_font_error: "지원하지 않거나 손상된 폰트 파일입니다.",
+        alert_palette_imported: "{n}개의 색상을 불러왔습니다.", 
+        alert_logic_error: "시스템 오류: 프리셋 적용 함수가 연결되지 않았습니다.",
+        alert_no_addcolor: "추가할 새로운 색상이 없습니다.",
+        alert_long_filecode: "올바르지 않은 파일 형식입니다.",
+        alert_2much_error: "비율 차이가 커서 비교 불가",
+        alert_first_gene: "먼저 이미지를 변환해주세요.",
+        alert_error_general: "파일 읽기 오류",
+        
+        // [수정/추가] 추천 태그
+        tag_dominant: "고비율 색상",
+        tag_shadow: "어두운 톤",
+        tag_mid: "중간 톤",
+        tag_light: "밝은 톤",
+        tag_harmony: "추천 보색 (Harmony)", // 신규
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
@@ -432,7 +447,22 @@ export const languageData = {
         alert_mode_switch_image: "Switch to Image Mode?\n(Current text will be reset.)",
         alert_preset_applied: "Preset applied successfully! 🎉",
         alert_preset_error: "Invalid preset file.\n(Please check if it is a .json file)",
-        alert_save_session: "Saved to collection.",
-        alert_font_error: "Unsupported or corrupted font file."
+        alert_save_session: "Saved to collection..\n[📂 preset storage] Press the button to confirm.",
+        alert_unload_preset: "There are no presets saved in the storage box yet.\nClick the 'Add To Preset Collection' button to add.",
+        alert_font_error: "Unsupported or corrupted font file.",
+        alert_palette_imported: "{n} colors imported.", 
+        alert_logic_error: "System error: preset application function is not linked.",
+        alert_no_addcolor: "There are no new colors to add.",
+        alert_long_filecode: "Invalid file type.",
+        alert_2much_error: "Unable to compare due to large ratio difference",
+        alert_first_gene: "Please convert the image first.",
+        alert_error_general: "File Read Error",
+        
+        // [New] Recommendation Tags
+        tag_dominant: "Dominant Color",
+        tag_shadow: "Shadow Tone",
+        tag_mid: "Midtone",
+        tag_light: "Light Tone",
+        tag_harmony: "Harmony (Complementary)",
     }
 };

@@ -257,7 +257,6 @@ const resetAll = () => {
     
     elements.aiPresetSection.style.display = 'none';
     updateColorRecommendations([], triggerConversion);
-    elements.analyzeColorsBtn.disabled = true;
     elements.recommendationReportContainer.style.display = 'none';
     elements.recommendedColorsPlaceholder.style.display = 'block';
     
@@ -364,7 +363,6 @@ const handleFile = async (file) => {
     elements.metadataInfoDisplay.classList.remove('visible');
     elements.recommendedColorsPlaceholder.style.display = 'block';
     elements.recommendationReportContainer.style.display = 'none';
-    elements.analyzeColorsBtn.disabled = true;
     updateColorRecommendations([], triggerConversion);
     updatePaletteUsage({}); // 새 파일 로드 시 배지 초기화
     
@@ -403,7 +401,6 @@ const handleFile = async (file) => {
         state.panY = 0;
         updateZoom(100);
         triggerConversion();
-        elements.analyzeColorsBtn.disabled = false;
     };
     img.src = URL.createObjectURL(file);
 };
