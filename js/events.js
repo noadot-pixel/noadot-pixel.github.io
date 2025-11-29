@@ -3,7 +3,7 @@ import { state, CONFIG, hexToRgb } from './state.js';
 import { 
     elements, updateTransform, populateColorSelects, updatePaletteStatus, updateOutputDimensionsDisplay,
     createAddedColorItem, clearAndResetInputFields, updateScaleUIVisibility, updateColorRecommendations, 
-    showLoading, isColorAlreadyAdded, getOptions, updateUpscaleButtonState, getAlertMsg // updateUpscaleButtonState 추가
+    showLoading, isColorAlreadyAdded, getOptions, updateUpscaleButtonState, getAlertMsg, updateTotalPixelCount // updateUpscaleButtonState 추가
 } from './ui.js';
 import { triggerConversion, conversionWorker } from './worker-handler.js';
 
@@ -110,32 +110,44 @@ export const setupEventListeners = (callbacks) => {
         radio.addEventListener('change', (e) => {
             const scale = parseInt(e.target.value, 10);
             
-            // 아직 변환된 데이터가 없으면 무시
+            // 데이터 없으면 무시
             if (!state.originalConvertedData) return;
             
-            // [Case 1] 1x (원본) 선택 시 -> 백업해둔 원본(originalConvertedData)으로 복구
+            // [Case 1] 1x (원본) 선택 시 -> 복구
             if (scale === 1) {
-                // 백업 데이터를 현재 데이터로 복원
-                state.latestConversionData = state.originalConvertedData;
-                state.finalDownloadableData = state.originalConvertedData;
+                // 1. [매우 중요] 상태값 먼저 초기화 (그래야 UI 함수가 '아, 1배구나' 하고 네온 끕니다)
                 state.currentUpscaleFactor = 1;
                 state.isUpscaled = false;
+                
+                // 2. 데이터 복구
+                state.latestConversionData = state.originalConvertedData;
+                state.finalDownloadableData = state.originalConvertedData;
                 
                 const canvas = elements.convertedCanvas;
                 canvas.width = state.originalConvertedData.width;
                 canvas.height = state.originalConvertedData.height;
                 canvas.getContext('2d').putImageData(state.originalConvertedData, 0, 0);
                 
-                // 텍스트 업데이트 (네온 제거됨)
+                // 3. 텍스트 정보 갱신 (네온 꺼짐)
                 updateOutputDimensionsDisplay();
+                
+                // 4. 픽셀 수 재계산 (원본 기준)
+                let pixelCount = 0;
+                const data = state.originalConvertedData.data;
+                for (let i = 3; i < data.length; i += 4) {
+                    if (data[i] >= 128) pixelCount++;
+                }
+                state.lastBasePixelCount = pixelCount;
+                
+                // 5. 픽셀 수 UI 갱신 (false = 아직 업스케일 안 된 원본 데이터임)
+                updateTotalPixelCount(pixelCount, false);
             } 
-            // [Case 2] 2x, 3x 선택 시 -> 원본(originalConvertedData)을 기반으로 요청
+            // [Case 2] 2x, 3x 선택 시 -> 워커 호출
             else {
                 showLoading(true);
                 conversionWorker.postMessage({
                     type: 'upscaleImage',
-                    // [중요] latestConversionData 대신 originalConvertedData를 보냅니다.
-                    // 그래야 2배 상태에서 3배를 눌러도 "2배 x 3배"가 아니라 "1배 -> 3배"가 됩니다.
+                    // 원본 데이터를 기반으로 변환 (누적 방지)
                     imageData: state.originalConvertedData, 
                     scale: scale,
                     processId: state.processId
@@ -858,6 +870,9 @@ export const setupEventListeners = (callbacks) => {
         state.exportScale = val;
         if (elements.exportScaleValue) elements.exportScaleValue.textContent = `${val}x`;
         updateOutputDimensionsDisplay();
+        if (state.lastBasePixelCount) {
+            updateTotalPixelCount(state.lastBasePixelCount);
+        }
         // [추가] 텍스트 정보 즉시 갱신 (JS 모듈에서 import 해와야 함)
         // 만약 ui.js에서 import { updateOutputDimensionsDisplay } from './ui.js' 했다면:
         if (callbacks.updateOutputDimensionsDisplay) {

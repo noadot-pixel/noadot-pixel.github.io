@@ -60,7 +60,20 @@ conversionWorker.onmessage = (e) => {
         // 3. [핵심 수정] 수동으로 텍스트를 바꾸지 않고, 전용 함수를 호출합니다.
         // 알아서 보라색/빨간색 네온을 계산해서 붙여줍니다.
         updateOutputDimensionsDisplay();
+        let pixelCount = 0;
+        const data = imageData.data;
+        for (let i = 3; i < data.length; i += 4) {
+            if (data[i] >= 128) pixelCount++;
+        }
+        // 업스케일된 상태가 '기본(base)'이 되므로 lastBasePixelCount 갱신
+        state.lastBasePixelCount = pixelCount;
         
+        // UI 업데이트 (이제 upscaleFactor는 이미 이미지에 반영됐으니 1로 계산됨? 
+        // 아니요, updateTotalPixelCount 함수가 upscaleFactor를 또 곱해버리면 중복됩니다.
+        // 해결책: updateTotalPixelCount에 'true' 같은 플래그를 줘서 "이미지 자체가 커진 거니까 배율 곱하지 마"라고 하거나,
+        // 더 간단하게는: 이미 커진 이미지를 셌으니까, ui.js 함수가 'exportScale'만 곱하게 해야 합니다.)
+        
+        updateTotalPixelCount(pixelCount);
         // 4. 로딩 끄기
         showLoading(false);
     }
@@ -92,7 +105,7 @@ conversionWorker.onmessage = (e) => {
                 pixelCount++;
             }
         }
-        
+        state.lastBasePixelCount = pixelCount;
         // UI 업데이트 함수 호출 (1,234 형식으로 표기됨)
         updateTotalPixelCount(pixelCount);
         // 1. 데이터 백업
@@ -139,7 +152,7 @@ conversionWorker.onmessage = (e) => {
         // [핵심 수정] 여기서도 수동 조작을 빼고 전용 함수를 부릅니다.
         // 출력 배율(exportScale)이 설정되어 있으면 알아서 금색 네온이 뜹니다.
         updateOutputDimensionsDisplay();
-
+        
         updateTransform();
         if (recommendations) updateColorRecommendations(recommendations, triggerConversion);
         if (usageMap) updatePaletteUsage(usageMap);

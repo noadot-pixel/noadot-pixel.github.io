@@ -970,15 +970,50 @@ export const updateOutputDimensionsDisplay = () => {
     el.textContent = `${finalW} x ${finalH} px${suffixText}`;
 };
 
-export const updateTotalPixelCount = (count) => {
+export const updateTotalPixelCount = (baseCount) => {
     const el = document.getElementById('totalPixelCount');
     
     if (el) {
-        // 숫자가 없으면 0으로 처리, 있으면 3자리마다 콤마(1,234) 찍어서 표시
-        const displayCount = count ? count.toLocaleString() : '0';
-        el.textContent = displayCount;
-    } else {
-        // (디버깅용) 만약 HTML에 ID가 없다면 콘솔에 경고
-        // console.warn("Element #totalPixelCount not found!");
+        if (!baseCount) {
+            el.textContent = '0';
+            return;
+        }
+
+        // 1. 현재 배율 가져오기
+        // state.exportScale: 출력 배율 슬라이더 값 (기본 1)
+        // state.currentUpscaleFactor: 업스케일(EPX) 배율 (기본 1)
+        const exportScale = state.exportScale || 1;
+        const upscaleFactor = state.currentUpscaleFactor || 1;
+        
+        // 2. 총 배율 계산 (가로 * 세로니까 제곱!)
+        const totalScale = exportScale * upscaleFactor;
+        const multiplier = totalScale * totalScale;
+        
+        // 3. 최종 픽셀 수 계산
+        const finalCount = baseCount * multiplier;
+
+        // 4. 표기 (1,234)
+        el.textContent = finalCount.toLocaleString();
+        
+        // (선택 사항) 배율이 적용되었다면 툴팁 등으로 알려주면 좋음
+        el.classList.remove('neon-gold', 'neon-purple-light', 'neon-purple-dark', 'neon-red');
+    
+        // 2. 조건 판별
+        const isExportScaled = exportScale > 1;
+        const isUpscaled = upscaleFactor > 1; // (주의: upscaleFactor는 전역 상태이므로 항상 현재 상태 반영)
+
+        // [IF 03] 둘 다 적용됨 -> Red
+        if (isUpscaled && isExportScaled) {
+            el.classList.add('neon-red');
+        }
+        // [IF 02] 업스케일만 -> Purple
+        else if (isUpscaled) {
+            if (upscaleFactor === 2) el.classList.add('neon-purple-light');
+            else if (upscaleFactor >= 3) el.classList.add('neon-purple-dark');
+        }
+        // [IF 01] 출력 배율만 -> Gold
+        else if (isExportScaled) {
+            el.classList.add('neon-gold');
+        }
     }
 };

@@ -27,6 +27,7 @@ export const state = {
     isUpscaled: false,
     latestConversionData: null, 
     currentUpscaleFactor: 1,
+    lastBasePixelCount: 0,
     panX: 0,
     panY: 0,
     startPanX: 0,
