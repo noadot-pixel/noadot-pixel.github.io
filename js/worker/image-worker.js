@@ -31,18 +31,23 @@ function resizeImageData(imageData, targetWidth) {
 
 // RGB -> Lab 변환 (Wdot 최적화용)
 function rgbToLabRaw(r, g, b) {
-    let rN = r / 255, gN = g / 255, bN = b / 255;
-    rN = (rN > 0.04045) ? Math.pow((rN + 0.055) / 1.055, 2.4) : rN / 12.92;
-    gN = (gN > 0.04045) ? Math.pow((gN + 0.055) / 1.055, 2.4) : gN / 12.92;
-    bN = (bN > 0.04045) ? Math.pow((bN + 0.055) / 1.055, 2.4) : bN / 12.92;
-    let X = rN * 0.4124 + gN * 0.3576 + bN * 0.1805;
-    let Y = rN * 0.2126 + gN * 0.7152 + bN * 0.0722;
-    let Z = rN * 0.0193 + gN * 0.1192 + bN * 0.9505;
-    X /= 0.95047; Y /= 1.00000; Z /= 1.08883;
-    X = (X > 0.008856) ? Math.pow(X, 1/3) : (7.787 * X) + 16/116;
-    Y = (Y > 0.008856) ? Math.pow(Y, 1/3) : (7.787 * Y) + 16/116;
-    Z = (Z > 0.008856) ? Math.pow(Z, 1/3) : (7.787 * Z) + 16/116;
-    return { L: (116 * Y) - 16, a: 500 * (X - Y), b: 200 * (Y - Z) };
+    let rN = r / 255, gN = g / 255, bN = b / 255;
+    rN = (rN > 0.04045) ? Math.pow((rN + 0.055) / 1.055, 2.4) : rN / 12.92;
+    gN = (gN > 0.04045) ? Math.pow((gN + 0.055) / 1.055, 2.4) : gN / 12.92;
+    bN = (bN > 0.04045) ? Math.pow((bN + 0.055) / 1.055, 2.4) : bN / 12.92;
+    let X = rN * 0.4124 + gN * 0.3576 + bN * 0.1805;
+    let Y = rN * 0.2126 + gN * 0.7152 + bN * 0.0722;
+    let Z = rN * 0.0193 + gN * 0.1192 + bN * 0.9505;
+    
+    // ★ 이 부분을 D50 화이트 포인트로 수정합니다.
+    X /= 0.9642; // D50 Xn으로 수정
+    Y /= 1.00000;
+    Z /= 0.8249; // D50 Zn으로 수정
+
+    X = (X > 0.008856) ? Math.pow(X, 1/3) : (7.787 * X) + 16/116;
+    Y = (Y > 0.008856) ? Math.pow(Y, 1/3) : (7.787 * Y) + 16/116;
+    Z = (Z > 0.008856) ? Math.pow(Z, 1/3) : (7.787 * Z) + 16/116;
+    return { L: (116 * Y) - 16, a: 500 * (X - Y), b: 200 * (Y - Z) };
 }
 
 function applyPatternDithering(preprocessedImage, convertedImage, palette, options) {
