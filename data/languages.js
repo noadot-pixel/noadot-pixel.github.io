@@ -239,6 +239,20 @@ export const languageData = {
         tag_mid: "중간 톤",
         tag_light: "밝은 톤",
         tag_harmony: "추천 보색 (Harmony)", // 신규
+
+        COMMENT_MODAL_TITLE: "피드백 및 댓글",
+        COMMENT_MODAL_OPEN_BUTTON: "💬 댓글 달기",
+        COMMENT_INPUT_NICKNAME_PLACEHOLDER: "닉네임 (비워두면 'ㅇㅇ')",
+        COMMENT_INPUT_CONTENT_PLACEHOLDER: "댓글 내용을 입력하세요",
+        COMMENT_SUBMIT_BUTTON: "댓글 등록",
+        COMMENT_SECTION_TITLE: "전체 댓글",
+        COMMENT_NO_COMMENTS: "아직 댓글이 없습니다. 첫 댓글을 남겨보세요!",
+        COMMENT_ACTION_REPLY: "[대댓글 달기]",
+        COMMENT_ACTION_DELETE: "[삭제]",
+        COMMENT_ALERT_NO_CONTENT: "댓글 내용을 입력해주세요.",
+        COMMENT_ALERT_ADMIN_REQUIRED: "관리자 권한이 없습니다.",
+        COMMENT_CONFIRM_DELETE: "정말로 이 댓글과 모든 대댓글을 삭제하시겠습니까?",
+        // --- 댓글 시스템 스트링 끝 ---
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
@@ -464,5 +478,16 @@ export const languageData = {
         tag_mid: "Midtone",
         tag_light: "Light Tone",
         tag_harmony: "Harmony (Complementary)",
+
+        COMMENT_MODAL_TITLE: "Feedback and Comments",
+        COMMENT_MODAL_OPEN_BUTTON: "💬 Leave a Comment",
+        COMMENT_INPUT_NICKNAME_PLACEHOLDER: "Nickname (defaults to 'ㅇㅇ')",
+        COMMENT_INPUT_CONTENT_PLACEHOLDER: "Enter your comment here",
+        COMMENT_SUBMIT_BUTTON: "Post Comment",
+        COMMENT_SECTION_TITLE: "All Comments",
+        COMMENT_NO_COMMENTS: "No comments yet. Be the first to post!",
+        COMMENT_ACTION_REPLY: "[Reply]",
+        COMMENT_ACTION_DELETE: "[Delete]",
+        COMMENT_ALERT_NO_CONTENT: "Please enter comment content.",
     }
 };

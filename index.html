@@ -4,8 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-lang-key="app_title">NoaDot - 이미지/텍스트 변환기</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; font-src 'self' data:;">
+    <meta http-equiv="Content-Security-Policy" content="
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.firebase.com; 
+    connect-src 'self' wss://*.firebaseio.com https://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com;
+    ">
     <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8o-GgPjhBepBUs3HF3cD7XMXP9-haUgI",
+            authDomain: "noadot-commet-system.firebaseapp.com",
+            projectId: "noadot-commet-system",
+            storageBucket: "noadot-commet-system.firebasestorage.app",
+            messagingSenderId: "335432879892",
+            appId: "1:335432879892:web:62197c9dfef7a4bfd17c01"
+        };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = app.firestore();
+        const COMMENTS_COLLECTION = "noadot_comments";
+
+    </script>
 </head>
 <body>
 
@@ -474,6 +495,11 @@
             </div>
             <button id="downloadBtn" disabled data-lang-key="btn_download">다운로드</button>
         </section>
+        <section id="comment-entry-section" style="text-align: center; margin: 20px 0;">
+            <button id="open-comment-modal" data-lang-key="COMMENT_MODAL_OPEN_BUTTON" class="comment-open-btn">
+                💬 댓글 달기
+            </button>
+        </section>
     </div>
 </div>
 
@@ -486,8 +512,41 @@
     </div>
 </div>
 
+<div id="comment-modal" class="comment-modal-overlay">
+
+    <div id="modal-content" class="comment-modal-content">
+        
+        <span id="close-comment-modal" class="comment-close-btn">&times;</span>
+        
+        <h2 data-lang-key="COMMENT_MODAL_TITLE" class="comment-modal-title">💬 피드백 및 댓글</h2>
+        
+        <div class="comment-input-area">
+            <h4 data-lang-key="COMMENT_SUBMIT_BUTTON" class="comment-input-title">새 댓글 등록</h4>
+            
+            <input type="text" id="nickname-input" class="comment-input-field" 
+                   maxlength="20" data-lang-placeholder="COMMENT_INPUT_NICKNAME_PLACEHOLDER">
+            
+            <textarea id="comment-input" class="comment-input-field" 
+                      rows="3" data-lang-placeholder="COMMENT_INPUT_CONTENT_PLACEHOLDER"></textarea>
+            
+            <button id="submit-comment" data-lang-key="COMMENT_SUBMIT_BUTTON" class="comment-submit-btn" style="float: right;">
+                댓글 등록
+            </button>
+            <div style="clear: both;"></div>
+        </div>
+
+        <h3 data-lang-key="COMMENT_SECTION_TITLE" class="comment-section-title">전체 댓글</h3>
+        
+        <div id="comments-list" class="comments-list-container">
+            </div>
+        
+    </div>
+</div>
+
 <!-- 모듈형 스크립트 로드 -->
 <script type="module" src="js/script.js"></script>
+<script src="js/comment.js"></script>
+
 
 </body>
 </html>

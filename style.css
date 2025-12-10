@@ -892,3 +892,213 @@ button.toggle-all { cursor: pointer; }
     height: 28px;
     fill: currentColor; /* 버튼 색상 따라감 */
 }
+/* style.css 파일에 추가할 최종 댓글 관련 CSS */
+
+/* --- 0. 댓글 모달 열기 버튼 --- */
+.comment-open-btn {
+    padding: 12px 25px; 
+    font-size: 16px; 
+    cursor: pointer; 
+    background-color: #007bff; 
+    color: white; 
+    border: none; 
+    border-radius: 5px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.comment-open-btn:hover {
+    background-color: #0056b3; 
+    box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+}
+
+/* --- 1. 모달 및 기본 레이아웃 --- */
+
+/* 댓글 모달 전체 (JS에서 is-active 클래스 추가/제거로 열림/닫힘 제어) */
+.comment-modal-overlay {
+    display: none; /* JS에서 is-active 클래스로 오버라이드 됨 */
+    position: fixed; 
+    z-index: 1000; 
+    left: 0; 
+    top: 0; 
+    width: 100%; 
+    height: 100%; 
+    background-color: rgba(0,0,0,0.7);
+    overflow: auto;
+}
+
+.comment-modal-overlay.is-active {
+    display: block;
+}
+
+/* 모달 컨텐츠 박스 */
+.comment-modal-content {
+    background-color: #ffffff; 
+    margin: 5% auto; 
+    padding: 30px; 
+    width: 90%; 
+    max-width: 700px; 
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+/* 닫기 버튼 */
+.comment-close-btn {
+    color: #888; 
+    float: right; 
+    font-size: 36px; 
+    font-weight: 300; 
+    cursor: pointer;
+    line-height: 1;
+}
+.comment-close-btn:hover {
+    color: #333;
+}
+
+/* 댓글 목록 영역 */
+.comments-list-container {
+    max-height: 50vh; 
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+
+/* --- 2. 입력 필드 및 버튼 --- */
+
+/* 메인 폼 및 대댓글 폼의 모든 입력 필드 통합 */
+.comment-input-field,
+.comment-input-area input[type="text"], 
+.comment-input-area textarea {
+    padding: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    resize: vertical; 
+}
+
+.comment-input-field:focus,
+.comment-input-area input[type="text"]:focus, 
+.comment-input-area textarea:focus {
+    border-color: #007bff;
+    outline: none;
+}
+
+/* 등록/취소 버튼 기본 스타일 */
+.comment-submit-btn {
+    padding: 10px 20px; 
+    border: none; 
+    border-radius: 6px; 
+    cursor: pointer; 
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+/* 메인 폼 등록 버튼 스타일 (index.html의 #submit-comment) */
+.comment-submit-btn.comment-input-submit-btn {
+    background-color: #007bff; 
+    color: white; 
+    float: right; /* index.html의 등록 버튼에만 적용 */
+}
+.comment-submit-btn.comment-input-submit-btn:hover {
+    background-color: #0056b3;
+}
+
+/* 대댓글 폼 - 등록 버튼 스타일 */
+.comment-submit-btn.comment-reply-submit {
+    padding: 5px 10px; 
+    background-color: #ffc107;
+    color: black;
+}
+.comment-submit-btn.comment-reply-submit:hover {
+    background-color: #e0a800;
+}
+
+/* 대댓글 폼 - 취소 버튼 스타일 */
+.comment-submit-btn.comment-reply-cancel {
+    padding: 5px 10px; 
+    background-color: #ccc;
+    color: black;
+    margin-left: 5px;
+}
+.comment-submit-btn.comment-reply-cancel:hover {
+    background-color: #a3a3a3;
+}
+
+/* --- 3. 개별 댓글 항목 (JS 렌더링 영역) --- */
+
+/* 개별 댓글 아이템 (depth=0) */
+.comment-item {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc; /* 원본의 depth=0 스타일 */
+    background-color: #fff; /* 원본의 depth=0 스타일 */
+    transition: all 0.2s;
+}
+
+/* 대댓글 스타일 (depth > 0) */
+.comment-item.comment-reply {
+    border: 1px solid #eee; /* 원본의 depth > 0 스타일 */
+    background-color: #f9f9f9; /* 원본의 depth > 0 스타일 */
+    border-left: 3px solid #ffc107; /* 대댓글 구분선 강조 */
+}
+
+/* 댓글 헤더 (닉네임, 시간, 해시 코드 포함) */
+.comment-header {
+    margin: 0;
+    font-weight: bold;
+    line-height: 1.5;
+}
+
+/* 타임스탬프 스타일 */
+.comment-time {
+    font-size: 0.8em;
+    color: #666;
+}
+
+/* 구분선 스타일 */
+.comment-divider {
+    margin: 5px 0;
+    border-color: #eee;
+    border-style: solid;
+    border-width: 1px 0 0 0;
+}
+
+/* 댓글 내용 스타일 */
+.comment-content {
+    margin: 0 0 10px 0;
+    white-space: pre-wrap; /* 줄바꿈 유지 */
+}
+
+/* 삭제 버튼 컨테이너 (float: right 스타일 적용) */
+.comment-delete-btn-container {
+    margin-left: 10px;
+    float: right;
+}
+
+/* 대댓글 달기 버튼 스타일 */
+.comment-action-btn.comment-reply-btn {
+    font-size: 0.9em;
+    color: #007bff;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+}
+
+/* 대댓글 입력 폼 컨테이너 */
+.comment-reply-form {
+    display: none; /* JS에서 토글됨 */
+    margin-top: 10px;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+    padding-left: 10px;
+    border-left: 3px solid #ffc107; /* 강조색 */
+}
