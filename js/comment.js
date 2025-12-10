@@ -37,12 +37,12 @@ function simpleHash(str) {
 
 /**
  * 댓글 내용을 검증합니다.
- * - 최대 길이 검사: 400자를 초과할 수 없습니다. (수정됨)
+ * - 최대 길이 검사: 20자를 초과할 수 없습니다. (수정됨)
  * - 특수문자 검사: 한글, 영어, 숫자, 기본 공백 외에는 금지합니다.
  */
 function validateContent(content) {
-    if (content.length > 400) { // ★ 400자로 수정
-        alert("댓글 내용은 최대 400자까지 입력 가능합니다."); // ★ 메시지 수정
+    if (content.length > 20) { // ★ 20자로 수정
+        alert("댓글 내용은 최대 20자까지 입력 가능합니다."); // ★ 메시지 수정
         return false;
     }
 
