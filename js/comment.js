@@ -36,22 +36,19 @@ function simpleHash(str) {
 
 
 /**
- * 댓글 내용을 검증합니다.
- * - 최대 길이 검사: 20자를 초과할 수 없습니다. (수정됨)
- * - 특수문자 검사: 한글, 영어, 숫자, 기본 공백 외에는 금지합니다.
+ * 입력 내용을 검증합니다.
+ * @param {string} input 입력된 텍스트
+ * @param {number} maxLength 최대 길이
+ * @param {string} type 입력 필드의 종류 ('닉네임' 또는 '댓글 내용')
  */
-function validateContent(content) {
-    if (content.length > 20) { // ★ 20자로 수정
-        alert("댓글 내용은 최대 20자까지 입력 가능합니다."); // ★ 메시지 수정
+function validateInput(input, maxLength, type) {
+    if (input.length > maxLength) {
+        alert(`${type}은(는) 최대 ${maxLength}자까지 입력 가능합니다.`);
         return false;
     }
 
-    // 한글, 영어 대소문자, 숫자, 공백(탭, 줄바꿈 포함)만 허용
-    const specialCharRegex = /[^a-zA-Z0-9가-힣\s]/g;
-    if (specialCharRegex.test(content)) {
-        alert("댓글 내용에 특수문자(한글, 영어, 숫자, 공백 외)는 사용할 수 없습니다.");
-        return false;
-    }
+    // 한글, 영어 대소문자, 숫자, 기본 공백 외에는 금지합니다.
+    
 
     return true;
 }
@@ -110,8 +107,13 @@ async function addComment(nickname, content) {
         return;
     }
     
-    // 내용 검증
-    if (!validateContent(trimmedContent)) {
+    // ★★★ 닉네임 검증 (20자 제한) ★★★
+    if (!validateInput(finalNickname, 20, '닉네임')) {
+        return;
+    }
+    
+    // ★★★ 내용 검증 (400자 제한) ★★★
+    if (!validateInput(trimmedContent, 400, '댓글 내용')) {
         return;
     }
 
@@ -142,8 +144,13 @@ async function addReply(parentId, nickname, content) {
     const trimmedContent = content.trim();
     if (trimmedContent === '') return alert("대댓글 내용을 입력해주세요.");
 
-    // 내용 검증
-    if (!validateContent(trimmedContent)) {
+    // ★★★ 닉네임 검증 (20자 제한) ★★★
+    if (!validateInput(finalNickname, 20, '닉네임')) {
+        return;
+    }
+
+    // ★★★ 내용 검증 (400자 제한) ★★★
+    if (!validateInput(trimmedContent, 400, '댓글 내용')) {
         return;
     }
 
