@@ -3,15 +3,15 @@
 export const languageData = {
     ko: {
         app_title: "NoaDot - 이미지/텍스트 변환기",
-        app_header: "🎨 노아도트 v6.1",
+        app_header: "🎨 노아도트 v6.2",
         // ... (기존 텍스트는 동일) ...!
-        section_mode: "1. 모드 선택",
+        section_mode: "모드 선택",
         mode_image: "🖼️ 이미지",
         mode_text: "✏️ 텍스트",
         info_original_size: "원본 크기",
         info_converted_size: "변환 크기",
         info_generated_size: "생성 크기",
-        section_resize: "2. 크기 조절",
+        section_resize: "크기 조절",
         resize_mode: "조절 방식",
         resize_pixel: "픽셀 단위",
         resize_ratio: "비율 단위",
@@ -19,7 +19,7 @@ export const languageData = {
         resize_pixel_amount: "픽셀 축소량",
         resize_width: "너비",
         resize_height: "높이",
-        section_text_style: "2. 텍스트 스타일",
+        section_text_style: "텍스트 스타일",
         text_upload_font: "폰트+",
         text_font_size: "글자 크기",
         text_letter_spacing: "자간",
@@ -30,7 +30,7 @@ export const languageData = {
         text_bg_color: "배경색",
         text_bold: "굵게",
         text_italic: "기울임",
-        section_options: "3. 변환 옵션",
+        section_options: "변환 옵션",
         option_saturation: "채도",
         option_brightness: "밝기",
         option_contrast: "대비",
@@ -61,6 +61,7 @@ export const languageData = {
         
         // --- ▼ 신규/수정된 텍스트 ▼ ---
         cartoon_section_quant: "색상 추출",
+        alert_image_only: "이미지 파일만 업로드 가능합니다.",
         cartoon_color_level: "색상 레벨",
         cartoon_quant_method: "추출 방식",
         quant_kmeans_plus: "안정적 (K-Means++)",
@@ -79,7 +80,13 @@ export const languageData = {
         cartoon_outline_threshold: "외곽선 민감도",
         // --- ▲ 신규/수정된 텍스트 ▲ ---
 
-        section_palette: "4. 팔레트 선택",
+        section_palette: "팔레트 선택",
+
+        confirm_mode_switch_to_text: "모드 변환 시 업로드한 이미지가 초기화됩니다. 변경하시겠습니까?",
+        confirm_mode_switch_to_image: "모드 변환 시 폰트 및 텍스트 내용이 초기화됩니다. 변경하시겠습니까?",
+        placeholder_image_upload: "창 클릭 혹은 이미지를 화면으로 드래그",
+        placeholder_text_preview: "해당 화면을 통해 텍스트를 미리 확인할 수 있습니다",
+
         // ... (이하 모든 기존 텍스트는 동일) ...
         palette_geopixels_default: "GeoPixels 기본 팔레트",
         palette_use_wplace: "Wplace 팔레트 사용하기",
@@ -104,7 +111,7 @@ export const languageData = {
         placeholder_text_editor: "여기에 텍스트를 입력하세요...",
         placeholder_recommend: "이미지를 업로드하면<br>추천 색상이 표시됩니다.",
         placeholder_add_color: "아래에서 직접 색상을 추가하세요.",
-        placeholder_hex: "HEX 코드 입력 (예: #FF595E)",
+        placeholder_hex: "HEX 코드 입력 (예: #FFFFFF)",
         placeholder_text_preview: "왼쪽에서 텍스트를 입력하면 여기에 미리보기가 표시됩니다.",
         tooltip_dithering: "제한된 색상으로 이미지의 색을 표현할 때, 점을 찍는 방식으로 색상 간의 경계를 부드럽게 만들어 계단 현상을 줄여주는 기법입니다. 이미지의 디테일을 향상시킵니다.",
         tooltip_pattern: "이미지의 명암과 패턴 지도를 비교하여, 팔레트 내의 가장 가까운 두 색상으로 픽셀을 다시 그립니다. 일반 디더링과 함께 사용하면 더 복합적인 질감을 만들 수 있습니다. (만화 스타일 필터와는 함께 사용할 수 없습니다.)",
@@ -140,6 +147,8 @@ export const languageData = {
         option_color_method_rgb: "일반 (RGB) - 빠름",
         option_color_method_oklab: "고품질 (Oklab) - 권장",
         option_color_method_ciede2000: "Wdot (CIEDE2000) - 정밀/느림",
+
+        tag_point: "포인트 색상",
 
         // [신규] 업스케일 섹션
         section_upscale: "5. 업스케일 (Upscale)",
@@ -178,6 +187,12 @@ export const languageData = {
         btn_save_file: "파일로 저장 (.json)",
         btn_save_session: "보관함에 추가 (임시)",
 
+        modal_preset_list_title: "프리셋 목록",
+        msg_empty_list: "목록이 비어있습니다.",
+        btn_apply: "적용",
+        badge_my_custom: "My Custom",
+        confirm_delete_preset: "정말로 삭제하시겠습니까?",
+        alert_preset_applied_name: "'{name}' 프리셋이 적용되었습니다.",
 
         // 놓친 것들 모음집 kr
         size_change_download: "(다운로드 시 적용)",
@@ -235,10 +250,22 @@ export const languageData = {
         
         // [수정/추가] 추천 태그
         tag_dominant: "고비율 색상",
-        tag_shadow: "어두운 톤",
         tag_mid: "중간 톤",
         tag_light: "밝은 톤",
         tag_harmony: "추천 보색 (Harmony)", // 신규
+
+        alert_font_uploaded: "폰트 '{name}' 업로드 완료!",
+        alert_font_load_error: "폰트 로드 실패. 유효한 TTF/OTF 파일인지 확인하세요.",
+        suffix_user: " (사용자)",
+        label_user_color: "사용자 추가 색상",
+
+        alert_invalid_color_code: "유효한 색상 코드를 찾을 수 없습니다.",
+        alert_input_color_value: "색상 값을 입력해주세요.",
+        tooltip_delete: "삭제",
+        tooltip_pixel_count: "{n} 픽셀",
+        tag_user_added: "사용자 추가",
+
+        text_line_height: "줄 간격",
 
         COMMENT_MODAL_TITLE: "피드백 및 댓글",
         COMMENT_MODAL_OPEN_BUTTON: "💬 댓글 달기",
@@ -256,14 +283,14 @@ export const languageData = {
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
-        app_header: "🎨 NoaDot v6.1",
-        section_mode: "1. Select Mode",
+        app_header: "🎨 NoaDot v6.2",
+        section_mode: "Select Mode",
         mode_image: "🖼️ Image",
         mode_text: "✏️ Text",
         info_original_size: "Original Size",
         info_converted_size: "Converted Size",
         info_generated_size: "Generated Size",
-        section_resize: "2. Resize",
+        section_resize: "Resize",
         resize_mode: "Method",
         resize_pixel: "By Pixel",
         resize_ratio: "By Ratio",
@@ -271,7 +298,7 @@ export const languageData = {
         resize_pixel_amount: "Pixel Reduction",
         resize_width: "Width",
         resize_height: "Height",
-        section_text_style: "2. Text Style",
+        section_text_style: "Text Style",
         text_upload_font: "Font+",
         text_font_size: "Font Size",
         text_letter_spacing: "Letter Spacing",
@@ -282,7 +309,7 @@ export const languageData = {
         text_bg_color: "BG Color",
         text_bold: "Bold",
         text_italic: "Italic",
-        section_options: "3. Conversion Options",
+        section_options: "Conversion Options",
         option_saturation: "Saturation",
         option_brightness: "Brightness",
         option_contrast: "Contrast",
@@ -305,11 +332,40 @@ export const languageData = {
         pattern_brick: "Brick",
         pattern_bayer: "pointage (bayer8*8)",
 
+        alert_invalid_color_code: "No valid color code found.",
+        alert_input_color_value: "Please enter a color value.",
+        tooltip_delete: "Delete",
+        tooltip_pixel_count: "{n} pixels",
+        tag_user_added: "Custom",
+
+        alert_image_only: "Only image files can be uploaded.",
+
+        confirm_mode_switch_to_text: "Switching modes will reset the uploaded image. Continue?",
+        confirm_mode_switch_to_image: "Switching modes will reset your text settings. Continue?",
+        placeholder_image_upload: "Click or Drag & Drop image here",
+        placeholder_text_preview: "You can check the text preview on this screen",
+
+        text_line_height: "Line spacing",
+
+        modal_preset_list_title: "Preset List",
+        msg_empty_list: "The list is empty.",
+        btn_apply: "Apply",
+        badge_my_custom: "My Custom",
+        confirm_delete_preset: "Are you sure you want to delete this?",
+        alert_preset_applied_name: "Preset '{name}' applied successfully.",
+
+        alert_font_uploaded: "Font '{name}' uploaded successfully!",
+        alert_font_load_error: "Font load failed. Please check if it is a valid TTF/OTF file.",
+        suffix_user: " (User)",
+        label_user_color: "User Added Color",
+
+        placeholder_hex: "HEX code input (ex: #FFFFFF)",
+
         option_hq_mode: "High Quality Color Calc (Slow)",
         option_cartoon_filter: "Cartoon Style Filter",
         cartoon_color_level: "Color Levels",
         cartoon_show_outline: "Show Outline",
-        section_palette: "4. Select Palette",
+        section_palette: "Select Palette",
         palette_geopixels_default: "GeoPixels Default Palette",
         palette_use_wplace: "Use Wplace Palette",
         palette_use_wplace_in_geo: "Use Wplace palette in GeoPixels mode",
@@ -441,7 +497,7 @@ export const languageData = {
         placeholder_preset_name: "Ex: My Custom Style",
         btn_confirm_save: "Save",
         btn_cancel: "Cancel",
-        
+        tag_point: "Point Color",
         
         // [New] Color Recommendation Tags
         tag_dominant: "Dominant Color",
@@ -474,7 +530,6 @@ export const languageData = {
         
         // [New] Recommendation Tags
         tag_dominant: "Dominant Color",
-        tag_shadow: "Shadow Tone",
         tag_mid: "Midtone",
         tag_light: "Light Tone",
         tag_harmony: "Harmony (Complementary)",

@@ -1,4 +1,6 @@
 // js/state.js
+// [수정] 파일 경로 변경 (./languages.js -> /data/languages.js)
+import { languageData } from '/data/languages.js';
 
 export const CONFIG = {
     DEBOUNCE_DELAY: 150,
@@ -11,8 +13,8 @@ export const CONFIG = {
 };
 
 export const state = {
-    sessionPresets: [], // [New] 임시 저장된 사용자 프리셋 목록
-    exportScale: 1, // [New] 출력 배율 상태
+    sessionPresets: [], 
+    exportScale: 1, 
     isApplyingPreset: false,
     language: 'ko',
     appMode: 'image',
@@ -40,6 +42,36 @@ export const state = {
     highQualityMode: false,
     scaleMode: 'pixel',
     aspectRatio: 1,
+
+    // [변환 옵션]
+    saturationSlider: 100,
+    brightnessSlider: 0,
+    contrastSlider: 0,
+    ditheringAlgorithmSelect: 'none', 
+    ditheringSlider: 0,
+    applyPattern: false,
+    patternTypeSelect: 'bayer8x8',
+    patternSizeSlider: 4,
+    applyGradient: false,
+    gradientTypeSelect: 'bayer',
+    gradientDitherSizeSlider: 1, 
+    gradientAngleSlider: 0,
+    gradientStrengthSlider: 100,
+    colorMethodSelect: 'oklab',
+    pixelatedScaling: false,
+
+    celShadingApply: false,
+    celShadingLevelsSlider: 8,
+    celShadingColorSpaceSelect: 'oklab',
+    celShadingOutline: false,
+    celShadingOutlineThresholdSlider: 50,
+    celShadingOutlineColorSelect: '#000000',
+    celShadingRandomSeed: 0,
+
+    disabledHexes: [],
+    
+    addedColors: [],
+
     textState: {
         content: '',
         fontFamily: 'Malgun Gothic',
@@ -47,17 +79,38 @@ export const state = {
         isBold: false,
         isItalic: false,
         letterSpacing: 0,
+        textLineHeight: 1.5,
         padding: 10,
-        textColor: '0,0,0',
-        bgColor: '255,255,255',
-        strokeColor: '0,0,0',
+        textColor: '#000000',
+        bgColor: '#FFFFFF',
+        strokeColor: '#000000',
         strokeWidth: 0
     },
     recommendedColors: [],
     timeoutId: null
 };
 
-// --- 순수 유틸리티 함수 (State나 UI 어디서든 쓰일 수 있음) ---
+// --- 다국어 텍스트 반환 헬퍼 함수 ---
+export const t = (key, params = {}) => {
+    const lang = state.language || 'ko';
+    // 데이터 로드 실패 시 안전장치
+    const dict = languageData ? languageData[lang] : null;
+    
+    let text = key;
+    if (dict && dict[key]) {
+        text = dict[key];
+    } else {
+        // console.warn(`[i18n] Missing translation for key: ${key}`);
+    }
+
+    Object.keys(params).forEach(paramKey => {
+        text = text.replace(new RegExp(`{${paramKey}}`, 'g'), params[paramKey]);
+    });
+
+    return text;
+};
+
+// --- 순수 유틸리티 함수 ---
 
 export const hexToRgb = (hex) => {
     let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -73,15 +126,23 @@ export const hexToRgb = (hex) => {
             ];
         }
     }
-    return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
+    return result ? [
+        parseInt(result[1], 16),
+        parseInt(result[2], 16),
+        parseInt(result[3], 16)
+    ] : null;
 };
 
-export const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => {
-    const hex = x.toString(16);
-    return hex.length === 1 ? '0' + hex : hex;
-}).join('').toUpperCase();
+export const rgbToHex = (r, g, b) => {
+    const toHex = (c) => {
+        const hex = (c || 0).toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+    };
+    return ('#' + toHex(r) + toHex(g) + toHex(b)).toUpperCase();
+};
 
 export const getTextColorForBg = (rgb) => {
+    if (!rgb) return '#000000';
     const [r, g, b] = rgb;
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b);
     return luminance > 128 ? '#000000' : '#FFFFFF';

@@ -1,4 +1,4 @@
-// palette-data.js!
+// palettes.js
 
 export const wplaceFreeColors = [{rgb:[0,0,0],name:"black"},{rgb:[60,60,60],name:"dark gray"},{rgb:[120,120,120],name:"gray"},{rgb:[210,210,210],name:"light gray"},{rgb:[255,255,255],name:"white"},{rgb:[96,0,24],name:"deep red"},{rgb:[237,28,36],name:"red"},{rgb:[255,127,39],name:"orange"},{rgb:[246,170,9],name:"gold"},{rgb:[249,221,59],name:"yellow"},{rgb:[255,250,188],name:"light yellow"},{rgb:[14,185,104],name:"dark green"},{rgb:[19,230,123],name:"green"},{rgb:[135,255,94],name:"light green"},{rgb:[12,129,110],name:"dark teal"},{rgb:[16,174,166],name:"teal"},{rgb:[19,225,190],name:"light teal"},{rgb:[96,247,242],name:"cyan"},{rgb:[40,80,158],name:"dark blue"},{rgb:[64,147,228],name:"blue"},{rgb:[107,80,246],name:"indigo"},{rgb:[153,177,251],name:"light indigo"},{rgb:[120,12,153],name:"dark purple"},{rgb:[170,56,185],name:"purple"},{rgb:[224,159,249],name:"light purple"},{rgb:[203,0,122],name:"dark pink"},{rgb:[236,31,128],name:"pink"},{rgb:[243,141,169],name:"light pink"},{rgb:[104,70,52],name:"dark brown"},{rgb:[149,104,42],name:"brown"},{rgb:[248,178,119],name:"beige"}];
 

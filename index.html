@@ -34,7 +34,7 @@
     <!-- 왼쪽 패널 -->
     <div class="left-panel">
         <header class="main-header">
-            <h1 data-lang-key="app_header">🎨 NoaDot v6.1</h1>
+            <h1 data-lang-key="app_header">🎨 NoaDot v6.2</h1>
             <div class="external-links">
                 
                 <!-- 2. GeoPixels (이미지 아이콘) -->
@@ -110,16 +110,24 @@
 
         <div id="image-controls">
             <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/gif" hidden>
-            <section class="image-info">
-                <div id="imageDimensionsDisplay">
-                    <span class="image-only-info"><span data-lang-key="info_original_size">원본 크기</span>: <strong id="originalDimensions">N/A</strong></span>
-                    <span id="convertedDimensionsLabel" data-lang-key="info_converted_size">변환 크기</span>: <strong id="convertedDimensions">N/A</strong>
+            <div id="imageInfoPanel" class="image-info-group" style="display: none; background: rgba(255,255,255,0.5); padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ddd;">
+                
+                <div style="font-size: 13px; color: #555; margin-bottom: 4px;">
+                    <span data-lang-key="info_original_size">원본 크기</span>: 
+                    <strong id="originalDimensions">0 x 0 px</strong>
                 </div>
-                <div style="margin-top: 5px; font-size: 12px; color: #666;">
+
+                <div style="font-size: 14px; margin-bottom: 4px;">
+                    <span data-lang-key="info_converted_size">변환 크기</span>: 
+                    <strong id="convertedDimensions" style="font-weight: 900; color: #333;">0 x 0 px</strong>
+                </div>
+
+                <div style="font-size: 12px; color: #666;">
                     <span data-lang-key="info_total_pixels">총 픽셀 수</span>: 
                     <strong id="totalPixelCount" style="font-weight: 900; color: #333; font-size: 13px;">0</strong>
                 </div>
-            </section>
+
+            </div>
             <section>
                 <h2 data-lang-key="section_resize">2. 크기 조절</h2>
                 <fieldset id="scaleControlsFieldset" disabled>
@@ -159,6 +167,22 @@
                             <span data-lang-key="size_change_download" style="font-size:12px; font-weight:normal; color:#666; margin-left:5px;">(다운로드 시 적용)</span>
                         </label>
                         <input type="range" id="exportScaleSlider" min="1" max="10" value="1" step="1">
+                        <section class="option-section">
+                            <h2 data-lang-key="section_upscale" data-tooltip-key="tooltip_upscale_options">업스케일</h2>
+                            <div class="radio-toggle" id="upscale-control-group" data-tooltip-key="tooltip_upscale_options">
+                                <!-- 1배 -->
+                                <input type="radio" id="upscale1x" name="upscaleMode" value="1" checked>
+                                <label for="upscale1x" data-lang-key="upscale_1x">1x (기본)</label>
+
+                                <!-- 2배 -->
+                                <input type="radio" id="upscale2x" name="upscaleMode" value="2">
+                                <label for="upscale2x" data-lang-key="upscale_2x">2x (EPX)</label>
+
+                                <!-- 3배 -->
+                                <input type="radio" id="upscale3x" name="upscaleMode" value="3">
+                                <label for="upscale3x" data-lang-key="upscale_3x">3x (EPX)</label>
+                            </div>
+                        </section>
                     </div>
                 </fieldset>
             </section>
@@ -193,6 +217,11 @@
             <!-- 숨겨진 파일 업로드 (기존 유지) -->
             <input type="file" id="presetUpload" accept=".json" hidden>
         </section>
+        <section id="ai-preset-section" class="option-section">
+            <div id="preset-recommendation-list" class="preset-list-container"></div>
+
+            <input type="file" id="presetUpload" accept=".json" hidden>
+        </section>
 
         <!-- 텍스트 모드 컨트롤 -->
         <div id="text-controls" style="display: none;">
@@ -212,6 +241,10 @@
                 <div class="control-group">
                     <label for="letterSpacingSlider"><span data-lang-key="text_letter_spacing">자간</span>: <span id="letterSpacingValue">0</span>px</label>
                     <input type="range" id="letterSpacingSlider" min="-5" max="20" value="0">
+                <div class="control-group">
+                    <label for="textLineHeightSlider"><span data-lang-key="text_line_height">줄 간격</span>: <span id="textLineHeightValue">1.5</span>x</label>
+                    <input type="range" id="textLineHeightSlider" min="10" max="30" value="15" step="1">
+                </div>
                 </div>
                 <div class="control-group">
                     <label for="paddingSlider"><span data-lang-key="text_padding">여백</span>: <span id="paddingValue">10</span>px</label>
@@ -229,7 +262,7 @@
                 </div>
                 <div class="control-group color-picker-group">
                     <label for="bgColorSelect" data-lang-key="text_bg_color">배경색</label><select id="bgColorSelect"></select>
-                </div>
+                </div>         
             </section>
         </div>
 
@@ -290,6 +323,20 @@
                 <label for="applyGradient" data-lang-key="option_apply_gradient" data-tooltip-key="tooltip_gradient">투명도 그라데이션 적용</label>
             </div>
             <div id="gradient-options" class="sub-options" style="display: none;">
+                
+                <div class="control-group">
+                    <label for="gradientTypeSelect" data-lang-key="gradient_type">스타일</label>
+                    <select id="gradientTypeSelect">
+                        <option value="bayer" selected>패턴 (Bayer)</option>
+                        <option value="floyd">부드럽게 (Floyd)</option>
+                        <option value="sierra">시에라 (Sierra)</option>
+                        <option value="atkinson">거칠게 (Atkinson)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="gradientDitherSizeSlider"><span data-lang-key="gradient_dither_size">입자 크기</span>: <span id="gradientDitherSizeValue">1</span>px</label>
+                    <input type="range" id="gradientDitherSizeSlider" min="1" max="16" value="1">
+                </div>
                 <div class="control-group">
                     <label for="gradientAngleSlider"><span data-lang-key="gradient_angle">각도</span>: <span id="gradientAngleValue">0</span>°</label>
                     <input type="range" id="gradientAngleSlider" min="0" max="360" value="0">
@@ -300,11 +347,9 @@
                 </div>
             </div>
 
-            <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
-                <input type="checkbox" id="pixelatedScaling" checked>
-                <label for="pixelatedScaling" data-lang-key="option_pixelated_scaling" data-tooltip-key="tooltip_pixelated_scaling">선명한 리사이징 (픽셀 아트용)</label>
-            </div>
-            <div class="control-group">
+
+
+            <div class="control-group"  style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
                 <label for="colorMethodSelect" data-lang-key="option_color_method" data-tooltip-key="tooltip_color_method">색상 계산 방식</label>
                 <select id="colorMethodSelect" data-tooltip-key="tooltip_color_method">
                     <option value="rgb" data-lang-key="option_color_method_rgb">일반 (RGB) - 빠름</option>
@@ -437,23 +482,6 @@
             </div>
         </details>
 
-        <section class="option-section">
-            <h2 data-lang-key="section_upscale" data-tooltip-key="tooltip_upscale_options">5. 업스케일 (Upscale)</h2>
-            <div class="radio-toggle" id="upscale-control-group" data-tooltip-key="tooltip_upscale_options">
-                <!-- 1배 -->
-                <input type="radio" id="upscale1x" name="upscaleMode" value="1" checked>
-                <label for="upscale1x" data-lang-key="upscale_1x">1x (기본)</label>
-
-                <!-- 2배 -->
-                <input type="radio" id="upscale2x" name="upscaleMode" value="2">
-                <label for="upscale2x" data-lang-key="upscale_2x">2x (EPX)</label>
-
-                <!-- 3배 -->
-                <input type="radio" id="upscale3x" name="upscaleMode" value="3">
-                <label for="upscale3x" data-lang-key="upscale_3x">3x (EPX)</label>
-            </div>
-        </section>
-
         <section class="download-section">
             <div id="preset-save-choice-modal" class="hidden modal-overlay">
                 <div class="modal-content">
@@ -544,7 +572,7 @@
 </div>
 
 <!-- 모듈형 스크립트 로드 -->
-<script type="module" src="js/script.js"></script>
+<script type="module" src="js/App.js"></script>
 <script src="js/comment.js"></script>
 
 
