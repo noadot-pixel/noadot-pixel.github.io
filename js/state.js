@@ -47,7 +47,7 @@ export const state = {
     saturationSlider: 100,
     brightnessSlider: 0,
     contrastSlider: 0,
-    ditheringAlgorithmSelect: 'none', 
+    ditheringAlgorithmSelect: 'Atkinson', 
     ditheringSlider: 0,
     applyPattern: false,
     patternTypeSelect: 'bayer8x8',

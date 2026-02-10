@@ -1,4 +1,6 @@
-// js/features/image-resizer/ui.js
+// [New] state를 import 해야 비율 정보를 가져올 수 있습니다.
+import { state } from '../../state.js';
+
 export class ImageResizerUI {
     constructor() {
         this.originalDims = document.getElementById('originalDimensions');
@@ -23,9 +25,6 @@ export class ImageResizerUI {
         this.exportScaleValue = document.getElementById('exportScaleValue');
         
         this.upscaleRadios = document.getElementsByName('upscaleMode');
-
-        // [삭제됨] injectStyles() 호출 제거
-        // 이제 모든 스타일은 style.css 파일에서 관리합니다.
     }
 
     toggleInfoPanel(show) {
@@ -34,7 +33,6 @@ export class ImageResizerUI {
         }
     }
 
-    // 슬라이더 동기화 로직 (이전 요청 반영 유지)
     syncSliders(currentWidth, originalWidth) {
         if (!originalWidth || originalWidth === 0) return;
 
@@ -63,12 +61,19 @@ export class ImageResizerUI {
 
         const finalW = targetW * exportScale * upscaleFactor;
         const finalH = targetH * exportScale * upscaleFactor;
-        const totalPixels = finalW * finalH;
+        
+        // [핵심 수정] 픽셀 수 계산 시 '투명 비율' 적용
+        let totalPixels = finalW * finalH;
+        
+        // 투명 비율이 저장되어 있고 유효하다면(1.0 미만) 적용
+        if (state.validPixelRatio && state.validPixelRatio < 1) {
+            totalPixels = Math.round(totalPixels * state.validPixelRatio);
+        }
 
         this.convertedDims.innerHTML = `${finalW} x ${finalH} px`;
         this.pixelCount.innerHTML = totalPixels.toLocaleString();
 
-        // 1. 기존 효과 클래스 초기화 (항상 깨끗한 상태에서 시작)
+        // 1. 기존 효과 클래스 초기화
         const effectClasses = ['neon-gold', 'neon-purple-light', 'neon-purple-dark', 'neon-red'];
         this.convertedDims.classList.remove(...effectClasses);
         this.pixelCount.classList.remove(...effectClasses);
@@ -79,30 +84,25 @@ export class ImageResizerUI {
         const isExportScaled = exportScale > 1;
         const isUpscaled = upscaleFactor > 1;
 
-        // 2. 우선순위에 따른 클래스 선택 로직
-        // [수정] 폰트 색상을 다시 #333으로 복구했습니다.
+        // 2. 클래스 선택
         if (isExportScaled && isUpscaled) {
-            // [최우선] 배율 + 업스케일 동시 적용 -> 네온 레드 (경고성/강조)
             targetClass = 'neon-red';
             suffix = `<span style="font-size:0.8em; margin-left:5px; font-weight:normal;">(${exportScale}배 + ${upscaleFactor}x EPX)</span>`;
         } 
         else if (upscaleFactor === 3) {
-            // [3배 업스케일] -> 다크 퍼플
             targetClass = 'neon-purple-dark';
             suffix = `<span style="font-size:0.8em; margin-left:5px; font-weight:normal;">(3x EPX)</span>`;
         } 
         else if (upscaleFactor === 2) {
-            // [2배 업스케일] -> 라이트 퍼플
             targetClass = 'neon-purple-light';
             suffix = `<span style="font-size:0.8em; margin-left:5px; font-weight:normal;">(2x EPX)</span>`;
         } 
         else if (isExportScaled) {
-            // [출력 배율만] -> 골드
             targetClass = 'neon-gold';
             suffix = `<span style="font-size:0.8em; margin-left:5px; font-weight:normal;">(${exportScale}배)</span>`;
         }
 
-        // 3. 클래스 적용
+        // 3. 적용
         if (targetClass) {
             this.convertedDims.classList.add(targetClass);
             this.pixelCount.classList.add(targetClass);

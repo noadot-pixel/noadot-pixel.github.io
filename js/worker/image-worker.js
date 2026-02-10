@@ -99,7 +99,7 @@ self.onmessage = (e) => {
                 const height = processedData.height;
                 const floatData = new Float32Array(processedData.data);
                 
-                // ... (옵션 변수 할당) ...
+                // ... (변수 설정) ...
                 const ditheringType = options.dithering;
                 const ditheringIntensity = (options.ditheringIntensity || 0) / 100;
                 const applyPattern = options.applyPattern;
@@ -165,7 +165,6 @@ self.onmessage = (e) => {
 
                         let oldR = floatData[idx], oldG = floatData[idx+1], oldB = floatData[idx+2];
 
-                        // 패턴
                         if (patternMap) {
                             const mapH = patternMap.length;
                             const mapW = patternMap[0].length;
@@ -178,7 +177,6 @@ self.onmessage = (e) => {
                             oldB = clamp(oldB + adjustment, 0, 255);
                         }
 
-                        // 색상 매칭
                         const rKey = clamp(oldR, 0, 255), gKey = clamp(oldG, 0, 255), bKey = clamp(oldB, 0, 255);
                         const cacheKey = (rKey << 16) | (gKey << 8) | bKey;
                         
@@ -192,7 +190,6 @@ self.onmessage = (e) => {
                         floatData[idx+1] = bestColor[1];
                         floatData[idx+2] = bestColor[2];
 
-                        // 디더링
                         if (ditheringType !== 'none' && ditheringIntensity > 0) {
                             const errR = (oldR - bestColor[0]) * ditheringIntensity;
                             const errG = (oldG - bestColor[1]) * ditheringIntensity;
@@ -223,15 +220,13 @@ self.onmessage = (e) => {
                 for (let i = 0; i < processedData.data.length; i++) processedData.data[i] = floatData[i];
             }
 
-            // 5. 통계 및 결과 전송 (만화/일반 공통)
+            // 5. 통계 및 결과 전송
             const recommendations = calculateRecommendations(sourceForAnalysis, activePalette, options);
             
-            // [핵심] 최종 변환된 이미지 데이터를 기반으로 통계를 다시 계산합니다.
-            // 만화 필터가 적용된 경우에도 processedData는 결과물을 담고 있으므로 여기서 정확한 통계가 나옵니다.
             const pixelCounts = {};
             const pData = processedData.data;
             for(let i=0; i<pData.length; i+=4) {
-                if(pData[i+3] === 0) continue; // 투명 제외
+                if(pData[i+3] === 0) continue; 
                 const hex = rgbToHex(pData[i], pData[i+1], pData[i+2]);
                 pixelCounts[hex] = (pixelCounts[hex] || 0) + 1;
             }
@@ -239,7 +234,11 @@ self.onmessage = (e) => {
             self.postMessage({ 
                 type: 'recommendationResult', 
                 recommendations: recommendations,
-                pixelStats: pixelCounts 
+                pixelStats: pixelCounts,
+                
+                // [핵심 수정] 배열 속성으로 붙어있던 totalPixels 값을 꺼내서 명시적으로 전달!
+                // 이것이 없으면 메인 스레드는 totalPixels를 0으로 받게 됨.
+                totalPixels: recommendations.totalPixels || 0 
             });
 
             self.postMessage({ type: 'conversionDone', imageData: processedData, processId: options.processId });

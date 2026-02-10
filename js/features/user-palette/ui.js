@@ -1,4 +1,3 @@
-// js/features/user-palette/ui.js
 import { rgbToHex, state, t } from '../../state.js';
 
 export class UserPaletteUI {
@@ -10,8 +9,6 @@ export class UserPaletteUI {
         this.addedColorsContainer = document.getElementById('addedColors');
         
         this.hexInput = document.getElementById('addHex');
-        
-        // [핵심 수정] Hex 입력창에 data-lang-placeholder 속성 강제 주입
         if (this.hexInput) {
             this.hexInput.setAttribute('data-lang-placeholder', 'placeholder_hex');
             this.hexInput.placeholder = t('placeholder_hex');
@@ -28,6 +25,9 @@ export class UserPaletteUI {
         this.exportBtn = document.getElementById('exportPaletteBtn');
         this.importBtn = document.getElementById('importPaletteBtn');
         this.fileInput = document.getElementById('paletteUpload');
+        
+        // [New] 총 픽셀 수 표시 요소 참조
+        this.totalPixelDisplay = document.getElementById('totalPixelCount');
     }
 
     injectStyles() {
@@ -35,12 +35,7 @@ export class UserPaletteUI {
         const style = document.createElement('style');
         style.id = 'user-palette-styles';
         style.textContent = `
-            .color-card { 
-                display: flex; align-items: center; background: white; border: 1px solid #eee; 
-                border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; 
-                box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: transform 0.1s; 
-                cursor: pointer;
-            }
+            .color-card { display: flex; align-items: center; background: white; border: 1px solid #eee; border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: transform 0.1s; cursor: pointer; position: relative; }
             .color-card:hover { transform: translateY(-1px); box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
             .color-card.disabled { opacity: 0.5; filter: grayscale(100%); background: #f9f9f9; }
             .color-preview-box { width: 36px; height: 36px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.1); margin-right: 12px; flex-shrink: 0; }
@@ -61,16 +56,19 @@ export class UserPaletteUI {
 
     renderRecommendations(recommendations, onAddClick) {
         if (!this.recommendationContainer) return;
-        if (!recommendations || recommendations.length === 0) {
+        const list = Array.isArray(recommendations) ? recommendations : [];
+        
+        if (list.length === 0) {
             this.recommendationContainer.style.display = 'none';
             if (this.recommendationPlaceholder) this.recommendationPlaceholder.style.display = 'block';
             return;
         }
+        
         if (this.recommendationPlaceholder) this.recommendationPlaceholder.style.display = 'none';
         this.recommendationContainer.style.display = 'block';
         this.recommendationContainer.innerHTML = '';
 
-        recommendations.forEach(item => {
+        list.forEach(item => {
             const card = this.createCard({ 
                 rgb: item.rgb, 
                 tag: item.tag, 
@@ -85,12 +83,18 @@ export class UserPaletteUI {
     renderAddedList(colors, onRemoveClick, onToggleClick, stats = {}) {
         if (!this.addedColorsContainer) return;
         this.addedColorsContainer.innerHTML = '';
-        if (colors.length === 0) {
-            const p = document.createElement('div'); p.className = 'placeholder-section'; p.textContent = t('placeholder_add_color');
-            this.addedColorsContainer.appendChild(p); return;
+        
+        const list = Array.isArray(colors) ? colors : [];
+
+        if (list.length === 0) {
+            const p = document.createElement('div'); 
+            p.className = 'placeholder-section'; 
+            p.textContent = t('placeholder_add_color');
+            this.addedColorsContainer.appendChild(p); 
+            return;
         }
         
-        colors.forEach((rgb, index) => {
+        list.forEach((rgb, index) => {
             const hex = rgbToHex(rgb[0], rgb[1], rgb[2]);
             const count = stats[hex] || 0;
             const isDisabled = state.disabledHexes.includes(hex);
@@ -116,15 +120,27 @@ export class UserPaletteUI {
         if (isDisabled) card.classList.add('disabled');
         card.onclick = (e) => { onClick(); };
 
-        const preview = document.createElement('div'); preview.className = 'color-preview-box'; preview.style.backgroundColor = hex; card.appendChild(preview);
-        const info = document.createElement('div'); info.className = 'color-info';
-        const hSpan = document.createElement('span'); hSpan.className = 'color-hex'; hSpan.textContent = hex;
-        const sSpan = document.createElement('span'); sSpan.className = 'color-sub'; sSpan.textContent = `(${rgb.join(',')})`;
-        info.appendChild(hSpan); info.appendChild(sSpan); card.appendChild(info);
+        const preview = document.createElement('div'); 
+        preview.className = 'color-preview-box'; 
+        preview.style.backgroundColor = hex; 
+        card.appendChild(preview);
+
+        const info = document.createElement('div'); 
+        info.className = 'color-info';
+        const hSpan = document.createElement('span'); 
+        hSpan.className = 'color-hex'; 
+        hSpan.textContent = hex;
+        const sSpan = document.createElement('span'); 
+        sSpan.className = 'color-sub'; 
+        sSpan.textContent = `(${rgb.join(',')})`;
+        info.appendChild(hSpan); 
+        info.appendChild(sSpan); 
+        card.appendChild(info);
 
         if (type === 'remove') {
             if (count && count > 0) {
-                const badge = document.createElement('span'); badge.className = 'pixel-count-badge';
+                const badge = document.createElement('span'); 
+                badge.className = 'pixel-count-badge';
                 badge.textContent = count >= 1000 ? (count / 1000).toFixed(1) + 'k' : count;
                 badge.title = t('tooltip_pixel_count', { n: count });
                 card.appendChild(badge);
@@ -158,5 +174,31 @@ export class UserPaletteUI {
         if (this.rgbInputs.r) this.rgbInputs.r.value = '';
         if (this.rgbInputs.g) this.rgbInputs.g.value = '';
         if (this.rgbInputs.b) this.rgbInputs.b.value = '';
+    }
+
+    // [New] ★ 에러 해결: 누락되었던 픽셀 수 업데이트 함수 추가
+    updateTotalPixelCount(count) {
+        // 1. ID(totalPixelCount)로 찾아서 업데이트
+        if (this.totalPixelDisplay) {
+            this.totalPixelDisplay.textContent = count.toLocaleString();
+            return;
+        }
+
+        // 2. ID가 없다면 텍스트 검색 (백업)
+        const infoBoxes = document.querySelectorAll('.image-info, .info-row, span, div');
+        for (const box of infoBoxes) {
+            if (box.textContent.includes('총 픽셀') || box.textContent.includes('Total Pixels')) {
+                const lines = box.innerHTML.split('<br>');
+                const newLines = lines.map(line => {
+                    if (line.includes('총 픽셀') || line.includes('Total Pixels')) {
+                        const label = line.split(':')[0]; 
+                        return `${label}: <strong>${count.toLocaleString()}</strong>`;
+                    }
+                    return line;
+                });
+                box.innerHTML = newLines.join('<br>');
+                break;
+            }
+        }
     }
 }

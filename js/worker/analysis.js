@@ -1,6 +1,6 @@
 // js/worker/analysis.js
 
-// ... (상단 유틸리티 함수 그대로 유지) ...
+// 1. 유틸리티 함수
 const rgbToHex = (r, g, b) => ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
 
 const rgbToHsl = (r, g, b) => {
@@ -26,27 +26,39 @@ const colorDistSq = (c1, c2) => (c1[0]-c2[0])**2 + (c1[1]-c2[1])**2 + (c1[2]-c2[
 // 2. 추천 알고리즘 메인 함수
 export const calculateRecommendations = (imageData, currentPalette, options) => {
     const { data, width, height } = imageData;
-    const totalPixels = width * height;
-    const skip = 4; 
+    const totalRawPixels = width * height;
+    
+    // [설정] 이미지가 너무 크지 않으면 전수 조사 (정확도 우선)
+    const skip = (totalRawPixels > 1000000) ? 4 : 1; 
     
     const colorStats = new Map();
+    let validPixelCount = 0; // [New] 직접 카운팅할 변수
 
-    // 전체 스캔
+    // 전체 픽셀 스캔
     for (let i = 0; i < data.length; i += 4 * skip) {
-        if (data[i + 3] < 128) continue; 
+        const r = data[i];
+        const g = data[i+1];
+        const b = data[i+2];
+        const a = data[i+3]; // 불투명도 (Alpha)
 
-        const r = data[i], g = data[i+1], b = data[i+2];
-        const simpleR = r & 0xF0; 
-        const simpleG = g & 0xF0; 
-        const simpleB = b & 0xF0;
-        const key = rgbToHex(simpleR, simpleG, simpleB);
+        // [핵심 변경] "불투명도 100 이상인 픽셀만 카운트"
+        if (a >= 100) {
+            validPixelCount++;
 
-        if (!colorStats.has(key)) {
-            colorStats.set(key, { count: 0, rgb: [r, g, b] });
+            // 색상 통계 수집
+            const key = rgbToHex(r, g, b);
+            if (!colorStats.has(key)) {
+                colorStats.set(key, { count: 0, rgb: [r, g, b] });
+            }
+            colorStats.get(key).count++;
         }
-        colorStats.get(key).count++;
+        // 100 미만인 픽셀은 아무것도 하지 않고 그냥 넘어감 (카운트 X)
     }
 
+    // [결과 계산] 샘플링 보정 (전체 픽셀 수 추산)
+    const totalValidPixels = validPixelCount * skip || 1;
+
+    // --- 이하 추천 로직은 기존과 동일 ---
     const sortedColors = Array.from(colorStats.values()).sort((a, b) => b.count - a.count);
     const recommendations = [];
     const exclusionHexSet = new Set();
@@ -65,54 +77,43 @@ export const calculateRecommendations = (imageData, currentPalette, options) => 
         const hex = rgbToHex(item.rgb[0], item.rgb[1], item.rgb[2]);
         if (!forced && exclusionHexSet.has(hex)) return;
         if (recommendations.some(r => rgbToHex(r.rgb[0], r.rgb[1], r.rgb[2]) === hex)) return;
+        
         const isTooClose = recommendations.some(r => colorDistSq(r.rgb, item.rgb) < 1000); 
         if (!forced && isTooClose) return;
 
         recommendations.push({
             rgb: item.rgb,
             count: item.count * skip, 
-            ratio: (item.count * skip / totalPixels) * 100,
+            ratio: ((item.count * skip) / totalValidPixels) * 100,
             tag: tag
         });
     };
 
-    // [수정] 한글 텍스트 대신 '언어 키'를 전달하도록 변경
-    
-    // 1. [사용 비중]
-    sortedColors.slice(0, 10).forEach(c => {
-        if (recommendations.length < 3) {
-            addRec(c, "tag_dominant"); // "고비율 색상" -> tag_dominant
-        }
-    });
+    sortedColors.slice(0, 10).forEach(c => addRec(c, "tag_dominant"));
 
-    // 2. [색상 톤]
     let foundShadow = false, foundMid = false, foundHighlight = false;
-    
     for (const c of sortedColors) {
         const [h, s, l] = rgbToHsl(c.rgb[0], c.rgb[1], c.rgb[2]);
-        
-        if (!foundShadow && l < 30) {
-            addRec(c, "tag_shadow"); // "어두운 톤" -> tag_shadow
-            foundShadow = true;
-        } else if (!foundHighlight && l > 70) {
-            addRec(c, "tag_light"); // "밝은 톤" -> tag_light (기존 languages.js 키 활용)
-            foundHighlight = true;
-        } else if (!foundMid && l >= 30 && l <= 70 && s > 20) { 
-            addRec(c, "tag_mid"); // "중간 톤" -> tag_mid
-            foundMid = true;
-        }
+        if (!foundShadow && l < 30) { addRec(c, "tag_shadow"); foundShadow = true; } 
+        else if (!foundHighlight && l > 70) { addRec(c, "tag_light"); foundHighlight = true; } 
+        else if (!foundMid && l >= 30 && l <= 70 && s > 20) { addRec(c, "tag_mid"); foundMid = true; }
         if (foundShadow && foundMid && foundHighlight) break;
     }
 
-    // 3. [영역 색상]
     const pointColors = sortedColors.filter(c => {
         const [h, s, l] = rgbToHsl(c.rgb[0], c.rgb[1], c.rgb[2]);
-        return (c.count / (totalPixels / skip) < 0.05) && (s > 60);
+        return (c.count / (totalValidPixels / skip) < 0.05) && (s > 60);
     });
+    pointColors.slice(0, 2).forEach(c => addRec(c, "tag_point")); 
+
+    // [전송 데이터 구성] 배열에 속성 추가 (호환성 유지)
+    recommendations.totalPixels = totalValidPixels;
     
-    pointColors.slice(0, 2).forEach(c => {
-        addRec(c, "tag_point"); // "포인트" -> tag_point (언어 파일에 추가 필요)
+    const pixelStatsObj = {};
+    colorStats.forEach((val, key) => {
+        pixelStatsObj[key] = val.count * skip;
     });
+    recommendations.pixelStats = pixelStatsObj;
 
     return recommendations;
 };

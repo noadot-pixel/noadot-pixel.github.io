@@ -1,4 +1,3 @@
-// js/App.js
 import { WorkerBridge } from './core/WorkerBridge.js';
 import { ModeSelectorFeature } from './features/mode-selector/logic.js';
 import { ConversionOptionsFeature } from './features/conversion-options/logic.js';
@@ -17,7 +16,7 @@ import { state } from './state.js';
 
 class App {
     constructor() {
-        console.log("🚀 NoaDot v6.1 App Starting...");
+        console.log("🚀 NoaDot v6.2 App Starting...");
         this.workerBridge = new WorkerBridge(); 
         
         this.initFeatures();
@@ -28,7 +27,7 @@ class App {
     initFeatures() {
         this.modeSelector = new ModeSelectorFeature();
         this.conversionOptions = new ConversionOptionsFeature();
-        this.imageResizer = new ImageResizerFeature();
+        this.imageResizer = new ImageResizerFeature(); // 여기서 생성됨
         this.presetManager = new PresetManagerFeature();
         this.paletteSelector = new PaletteSelectorFeature();
         this.userPalette = new UserPaletteFeature();
@@ -39,44 +38,52 @@ class App {
     }
 
     initCoreListeners() {
-        eventBus.on('OPTION_CHANGED', () => {
-            this.workerBridge.triggerConversion(); 
-        });
-
-        // [수정] 모드 변경 시 초기화 로직 강화
+        eventBus.on('OPTION_CHANGED', () => this.workerBridge.triggerConversion());
         eventBus.on('MODE_CHANGED', (mode) => {
-             // 1. 변환 옵션(그라데이션, 패턴 등) 초기화
              if (this.conversionOptions && this.conversionOptions.resetOptions) {
                  this.conversionOptions.resetOptions(); 
              }
-             
-             // 2. [핵심] 모든 팔레트(시스템/유저)의 사용량 통계 초기화
-             // '빈 결과'를 강제로 방송하여 모든 UI의 숫자를 지웁니다.
-             eventBus.emit('IMAGE_ANALYZED', { 
-                 pixelStats: {}, 
-                 recommendations: [] 
-             });
-
+             if (this.userPalette && this.userPalette.resetStats) {
+                 this.userPalette.resetStats();
+             }
+             eventBus.emit('IMAGE_ANALYZED', { pixelStats: {}, recommendations: [] });
              if(mode === 'image') this.workerBridge.triggerConversion();
         });
-
-        eventBus.on('BATCH_OPTION_CHANGED', () => {
-             this.workerBridge.triggerConversion();
-        });
-
-        eventBus.on('PALETTE_UPDATED', () => {
-            this.workerBridge.triggerConversion(); 
-        });
-        
+        eventBus.on('BATCH_OPTION_CHANGED', () => this.workerBridge.triggerConversion());
+        eventBus.on('PALETTE_UPDATED', () => this.workerBridge.triggerConversion());
         eventBus.on('LANGUAGE_CHANGED', (lang) => {
-            console.log(`[App] Language switched to: ${lang}`);
             this.updateDOMText(); 
+        });
+
+        // [수정] 리셋 요청 처리: 모든 기능의 초기화 메서드를 호출
+        eventBus.on('REQUEST_RESET_ALL', () => {
+            // 1. 변환 옵션 초기화 (밝기, 대비 등)
+            if (this.conversionOptions && this.conversionOptions.resetOptions) {
+                this.conversionOptions.resetOptions();
+            }
+            
+            // 2. [New] 리사이저 초기화 (크기, 배율 등) - 여기가 핵심!
+            if (this.imageResizer && this.imageResizer.resetSettings) {
+                this.imageResizer.resetSettings();
+            }
+
+            // 3. 사용자 팔레트 및 색상 초기화 (이미 UserPaletteFeature 내부 로직으로도 처리됨)
+            state.addedColors = []; 
+            eventBus.emit('PALETTE_UPDATED');
+
+            // 4. 변환 다시 실행 (원본 상태로)
+            this.workerBridge.triggerConversion();
+        });
+
+        eventBus.on('REQUEST_ADD_COLOR', (rgb) => {
+            if (this.userPalette) {
+                this.userPalette.addColor(rgb);
+            }
         });
     }
 
     initLanguage() {
         const langButtons = document.querySelectorAll('#language-switcher button[data-lang]');
-        
         if (langButtons.length > 0) {
             langButtons.forEach(btn => {
                 if (btn.dataset.lang === state.language) {
@@ -84,34 +91,26 @@ class App {
                 } else {
                     btn.classList.remove('active');
                 }
-
                 btn.addEventListener('click', () => {
                     const lang = btn.dataset.lang; 
                     this.setLanguage(lang);
-                    
                     langButtons.forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                 });
             });
         }
-
         this.updateDOMText();
     }
 
     setLanguage(lang) {
         if (state.language === lang) return;
         state.language = lang;
-        
         this.updateDOMText();
         eventBus.emit('LANGUAGE_CHANGED', lang);
     }
 
     updateDOMText() {
-        if (!languageData) {
-            console.warn("Language data not loaded");
-            return;
-        }
-
+        if (!languageData) return;
         const texts = languageData[state.language];
         if (!texts) return;
 
@@ -126,13 +125,18 @@ class App {
                 }
             }
         });
-
-        // 플레이스홀더 번역 적용
+        
         const placeholderElements = document.querySelectorAll('[data-lang-placeholder]');
         placeholderElements.forEach(el => {
             const key = el.getAttribute('data-lang-placeholder');
+            if (texts[key]) el.placeholder = texts[key];
+        });
+        
+        const tooltipElements = document.querySelectorAll('[data-lang-tooltip]');
+        tooltipElements.forEach(el => {
+            const key = el.getAttribute('data-lang-tooltip');
             if (texts[key]) {
-                el.placeholder = texts[key];
+                el.title = texts[key];
             }
         });
     }

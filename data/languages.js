@@ -151,7 +151,7 @@ export const languageData = {
         tag_point: "포인트 색상",
 
         // [신규] 업스케일 섹션
-        section_upscale: "5. 업스케일 (Upscale)",
+        section_upscale: "업스케일 (Upscale)",
         upscale_1x: "1x (기본)",
         upscale_2x: "2x (EPX)",
         upscale_3x: "3x (EPX)",
@@ -280,6 +280,11 @@ export const languageData = {
         COMMENT_ALERT_ADMIN_REQUIRED: "관리자 권한이 없습니다.",
         COMMENT_CONFIRM_DELETE: "정말로 이 댓글과 모든 대댓글을 삭제하시겠습니까?",
         // --- 댓글 시스템 스트링 끝 ---
+
+        tooltip_reset_all: "설정 초기화 (이미지 유지)",
+        tooltip_eyedropper: "색상 추출 (스포이드)",
+        tooltip_compare_hold: "원본 보기 (누르고 있기)",
+        tooltip_center_zoom: "화면 중앙으로 이동",
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
@@ -339,6 +344,11 @@ export const languageData = {
         tag_user_added: "Custom",
 
         alert_image_only: "Only image files can be uploaded.",
+
+        tooltip_reset_all: "Reset Settings (Keep Image)",
+        tooltip_eyedropper: "Eyedropper (Pick Color)",
+        tooltip_compare_hold: "Hold to Compare",
+        tooltip_center_zoom: "Center View",
 
         confirm_mode_switch_to_text: "Switching modes will reset the uploaded image. Continue?",
         confirm_mode_switch_to_image: "Switching modes will reset your text settings. Continue?",
@@ -439,7 +449,7 @@ export const languageData = {
         option_color_method_ciede2000: "Wdot (CIEDE2000) - Precise/Slow",
 
         // [New] Upscale Section
-        section_upscale: "5. Upscale",
+        section_upscale: "Upscale",
         upscale_1x: "1x (Default)",
         upscale_2x: "2x (EPX)",
         upscale_3x: "3x (EPX)",
