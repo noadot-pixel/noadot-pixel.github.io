@@ -456,6 +456,29 @@
 
             <div id="user-defined-palette" class="palette-section">
                 <h2 data-lang-key="palette_added_colors">추가한 색상</h2>
+                <div class="sort-control-wrapper" style="display: flex; align-items: center; gap: 5px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                    </svg>
+                    <select id="paletteSortSelect" style="border: none; background: transparent; font-size: 12px; color: #555; cursor: pointer; outline: none; font-weight: bold;">
+                        <optgroup label="기본">
+                            <option value="default">등록 순서</option>
+                        </optgroup>
+                        <optgroup label="사용량">
+                            <option value="usage_desc">많은 순 (▼)</option>
+                            <option value="usage_asc">적은 순 (▲)</option>
+                        </optgroup>
+                        <optgroup label="밝기">
+                            <option value="bright_desc">밝은 순 (White▼)</option>
+                            <option value="bright_asc">어두운 순 (Black▲)</option>
+                        </optgroup>
+                        <optgroup label="RGB 값">
+                            <option value="r_desc">Red 높은 순</option>
+                            <option value="g_desc">Green 높은 순</option>
+                            <option value="b_desc">Blue 높은 순</option>
+                        </optgroup>
+                    </select>
+                </div>
                 <div class="palette-buttons" id="addedColors">
                      <div class="placeholder-section" data-lang-key="placeholder_add_color">아래에서 직접 색상을 추가하세요.</div>
                 </div>

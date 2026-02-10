@@ -1,11 +1,18 @@
-// js/features/conversion-options/logic.js
 import { eventBus } from '../../core/EventBus.js';
-import { state, t } from '../../state.js'; // [수정] t 함수 임포트
+import { state, CONFIG, t } from '../../state.js';
 import { ConversionOptionsUI } from './ui.js';
 
 export class ConversionOptionsFeature {
     constructor() {
         this.ui = new ConversionOptionsUI();
+        
+        // [New] UI에 RGB 슬라이더가 없다면 동적 주입 (밝기/대비 섹션 찾아서)
+        const brightnessSlider = document.getElementById('brightnessSlider');
+        if (brightnessSlider && brightnessSlider.closest('.option-section')) {
+            // 상위 섹션의 ID를 전달
+            this.ui.injectRGBSliders(brightnessSlider.closest('.option-section').id);
+        }
+
         this.initEvents();
         this.initBusListeners();
         this.loadInitialState();
@@ -35,7 +42,12 @@ export class ConversionOptionsFeature {
                     const val = parseInt(e.target.value, 10);
                     state[stateKey] = val;
                     if (isGroupToggle && groupElement) this.ui.toggleGroup(groupElement, val);
-                    eventBus.emit('OPTION_CHANGED');
+                    
+                    // 디바운스 적용
+                    if (state.timeoutId) clearTimeout(state.timeoutId);
+                    state.timeoutId = setTimeout(() => {
+                        eventBus.emit('OPTION_CHANGED');
+                    }, CONFIG.DEBOUNCE_DELAY);
                 });
             } else if (element.type === 'checkbox') {
                 element.addEventListener('change', (e) => {
@@ -51,21 +63,21 @@ export class ConversionOptionsFeature {
                     state[stateKey] = val;
                     eventBus.emit('OPTION_CHANGED');
                 });
-            } else {
-                element.addEventListener('input', (e) => {
-                    state[stateKey] = e.target.value;
-                    eventBus.emit('OPTION_CHANGED');
-                });
             }
         };
 
         // --- 기능 연결 ---
-        bindInput(this.ui.saturationSlider, 'saturationSlider');
-        bindInput(this.ui.brightnessSlider, 'brightnessSlider');
-        bindInput(this.ui.contrastSlider, 'contrastSlider');
+        bindInput(this.ui.saturationInput, 'saturationSlider'); // saturationInput으로 이름 맞춤
+        bindInput(this.ui.brightnessInput, 'brightnessSlider');
+        bindInput(this.ui.contrastInput, 'contrastSlider');
         
-        bindInput(this.ui.ditheringAlgorithmSelect, 'ditheringAlgorithmSelect'); 
-        bindInput(this.ui.ditheringSlider, 'ditheringSlider');
+        // [New] RGB 가중치 연결
+        bindInput(this.ui.rgbRInput, 'rgbWeightR');
+        bindInput(this.ui.rgbGInput, 'rgbWeightG');
+        bindInput(this.ui.rgbBInput, 'rgbWeightB');
+
+        bindInput(this.ui.ditheringSelect, 'ditheringAlgorithmSelect'); 
+        bindInput(this.ui.ditheringIntensity, 'ditheringSlider');
 
         bindInput(this.ui.applyPatternCheck, 'applyPattern', true, this.ui.patternControls);
         bindInput(this.ui.patternTypeSelect, 'patternTypeSelect');
@@ -99,7 +111,6 @@ export class ConversionOptionsFeature {
 
         bindInput(this.ui.colorMethodSelect, 'colorMethodSelect');
 
-        // [수정] 초기화 버튼 클릭 시 다국어 메시지로 확인 창 띄우기
         if (this.ui.resetBtn) {
             this.ui.resetBtn.addEventListener('click', () => {
                 if (confirm(t('alert_reset_confirm'))) {
@@ -122,6 +133,7 @@ export class ConversionOptionsFeature {
     loadInitialState() {
         const keys = [
             'saturationSlider', 'brightnessSlider', 'contrastSlider',
+            'rgbWeightR', 'rgbWeightG', 'rgbWeightB', // [New]
             'ditheringAlgorithmSelect', 'ditheringSlider',
             'applyPattern', 'patternTypeSelect', 'patternSizeSlider',
             'applyGradient', 'gradientTypeSelect', 'gradientDitherSizeSlider', 'gradientAngleSlider', 'gradientStrengthSlider',
@@ -144,17 +156,16 @@ export class ConversionOptionsFeature {
 
     resetIndividualOption(targetId) {
         let defaultValue = 0;
+        // ... (기존 switch case 유지) ...
         switch(targetId) {
             case 'saturationSlider': defaultValue = 100; break;
-            case 'brightnessSlider': defaultValue = 0;   break;
-            case 'contrastSlider':   defaultValue = 0;   break;
-            case 'ditheringSlider':  defaultValue = 0;   break;
-            case 'patternSizeSlider': defaultValue = 4;  break;
+            case 'patternSizeSlider': defaultValue = 4; break;
             case 'gradientDitherSizeSlider': defaultValue = 1; break;
-            case 'gradientAngleSlider': defaultValue = 0; break;
             case 'gradientStrengthSlider': defaultValue = 100; break;
             case 'celShadingLevelsSlider': defaultValue = 8; break;
             case 'celShadingOutlineThresholdSlider': defaultValue = 50; break;
+            // [New] RGB 기본값 0
+            case 'rgbWeightR': case 'rgbWeightG': case 'rgbWeightB': defaultValue = 0; break;
             default: defaultValue = 0;
         }
 
@@ -164,6 +175,11 @@ export class ConversionOptionsFeature {
     }
 
     resetOptions() {
+        // [New] RGB 포함 리셋
+        state.rgbWeightR = CONFIG.DEFAULTS.rgbWeightR;
+        state.rgbWeightG = CONFIG.DEFAULTS.rgbWeightG;
+        state.rgbWeightB = CONFIG.DEFAULTS.rgbWeightB;
+
         const defaults = {
             saturationSlider: 100,
             brightnessSlider: 0,
@@ -173,15 +189,12 @@ export class ConversionOptionsFeature {
             applyPattern: false,
             patternTypeSelect: 'bayer8x8',
             patternSizeSlider: 4,
-            
             applyGradient: false,
             gradientTypeSelect: 'bayer',
             gradientDitherSizeSlider: 1, 
             gradientAngleSlider: 0,
             gradientStrengthSlider: 100,
-            
             colorMethodSelect: 'oklab',
-            
             celShadingApply: false,
             celShadingLevelsSlider: 8,
             celShadingColorSpaceSelect: 'oklab',
@@ -192,10 +205,14 @@ export class ConversionOptionsFeature {
         };
 
         Object.keys(defaults).forEach(key => {
-            const val = defaults[key];
-            state[key] = val;
-            this.ui.updateDisplay(key, val);
+            state[key] = defaults[key];
+            this.ui.updateDisplay(key, defaults[key]);
         });
+        
+        // RGB 디스플레이 업데이트
+        this.ui.updateDisplay('rgbWeightR', 0);
+        this.ui.updateDisplay('rgbWeightG', 0);
+        this.ui.updateDisplay('rgbWeightB', 0);
 
         this.ui.resetUI();
         eventBus.emit('OPTION_CHANGED');

@@ -1,5 +1,4 @@
 // js/state.js
-// [수정] 파일 경로 변경 (./languages.js -> /data/languages.js)
 import { languageData } from '/data/languages.js';
 
 export const CONFIG = {
@@ -8,7 +7,11 @@ export const CONFIG = {
         saturationSlider: 100,
         brightnessSlider: 0,
         contrastSlider: 0,
-        ditheringSlider: 0
+        ditheringSlider: 0,
+        // [New] RGB 가중치 기본값 (0 = 변화 없음)
+        rgbWeightR: 0,
+        rgbWeightG: 0,
+        rgbWeightB: 0
     }
 };
 
@@ -42,11 +45,18 @@ export const state = {
     highQualityMode: false,
     scaleMode: 'pixel',
     aspectRatio: 1,
+    validPixelRatio: 1,
 
     // [변환 옵션]
     saturationSlider: 100,
     brightnessSlider: 0,
     contrastSlider: 0,
+    
+    // [New] RGB 채널 가중치 (-100 ~ 100)
+    rgbWeightR: 0,
+    rgbWeightG: 0,
+    rgbWeightB: 0,
+
     ditheringAlgorithmSelect: 'Atkinson', 
     ditheringSlider: 0,
     applyPattern: false,
@@ -70,6 +80,9 @@ export const state = {
 
     disabledHexes: [],
     
+    // [New] 팔레트 정렬 모드 (default, usage_desc, r_desc, g_desc, b_desc, bright_desc, bright_asc)
+    paletteSortMode: 'default',
+    
     addedColors: [],
 
     textState: {
@@ -90,27 +103,17 @@ export const state = {
     timeoutId: null
 };
 
-// --- 다국어 텍스트 반환 헬퍼 함수 ---
+// ... (이하 t, hexToRgb, rgbToHex, getTextColorForBg 함수들은 기존과 동일하게 유지) ...
 export const t = (key, params = {}) => {
     const lang = state.language || 'ko';
-    // 데이터 로드 실패 시 안전장치
     const dict = languageData ? languageData[lang] : null;
-    
     let text = key;
-    if (dict && dict[key]) {
-        text = dict[key];
-    } else {
-        // console.warn(`[i18n] Missing translation for key: ${key}`);
-    }
-
+    if (dict && dict[key]) text = dict[key];
     Object.keys(params).forEach(paramKey => {
         text = text.replace(new RegExp(`{${paramKey}}`, 'g'), params[paramKey]);
     });
-
     return text;
 };
-
-// --- 순수 유틸리티 함수 ---
 
 export const hexToRgb = (hex) => {
     let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);

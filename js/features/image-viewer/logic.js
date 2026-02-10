@@ -6,16 +6,18 @@ export class ImageViewerFeature {
     constructor() {
         this.ui = new ImageViewerUI();
         
+        // 상태 초기화
         state.currentZoom = 100;
         state.panX = 0;
         state.panY = 0;
         state.isDragging = false;
         
-        this.isEyedropperActive = false;
-        
+        this.isEyedropperActive = false; // 스포이드 활성 상태
+
         this.startDragX = 0;
         this.startDragY = 0;
-        
+        this.hasDragged = false;
+
         this.initBusListeners();
         this.initInteractions();
     }
@@ -26,10 +28,11 @@ export class ImageViewerFeature {
         eventBus.on('CONVERSION_COMPLETE', (data) => {
             if (data && data.imageData) {
                 state.latestConversionData = data.imageData;
+                // 스포이드 모드가 아닐 때만 결과물 갱신
                 if (!this.isEyedropperActive) {
                     this.ui.updateCanvas(data.imageData);
+                    this.updateTransform();
                 }
-                this.updateTransform();
             }
             this.ui.toggleLoading(false);
         });
@@ -61,7 +64,6 @@ export class ImageViewerFeature {
                 this.ui.updateCanvas(source);
                 this.ui.showCanvas();
             }
-            this.toggleEyedropper(false);
         });
     }
 
@@ -69,81 +71,113 @@ export class ImageViewerFeature {
         const container = this.ui.container;
         if (!container) return;
 
-        // [마우스 이동]
-        container.addEventListener('mousemove', (e) => {
-            if (this.isEyedropperActive) {
-                if (e.target.closest('#viewer-toolbar') || e.target.closest('button')) {
-                    this.ui.updatePixelInfo(false);
-                    return;
-                }
-                if (state.originalImageData) {
-                    this.handleEyedropperHover(e);
-                }
-            } else if (state.isDragging) {
-                this.handleDragMove(e);
-            }
-        });
+        // 1. 스포이드 버튼 클릭 이벤트
+        if (this.ui.eyedropperBtn) {
+            this.ui.eyedropperBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleEyedropper(!this.isEyedropperActive);
+            });
+        }
 
-        // [클릭] 통합 핸들러
+        // 클릭 차단
         container.addEventListener('click', (e) => {
-            if (e.target.closest('#viewer-toolbar') || e.target.closest('button')) {
-                return; 
-            }
-
             if (state.originalImageData) {
-                if (this.isEyedropperActive) {
-                    this.handleEyedropperClick(e);
-                }
-                
+                const isControl = e.target.closest('button, input, select, a, label, .top-right-ui');
+                if (isControl) return; 
+
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
             }
         }, { capture: true });
 
-        // [리셋 버튼] - 수정됨: 이미지는 유지하고 설정만 초기화
-        if (this.ui.resetBtn) {
-            this.ui.resetBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); 
-                if (confirm("이미지를 제외한 모든 설정(색상, 옵션)을 초기화하시겠습니까?")) {
-                    // window.location.reload(); // 삭제됨 (새로고침 방지)
-                    
-                    eventBus.emit('REQUEST_RESET_ALL'); // App.js에 초기화 요청
-                    
-                    this.resetView(); // 뷰어 줌/이동 초기화
-                    this.toggleEyedropper(false); // 스포이드 모드 해제
+        // 줌
+        container.addEventListener('wheel', (e) => {
+            if (!state.originalImageData) return;
+            e.preventDefault();
+            e.stopPropagation();
+
+            const delta = -Math.sign(e.deltaY);
+            const zoomSpeed = 0.1;
+
+            let newZoom = state.currentZoom + (delta * zoomSpeed * state.currentZoom);
+            newZoom = Math.max(10, Math.min(5000, newZoom)); // 최대 5000%
+            
+            state.currentZoom = newZoom;
+            this.updateTransform();
+        }, { passive: false });
+
+        // 마우스 다운
+        container.addEventListener('mousedown', (e) => {
+            if (!state.originalImageData) return;
+            if (e.target.closest('button')) return;
+
+            // [스포이드 모드]
+            if (this.isEyedropperActive) {
+                this.handleEyedropperPick(e);
+                return;
+            }
+
+            state.isDragging = true;
+            this.hasDragged = false;
+            this.startDragX = e.clientX - state.panX;
+            this.startDragY = e.clientY - state.panY;
+            this.ui.setGrabbing(true);
+        });
+
+        // 마우스 이동
+        window.addEventListener('mousemove', (e) => {
+            if (this.isEyedropperActive) {
+                this.handlePixelHover(e);
+            } 
+            else if (state.isDragging) {
+                e.preventDefault();
+                const currentX = e.clientX - this.startDragX;
+                const currentY = e.clientY - this.startDragY;
+
+                if (Math.abs(currentX - state.panX) > 2 || Math.abs(currentY - state.panY) > 2) {
+                    this.hasDragged = true;
                 }
-            });
-        }
 
-        // [스포이드 버튼]
-        if (this.ui.eyedropperBtn) {
-            this.ui.eyedropperBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); 
-                this.toggleEyedropper(!this.isEyedropperActive);
-            });
-        }
+                state.panX = currentX;
+                state.panY = currentY;
+                this.updateTransform();
+            }
+        });
 
-        // [중앙 이동 버튼]
+        // 마우스 업
+        window.addEventListener('mouseup', () => {
+            if (state.isDragging) {
+                state.isDragging = false;
+                this.ui.setGrabbing(false);
+            }
+        });
+        
+        // 버튼 이벤트들
         if (this.ui.centerBtn) {
             this.ui.centerBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.resetView();
             });
         }
+        if (this.ui.resetBtn) this.ui.resetBtn.addEventListener('click', () => this.resetView());
 
-        // [비교 버튼]
         if (this.ui.compareBtn) {
             const showOriginal = (e) => {
-                if (this.isEyedropperActive) return;
+                if(e.cancelable) e.preventDefault();
                 e.stopPropagation();
-                if (state.originalImageData) this.ui.showOriginalImage();
+                if (!state.originalImageData) return;
+                this.ui.showOriginalImage();
             };
+
             const showConverted = (e) => {
-                if (this.isEyedropperActive) return;
+                if(e.cancelable) e.preventDefault();
                 e.stopPropagation();
-                if (state.latestConversionData) this.ui.showConvertedImage();
-                else this.ui.showOriginalImage();
+                if (state.latestConversionData) {
+                    this.ui.showConvertedImage();
+                } else {
+                    this.ui.showOriginalImage();
+                }
             };
 
             this.ui.compareBtn.addEventListener('mousedown', showOriginal);
@@ -153,125 +187,11 @@ export class ImageViewerFeature {
             this.ui.compareBtn.addEventListener('touchstart', showOriginal, {passive: false});
             this.ui.compareBtn.addEventListener('touchend', showConverted, {passive: false});
             
-            this.ui.compareBtn.addEventListener('click', (e) => e.stopPropagation());
-        }
-
-        // 줌 (Wheel)
-        container.addEventListener('wheel', (e) => {
-            if (!state.originalImageData) return;
-            e.preventDefault();
-            
-            const rect = container.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left - rect.width / 2;
-            const mouseY = e.clientY - rect.top - rect.height / 2;
-            const delta = -Math.sign(e.deltaY);
-            const zoomSpeed = 0.1;
-
-            let newZoom = state.currentZoom + (delta * zoomSpeed * state.currentZoom);
-            newZoom = Math.max(10, Math.min(500, newZoom));
-
-            const scaleRatio = newZoom / state.currentZoom;
-            state.panX = mouseX - (mouseX - state.panX) * scaleRatio;
-            state.panY = mouseY - (mouseY - state.panY) * scaleRatio;
-            
-            state.currentZoom = newZoom;
-            this.updateTransform();
-        }, { passive: false });
-
-        // 드래그 시작
-        container.addEventListener('mousedown', (e) => {
-            if (!state.originalImageData || this.isEyedropperActive) return; 
-            if (e.target.closest('button')) return;
-
-            state.isDragging = true;
-            this.startDragX = e.clientX - state.panX;
-            this.startDragY = e.clientY - state.panY;
-            this.ui.setGrabbing(true);
-        });
-
-        // 드래그 종료
-        window.addEventListener('mouseup', () => {
-            if (state.isDragging) {
-                state.isDragging = false;
-                this.ui.setGrabbing(false);
-            }
-        });
-    }
-
-    handleDragMove(e) {
-        e.preventDefault();
-        const currentX = e.clientX - this.startDragX;
-        const currentY = e.clientY - this.startDragY;
-        state.panX = currentX;
-        state.panY = currentY;
-        this.updateTransform();
-    }
-
-    toggleEyedropper(active) {
-        this.isEyedropperActive = active;
-        this.ui.toggleEyedropperState(active);
-
-        if (active) {
-            if (state.originalImageData) {
-                this.ui.showOriginalImage();
-            }
-        } else {
-            this.ui.updatePixelInfo(false);
-            if (state.latestConversionData) {
-                this.ui.showConvertedImage();
-            } else {
-                this.ui.showOriginalImage();
-            }
-        }
-    }
-
-    handleEyedropperHover(e) {
-        if (!state.originalImageData) return;
-
-        const rect = this.ui.canvas.getBoundingClientRect();
-        const clientX = e.clientX - rect.left;
-        const clientY = e.clientY - rect.top;
-
-        const scale = state.currentZoom / 100;
-        const x = Math.floor(clientX / scale);
-        const y = Math.floor(clientY / scale);
-
-        const width = state.originalImageData.width;
-        const height = state.originalImageData.height;
-
-        if (x >= 0 && x < width && y >= 0 && y < height) {
-            const index = (y * width + x) * 4;
-            const data = state.originalImageData.data;
-            const r = data[index];
-            const g = data[index + 1];
-            const b = data[index + 2];
-            const hex = rgbToHex(r, g, b);
-
-            this.ui.updatePixelInfo(true, x, y, { r, g, b, hex }, e);
-        } else {
-            this.ui.updatePixelInfo(false);
-        }
-    }
-
-    handleEyedropperClick(e) {
-        if (!state.originalImageData) return;
-        
-        const rect = this.ui.canvas.getBoundingClientRect();
-        const scale = state.currentZoom / 100;
-        const x = Math.floor((e.clientX - rect.left) / scale);
-        const y = Math.floor((e.clientY - rect.top) / scale);
-
-        const width = state.originalImageData.width;
-        const height = state.originalImageData.height;
-
-        if (x >= 0 && x < width && y >= 0 && y < height) {
-            const index = (y * width + x) * 4;
-            const data = state.originalImageData.data;
-            const r = data[index];
-            const g = data[index + 1];
-            const b = data[index + 2];
-            
-            eventBus.emit('REQUEST_ADD_COLOR', [r, g, b]);
+            this.ui.compareBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            });
         }
     }
 
@@ -284,5 +204,57 @@ export class ImageViewerFeature {
         state.panX = 0;
         state.panY = 0;
         this.updateTransform();
+    }
+
+    // [핵심 수정] 스포이드 토글 시 이미지 전환 로직 추가
+    toggleEyedropper(active) {
+        this.isEyedropperActive = active;
+        this.ui.toggleEyedropperState(active);
+        
+        if (active) {
+            // [ON] 원본 이미지 표시 (정확한 색상 추출을 위해)
+            this.ui.showOriginalImage();
+        } else {
+            // [OFF] 정보창 숨기고, 변환 리프레시 (결과물 다시 보기)
+            this.ui.updatePixelInfo(false);
+            console.log("스포이드 해제 -> 변환 리프레시 요청");
+            eventBus.emit('OPTION_CHANGED');
+        }
+    }
+
+    handleEyedropperPick(e) {
+        if (!state.originalImageData) return;
+        
+        const rect = this.ui.canvas.getBoundingClientRect();
+        const scaleX = this.ui.canvas.width / rect.width;
+        const scaleY = this.ui.canvas.height / rect.height;
+
+        const x = Math.floor((e.clientX - rect.left) * scaleX);
+        const y = Math.floor((e.clientY - rect.top) * scaleY);
+
+        if (x < 0 || x >= this.ui.canvas.width || y < 0 || y >= this.ui.canvas.height) return;
+
+        const ctx = this.ui.canvas.getContext('2d');
+        const p = ctx.getImageData(x, y, 1, 1).data;
+        const rgb = [p[0], p[1], p[2]];
+
+        eventBus.emit('REQUEST_ADD_COLOR', rgb);
+    }
+
+    handlePixelHover(e) {
+        const rect = this.ui.canvas.getBoundingClientRect();
+        const scaleX = this.ui.canvas.width / rect.width;
+        const scaleY = this.ui.canvas.height / rect.height;
+        const x = Math.floor((e.clientX - rect.left) * scaleX);
+        const y = Math.floor((e.clientY - rect.top) * scaleY);
+
+        if (x >= 0 && x < this.ui.canvas.width && y >= 0 && y < this.ui.canvas.height) {
+            const ctx = this.ui.canvas.getContext('2d');
+            const p = ctx.getImageData(x, y, 1, 1).data;
+            const hex = rgbToHex(p[0], p[1], p[2]);
+            this.ui.updatePixelInfo(true, x, y, { r: p[0], g: p[1], b: p[2], hex: hex }, e);
+        } else {
+            this.ui.updatePixelInfo(false);
+        }
     }
 }

@@ -20,29 +20,20 @@ export class UserPaletteFeature {
     initBusListeners() {
         eventBus.on('IMAGE_ANALYZED', (data) => {
             console.log("[UserPalette] 데이터 수신:", data);
-
             let recommendations = [];
             let totalPixels = 0;
-
             if (Array.isArray(data)) {
                 recommendations = data;
-                if (data.totalPixels !== undefined) {
-                    totalPixels = data.totalPixels;
-                }
+                if (data.totalPixels !== undefined) totalPixels = data.totalPixels;
             } else if (data && typeof data === 'object') {
                 recommendations = data.recommendations || [];
                 totalPixels = data.totalPixels || 0;
             }
-
             this.lastPixelStats = data.pixelStats || {}; 
 
-            // [핵심 수정] 유효 픽셀 비율 저장 후 '업데이트 신호' 발송
             if (totalPixels > 0 && state.originalImageData) {
                 const fullPixels = state.originalImageData.width * state.originalImageData.height;
                 state.validPixelRatio = totalPixels / fullPixels; 
-                console.log(`[UserPalette] 유효 픽셀 비율 저장: ${state.validPixelRatio.toFixed(4)}`);
-                
-                // ★ 이 신호가 있어야 리사이저가 화면을 갱신합니다!
                 eventBus.emit('PIXEL_RATIO_UPDATED'); 
             }
 
@@ -57,7 +48,6 @@ export class UserPaletteFeature {
                 this.addColor(rgb);
             });
             
-            // (보조) 정보창 직접 업데이트 시도 (리사이저가 없을 경우 대비)
             if (totalPixels > 0) {
                 this.ui.updateTotalPixelCount(totalPixels);
             }
@@ -72,9 +62,17 @@ export class UserPaletteFeature {
         this.renderUIOnly();
     }
 
-    // ... (이하 코드는 기존과 동일하게 유지) ...
     initEvents() {
         if (this.ui.addBtn) this.ui.addBtn.addEventListener('click', () => this.handleManualAdd());
+        
+        // 정렬 변경 이벤트
+        if (this.ui.sortSelect) {
+            this.ui.sortSelect.addEventListener('change', (e) => {
+                state.paletteSortMode = e.target.value;
+                this.renderUIOnly(); 
+            });
+        }
+
         if (this.ui.resetBtn) {
             this.ui.resetBtn.addEventListener('click', () => {
                 if (state.addedColors.length === 0) { alert(t('alert_no_color_to_reset')); return; }
@@ -156,8 +154,18 @@ export class UserPaletteFeature {
     }
 
     addColor(rgb) {
-        if (this.algo.isDuplicate(rgb, state.addedColors)) { alert(t('alert_already_added')); return; }
-        state.addedColors.push(rgb); this.updateStateAndUI();
+        // [핵심 해결] 스포이드 등에서 넘어온 데이터가 Uint8ClampedArray거나 객체일 수 있으므로
+        // 순수 배열 [r, g, b] 형태로 강제 변환하여 저장합니다.
+        const safeRgb = Array.isArray(rgb) ? [rgb[0], rgb[1], rgb[2]] : 
+                        (rgb && typeof rgb === 'object' && '0' in rgb) ? [rgb[0], rgb[1], rgb[2]] : rgb;
+
+        if (this.algo.isDuplicate(safeRgb, state.addedColors)) {
+            // 중복이지만 스포이드로 찍은거라면 알림 없이 그냥 활성화/갱신만 수행
+            this.updateStateAndUI(); 
+            return;
+        }
+        state.addedColors.push(safeRgb);
+        this.updateStateAndUI();
     }
 
     removeColor(index) {
@@ -166,7 +174,8 @@ export class UserPaletteFeature {
             const hex = rgbToHex(removedColor[0], removedColor[1], removedColor[2]);
             state.disabledHexes = state.disabledHexes.filter(h => h !== hex);
         }
-        state.addedColors.splice(index, 1); this.updateStateAndUI();
+        state.addedColors.splice(index, 1); 
+        this.updateStateAndUI();
     }
 
     handleToggleColor(rgb) {
@@ -176,6 +185,55 @@ export class UserPaletteFeature {
         this.updateStateAndUI();
     }
 
-    updateStateAndUI() { this.renderUIOnly(); eventBus.emit('PALETTE_UPDATED'); }
-    renderUIOnly() { this.ui.renderAddedList(state.addedColors, (idx) => this.removeColor(idx), (rgb) => this.handleToggleColor(rgb), this.lastPixelStats); }
+    // [중요] 색상이 추가/제거될 때 이 함수가 호출되어야 화면 갱신이 일어납니다.
+    updateStateAndUI() { 
+        this.renderUIOnly(); 
+        eventBus.emit('PALETTE_UPDATED'); 
+    }
+
+    // [New] 확장된 정렬 로직 (오름차순/내림차순 모두 지원)
+    renderUIOnly() {
+        let displayList = state.addedColors.map((rgb, idx) => ({ rgb: rgb, originalIndex: idx }));
+        
+        const mode = state.paletteSortMode || 'default';
+        const stats = this.lastPixelStats || {};
+
+        if (mode !== 'default') {
+            displayList.sort((a, b) => {
+                const hexA = rgbToHex(a.rgb[0], a.rgb[1], a.rgb[2]);
+                const hexB = rgbToHex(b.rgb[0], b.rgb[1], b.rgb[2]);
+                
+                // 1. 사용량
+                if (mode === 'usage_desc') return (stats[hexB] || 0) - (stats[hexA] || 0);
+                if (mode === 'usage_asc') return (stats[hexA] || 0) - (stats[hexB] || 0);
+                
+                // 2. RGB 채널
+                if (mode === 'r_desc') return b.rgb[0] - a.rgb[0];
+                if (mode === 'r_asc') return a.rgb[0] - b.rgb[0];
+                
+                if (mode === 'g_desc') return b.rgb[1] - a.rgb[1];
+                if (mode === 'g_asc') return a.rgb[1] - b.rgb[1];
+                
+                if (mode === 'b_desc') return b.rgb[2] - a.rgb[2];
+                if (mode === 'b_asc') return a.rgb[2] - b.rgb[2];
+                
+                // 3. 밝기 (Euclidean distance from White)
+                // White(255,255,255)와의 거리가 작을수록 밝음
+                const distA = Math.sqrt((255-a.rgb[0])**2 + (255-a.rgb[1])**2 + (255-a.rgb[2])**2);
+                const distB = Math.sqrt((255-b.rgb[0])**2 + (255-b.rgb[1])**2 + (255-b.rgb[2])**2);
+                
+                if (mode === 'bright_desc') return distA - distB; // 밝은 순 (거리가 작은 순)
+                if (mode === 'bright_asc') return distB - distA; // 어두운 순 (거리가 큰 순)
+                
+                return 0;
+            });
+        }
+
+        this.ui.renderAddedList(
+            displayList, 
+            (idx) => this.removeColor(idx), 
+            (rgb) => this.handleToggleColor(rgb), 
+            this.lastPixelStats
+        );
+    }
 }

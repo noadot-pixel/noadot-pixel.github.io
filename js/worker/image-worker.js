@@ -75,7 +75,6 @@ self.onmessage = (e) => {
                 activePalette = [...activePalette, ...userCustomColors];
             }
 
-            // 비활성 색상 필터링
             if (disabledHexes && disabledHexes.length > 0) {
                 activePalette = activePalette.filter(rgb => !disabledHexes.includes(rgbToHex(rgb[0], rgb[1], rgb[2])));
             }
@@ -84,10 +83,8 @@ self.onmessage = (e) => {
 
             // 4. 변환 실행
             if (options.celShading && options.celShading.apply) {
-                // [만화 필터]
                 processedData = applyCelShadingFilter(processedData, activePalette, options);
             } else {
-                // [일반 변환] (디더링, 패턴, 그라데이션)
                 let paletteConverted = null;
                 if (options.colorMethod === 'oklab') {
                     paletteConverted = activePalette.map(rgb => ColorConverter.rgbToOklab(rgb));
@@ -99,7 +96,7 @@ self.onmessage = (e) => {
                 const height = processedData.height;
                 const floatData = new Float32Array(processedData.data);
                 
-                // ... (변수 설정) ...
+                // 옵션 변수
                 const ditheringType = options.dithering;
                 const ditheringIntensity = (options.ditheringIntensity || 0) / 100;
                 const applyPattern = options.applyPattern;
@@ -111,6 +108,11 @@ self.onmessage = (e) => {
                 const gradientDitherSize = options.gradientDitherSize || 1;
                 let gradCos = 0, gradSin = 0, gradMin = 0, gradLen = 1, gradStrength = 0;
                 let bayerMap = null;
+
+                // [New] RGB 가중치 계산 (0 -> 1.0, 50 -> 1.5, -50 -> 0.5)
+                const wR = 1 + (options.rgbWeightR || 0) / 100;
+                const wG = 1 + (options.rgbWeightG || 0) / 100;
+                const wB = 1 + (options.rgbWeightB || 0) / 100;
 
                 if (applyGradient) {
                     const angleRad = (options.gradientAngle || 0) * (Math.PI / 180);
@@ -165,6 +167,7 @@ self.onmessage = (e) => {
 
                         let oldR = floatData[idx], oldG = floatData[idx+1], oldB = floatData[idx+2];
 
+                        // 패턴
                         if (patternMap) {
                             const mapH = patternMap.length;
                             const mapW = patternMap[0].length;
@@ -177,19 +180,27 @@ self.onmessage = (e) => {
                             oldB = clamp(oldB + adjustment, 0, 255);
                         }
 
-                        const rKey = clamp(oldR, 0, 255), gKey = clamp(oldG, 0, 255), bKey = clamp(oldB, 0, 255);
+                        // [핵심] RGB 가중치 적용: 소스 색상을 왜곡시켜 매칭 유도
+                        const weightedR = clamp(oldR * wR, 0, 255);
+                        const weightedG = clamp(oldG * wG, 0, 255);
+                        const weightedB = clamp(oldB * wB, 0, 255);
+
+                        const rKey = Math.round(weightedR), gKey = Math.round(weightedG), bKey = Math.round(weightedB);
                         const cacheKey = (rKey << 16) | (gKey << 8) | bKey;
                         
                         let bestColor = colorCache.get(cacheKey);
                         if (!bestColor) {
-                            bestColor = findClosestColor(oldR, oldG, oldB, activePalette, paletteConverted, options.colorMethod).color;
+                            // 왜곡된 색상(weighted)을 기준으로 가장 가까운 팔레트 색상 탐색
+                            bestColor = findClosestColor(weightedR, weightedG, weightedB, activePalette, paletteConverted, options.colorMethod).color;
                             colorCache.set(cacheKey, bestColor);
                         }
                         
+                        // 결과는 팔레트 색상 그대로 적용
                         floatData[idx] = bestColor[0];
                         floatData[idx+1] = bestColor[1];
                         floatData[idx+2] = bestColor[2];
 
+                        // 디더링 (원본 - 변환색 오차 확산)
                         if (ditheringType !== 'none' && ditheringIntensity > 0) {
                             const errR = (oldR - bestColor[0]) * ditheringIntensity;
                             const errG = (oldG - bestColor[1]) * ditheringIntensity;
@@ -220,7 +231,6 @@ self.onmessage = (e) => {
                 for (let i = 0; i < processedData.data.length; i++) processedData.data[i] = floatData[i];
             }
 
-            // 5. 통계 및 결과 전송
             const recommendations = calculateRecommendations(sourceForAnalysis, activePalette, options);
             
             const pixelCounts = {};
@@ -235,9 +245,6 @@ self.onmessage = (e) => {
                 type: 'recommendationResult', 
                 recommendations: recommendations,
                 pixelStats: pixelCounts,
-                
-                // [핵심 수정] 배열 속성으로 붙어있던 totalPixels 값을 꺼내서 명시적으로 전달!
-                // 이것이 없으면 메인 스레드는 totalPixels를 0으로 받게 됨.
                 totalPixels: recommendations.totalPixels || 0 
             });
 
