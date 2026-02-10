@@ -1,8 +1,8 @@
-// js/state.js
 import { languageData } from '/data/languages.js';
 
 export const CONFIG = {
     DEBOUNCE_DELAY: 150,
+    // [핵심] 리셋 기준값 정의 (Sierra-2 기본 설정 포함)
     DEFAULTS: {
         saturationSlider: 100,
         brightnessSlider: 0,
@@ -10,7 +10,29 @@ export const CONFIG = {
         ditheringSlider: 0,
         rgbWeightR: 0,
         rgbWeightG: 0,
-        rgbWeightB: 0
+        rgbWeightB: 0,
+        
+        // 초기값 Sierra-2 설정
+        ditheringAlgorithmSelect: 'atkinson', 
+        
+        applyPattern: false,
+        patternTypeSelect: 'bayer8x8',
+        patternSizeSlider: 4,
+        applyGradient: false,
+        gradientTypeSelect: 'bayer',
+        gradientDitherSizeSlider: 1, 
+        gradientAngleSlider: 0,
+        gradientStrengthSlider: 100,
+        colorMethodSelect: 'oklab',
+        pixelatedScaling: false,
+
+        celShadingApply: false,
+        celShadingLevelsSlider: 8,
+        celShadingColorSpaceSelect: 'oklab',
+        celShadingOutline: false,
+        celShadingOutlineThresholdSlider: 50,
+        celShadingOutlineColorSelect: '#000000',
+        celShadingRandomSeed: 0
     }
 };
 
@@ -19,7 +41,6 @@ export const state = {
     exportScale: 1, 
     isApplyingPreset: false,
     
-    // [핵심 수정] 저장된 언어가 있으면 불러오고, 없으면 'ko'를 기본값으로 사용
     language: localStorage.getItem('noadot_language') || 'ko',
     
     appMode: 'image',
@@ -49,39 +70,11 @@ export const state = {
     aspectRatio: 1,
     validPixelRatio: 1,
 
-    saturationSlider: 100,
-    brightnessSlider: 0,
-    contrastSlider: 0,
-    
-    rgbWeightR: 0,
-    rgbWeightG: 0,
-    rgbWeightB: 0,
-
-    ditheringAlgorithmSelect: 'Atkinson', 
-    ditheringSlider: 0,
-    applyPattern: false,
-    patternTypeSelect: 'bayer8x8',
-    patternSizeSlider: 4,
-    applyGradient: false,
-    gradientTypeSelect: 'bayer',
-    gradientDitherSizeSlider: 1, 
-    gradientAngleSlider: 0,
-    gradientStrengthSlider: 100,
-    colorMethodSelect: 'oklab',
-    pixelatedScaling: false,
-
-    celShadingApply: false,
-    celShadingLevelsSlider: 8,
-    celShadingColorSpaceSelect: 'oklab',
-    celShadingOutline: false,
-    celShadingOutlineThresholdSlider: 50,
-    celShadingOutlineColorSelect: '#000000',
-    celShadingRandomSeed: 0,
+    // DEFAULTS 값을 복사하여 초기 상태 설정
+    ...CONFIG.DEFAULTS,
 
     disabledHexes: [],
-    
     paletteSortMode: 'default',
-    
     addedColors: [],
 
     textState: {
@@ -102,26 +95,21 @@ export const state = {
     timeoutId: null
 };
 
-// --- 다국어 텍스트 반환 헬퍼 함수 ---
+// --- 다국어 및 유틸리티 함수 (기존 유지) ---
 export const t = (key, params = {}) => {
     const lang = state.language || 'ko';
     const dict = languageData ? languageData[lang] : null;
-    
     let text = key;
     if (dict && dict[key]) {
         text = dict[key];
     }
-
     Object.keys(params).forEach(paramKey => {
         text = text.replace(new RegExp(`{${paramKey}}`, 'g'), params[paramKey]);
     });
-
     return text;
 };
-
 window.t = t;
 
-// --- 순수 유틸리티 함수 ---
 export const hexToRgb = (hex) => {
     let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     if (!result) {
