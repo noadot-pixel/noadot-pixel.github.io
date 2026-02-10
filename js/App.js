@@ -27,7 +27,7 @@ class App {
     initFeatures() {
         this.modeSelector = new ModeSelectorFeature();
         this.conversionOptions = new ConversionOptionsFeature();
-        this.imageResizer = new ImageResizerFeature(); // 여기서 생성됨
+        this.imageResizer = new ImageResizerFeature();
         this.presetManager = new PresetManagerFeature();
         this.paletteSelector = new PaletteSelectorFeature();
         this.userPalette = new UserPaletteFeature();
@@ -39,6 +39,7 @@ class App {
 
     initCoreListeners() {
         eventBus.on('OPTION_CHANGED', () => this.workerBridge.triggerConversion());
+        
         eventBus.on('MODE_CHANGED', (mode) => {
              if (this.conversionOptions && this.conversionOptions.resetOptions) {
                  this.conversionOptions.resetOptions(); 
@@ -46,32 +47,44 @@ class App {
              if (this.userPalette && this.userPalette.resetStats) {
                  this.userPalette.resetStats();
              }
+             
+             // 다운로드 옵션(Uplace 체크박스) 상태 업데이트 요청
+             if (this.exportFeature && this.exportFeature.updateUplaceOptionVisibility) {
+                 this.exportFeature.updateUplaceOptionVisibility();
+             }
+
              eventBus.emit('IMAGE_ANALYZED', { pixelStats: {}, recommendations: [] });
+             
              if(mode === 'image') this.workerBridge.triggerConversion();
         });
+
         eventBus.on('BATCH_OPTION_CHANGED', () => this.workerBridge.triggerConversion());
-        eventBus.on('PALETTE_UPDATED', () => this.workerBridge.triggerConversion());
+        
+        eventBus.on('PALETTE_UPDATED', () => {
+            this.workerBridge.triggerConversion();
+            
+            // 팔레트 변경 시에도 다운로드 옵션 상태 체크 (Wplace 모드 관련)
+            if (this.exportFeature && this.exportFeature.updateUplaceOptionVisibility) {
+                this.exportFeature.updateUplaceOptionVisibility();
+            }
+        });
+
         eventBus.on('LANGUAGE_CHANGED', (lang) => {
             this.updateDOMText(); 
         });
 
-        // [수정] 리셋 요청 처리: 모든 기능의 초기화 메서드를 호출
         eventBus.on('REQUEST_RESET_ALL', () => {
-            // 1. 변환 옵션 초기화 (밝기, 대비 등)
             if (this.conversionOptions && this.conversionOptions.resetOptions) {
                 this.conversionOptions.resetOptions();
             }
-            
-            // 2. [New] 리사이저 초기화 (크기, 배율 등) - 여기가 핵심!
+            // 리사이저 리셋 (이전 요청사항 반영)
             if (this.imageResizer && this.imageResizer.resetSettings) {
                 this.imageResizer.resetSettings();
             }
-
-            // 3. 사용자 팔레트 및 색상 초기화 (이미 UserPaletteFeature 내부 로직으로도 처리됨)
-            state.addedColors = []; 
+            
+            state.addedColors = [];
             eventBus.emit('PALETTE_UPDATED');
-
-            // 4. 변환 다시 실행 (원본 상태로)
+            
             this.workerBridge.triggerConversion();
         });
 
@@ -86,6 +99,7 @@ class App {
         const langButtons = document.querySelectorAll('#language-switcher button[data-lang]');
         if (langButtons.length > 0) {
             langButtons.forEach(btn => {
+                // state.language는 localStorage에서 불러온 값을 가짐
                 if (btn.dataset.lang === state.language) {
                     btn.classList.add('active');
                 } else {
@@ -105,6 +119,10 @@ class App {
     setLanguage(lang) {
         if (state.language === lang) return;
         state.language = lang;
+        
+        // 언어 설정 저장 (새로고침 시 유지)
+        localStorage.setItem('noadot_language', lang);
+        
         this.updateDOMText();
         eventBus.emit('LANGUAGE_CHANGED', lang);
     }
@@ -114,6 +132,7 @@ class App {
         const texts = languageData[state.language];
         if (!texts) return;
 
+        // 1. 일반 텍스트 및 입력창 Placeholder
         const elements = document.querySelectorAll('[data-lang-key]');
         elements.forEach(el => {
             const key = el.getAttribute('data-lang-key');
@@ -126,18 +145,25 @@ class App {
             }
         });
         
+        // 2. 강제 Placeholder
         const placeholderElements = document.querySelectorAll('[data-lang-placeholder]');
         placeholderElements.forEach(el => {
             const key = el.getAttribute('data-lang-placeholder');
             if (texts[key]) el.placeholder = texts[key];
         });
-        
+
+        // 3. 드롭다운 그룹(<optgroup>) 라벨 번역
+        const labelElements = document.querySelectorAll('[data-lang-label]');
+        labelElements.forEach(el => {
+            const key = el.getAttribute('data-lang-label');
+            if (texts[key]) el.label = texts[key];
+        });
+
+        // 4. 마우스 호버 툴팁 번역
         const tooltipElements = document.querySelectorAll('[data-lang-tooltip]');
         tooltipElements.forEach(el => {
             const key = el.getAttribute('data-lang-tooltip');
-            if (texts[key]) {
-                el.title = texts[key];
-            }
+            if (texts[key]) el.title = texts[key];
         });
     }
 }

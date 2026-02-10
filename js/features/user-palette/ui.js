@@ -8,8 +8,8 @@ export class UserPaletteUI {
         this.recommendationPlaceholder = document.getElementById('recommendedColorsPlaceholder');
         this.addedColorsContainer = document.getElementById('addedColors');
         
-        // [수정] HTML에 직접 넣었으므로, 찾아서 참조만 연결합니다.
-        this.sortSelect = document.getElementById('paletteSortSelect');
+        // 정렬 컨트롤 초기화
+        this.createSortControl();
 
         this.hexInput = document.getElementById('addHex');
         if (this.hexInput) {
@@ -32,14 +32,80 @@ export class UserPaletteUI {
         this.totalPixelDisplay = document.getElementById('totalPixelCount');
     }
 
-    // createSortControl 메서드는 이제 불필요하거나, 
-    // 만약 index.html 수정이 안 되었을 경우를 대비한 백업용으로 남겨둘 수 있습니다.
-    // 하지만 index.html을 수정했다면 이 메서드는 실행되지 않거나(ID 중복 체크) 무시됩니다.
     createSortControl() {
-        // 이미 HTML에 존재하면 패스
-        if (document.getElementById('paletteSortSelect')) return;
+        // 이미 있으면 패스
+        this.sortSelect = document.getElementById('paletteSortSelect');
+        if (this.sortSelect) return;
         
-        // (백업 로직 생략: 사용자가 index.html을 수정할 것이므로)
+        const container = this.addedColorsContainer;
+        if (!container) return;
+
+        const header = container.previousElementSibling;
+        
+        const wrapper = document.createElement('div');
+        wrapper.style.display = 'flex';
+        wrapper.style.alignItems = 'center';
+        wrapper.style.gap = '5px';
+        
+        const iconSvg = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+        `;
+        const iconContainer = document.createElement('div');
+        iconContainer.innerHTML = iconSvg;
+        iconContainer.style.display = 'flex';
+        iconContainer.style.alignItems = 'center';
+
+        const select = document.createElement('select');
+        select.id = 'paletteSortSelect';
+        select.style.border = 'none';
+        select.style.background = 'transparent';
+        select.style.fontSize = '12px';
+        select.style.color = '#555';
+        select.style.cursor = 'pointer';
+        select.style.outline = 'none';
+        select.style.fontWeight = 'bold';
+        select.style.paddingRight = '0';
+
+        const groups = [
+            { label: t('sort_group_default'), options: [{ val: 'default', text: t('sort_option_default') }] },
+            { label: t('sort_group_usage'), options: [{ val: 'usage_desc', text: t('sort_option_usage_desc') }, { val: 'usage_asc', text: t('sort_option_usage_asc') }] },
+            { label: t('sort_group_brightness'), options: [{ val: 'bright_desc', text: t('sort_option_bright_desc') }, { val: 'bright_asc', text: t('sort_option_bright_asc') }] },
+            { label: t('sort_group_rgb'), options: [{ val: 'r_desc', text: t('sort_option_r_desc') }, { val: 'g_desc', text: t('sort_option_g_desc') }, { val: 'b_desc', text: t('sort_option_b_desc') }] }
+        ];
+
+        groups.forEach(group => {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = group.label;
+            group.options.forEach(opt => {
+                const el = document.createElement('option');
+                el.value = opt.val;
+                el.innerText = opt.text;
+                optgroup.appendChild(el);
+            });
+            select.appendChild(optgroup);
+        });
+
+        wrapper.appendChild(iconContainer);
+        wrapper.appendChild(select);
+
+        if (header && /^H[1-6]$/.test(header.tagName)) {
+            header.style.display = 'flex';
+            header.style.justifyContent = 'space-between';
+            header.style.alignItems = 'center';
+            header.style.flexWrap = 'wrap'; 
+            header.appendChild(wrapper);
+        } else {
+            const fallbackWrapper = document.createElement('div');
+            fallbackWrapper.style.display = 'flex';
+            fallbackWrapper.style.justifyContent = 'flex-end';
+            fallbackWrapper.style.marginBottom = '5px';
+            fallbackWrapper.appendChild(wrapper);
+            container.parentNode.insertBefore(fallbackWrapper, container);
+        }
+        
+        this.sortSelect = select;
     }
 
     injectStyles() {
@@ -66,7 +132,6 @@ export class UserPaletteUI {
         document.head.appendChild(style);
     }
 
-    // ... (나머지 renderRecommendations, renderAddedList, createCard, clearInputs, updateTotalPixelCount 등 기존 코드 유지) ...
     renderRecommendations(recommendations, onAddClick) {
         if (!this.recommendationContainer) return;
         const list = Array.isArray(recommendations) ? recommendations : [];
@@ -147,6 +212,7 @@ export class UserPaletteUI {
         if (this.rgbInputs.b) this.rgbInputs.b.value = '';
     }
 
+    // [핵심 해결] 이 함수가 없어서 에러가 발생했었습니다!
     updateTotalPixelCount(count) {
         if (this.totalPixelDisplay) {
             this.totalPixelDisplay.textContent = count.toLocaleString();

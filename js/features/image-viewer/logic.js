@@ -1,25 +1,42 @@
 import { eventBus } from '../../core/EventBus.js';
-import { state, rgbToHex } from '../../state.js';
+import { state, rgbToHex, t } from '../../state.js';
 import { ImageViewerUI } from './ui.js';
 
 export class ImageViewerFeature {
     constructor() {
         this.ui = new ImageViewerUI();
         
-        // 상태 초기화
         state.currentZoom = 100;
         state.panX = 0;
         state.panY = 0;
         state.isDragging = false;
         
-        this.isEyedropperActive = false; // 스포이드 활성 상태
-
+        this.isEyedropperActive = false;
         this.startDragX = 0;
         this.startDragY = 0;
         this.hasDragged = false;
 
         this.initBusListeners();
         this.initInteractions();
+        
+        // 초기화 시점 상태 체크
+        this.checkEyedropperStatus();
+    }
+
+    // [핵심 기능 1] 버튼 숨기기/보이기 제어 (로직에서 직접 UI 스타일 조작)
+    checkEyedropperStatus() {
+        // 조건: wplace 모드이거나, geopixels 모드이면서 wplace 팔레트 옵션을 켰을 때
+        const isWplaceRelated = state.currentMode === 'wplace' || (state.currentMode === 'geopixels' && state.useWplaceInGeoMode);
+        
+        // 버튼이 존재하면 display 속성 제어
+        if (this.ui.eyedropperBtn) {
+            this.ui.eyedropperBtn.style.display = isWplaceRelated ? 'none' : 'flex';
+        }
+
+        // 숨겨야 하는 상황인데 스포이드 기능이 켜져있다면 -> 강제로 끄기
+        if (isWplaceRelated && this.isEyedropperActive) {
+            this.toggleEyedropper(false);
+        }
     }
 
     initBusListeners() {
@@ -28,7 +45,6 @@ export class ImageViewerFeature {
         eventBus.on('CONVERSION_COMPLETE', (data) => {
             if (data && data.imageData) {
                 state.latestConversionData = data.imageData;
-                // 스포이드 모드가 아닐 때만 결과물 갱신
                 if (!this.isEyedropperActive) {
                     this.ui.updateCanvas(data.imageData);
                     this.updateTransform();
@@ -37,33 +53,58 @@ export class ImageViewerFeature {
             this.ui.toggleLoading(false);
         });
 
+        // [핵심 기능 2] 이미지 로드 시 불투명도 전처리
         eventBus.on('IMAGE_LOADED', (source) => {
+            const tempCanvas = document.createElement('canvas');
+            
             if (source instanceof HTMLImageElement || source.tagName === 'IMG') {
-                state.originalImageObject = source;
-                const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = source.width;
                 tempCanvas.height = source.height;
                 const ctx = tempCanvas.getContext('2d');
                 ctx.drawImage(source, 0, 0);
-                state.originalImageData = ctx.getImageData(0, 0, source.width, source.height);
-                
-                this.resetView();
-                this.ui.updateCanvas(state.originalImageData);
-                this.ui.showCanvas();
-            }
-            else if (source.data && source.width && source.height) {
-                state.originalImageData = source;
-                const tempCanvas = document.createElement('canvas');
+            } else if (source.data && source.width && source.height) { 
                 tempCanvas.width = source.width;
                 tempCanvas.height = source.height;
-                tempCanvas.getContext('2d').putImageData(source, 0, 0);
-                state.originalImageObject = new Image();
-                state.originalImageObject.src = tempCanvas.toDataURL();
-
-                this.resetView();
-                this.ui.updateCanvas(source);
-                this.ui.showCanvas();
+                const ctx = tempCanvas.getContext('2d');
+                ctx.putImageData(source, 0, 0);
             }
+
+            const ctx = tempCanvas.getContext('2d');
+            const rawData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const data = rawData.data;
+
+            // 불투명도 255 미만은 모두 투명(0) 처리
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i + 3] < 255) {
+                    data[i + 3] = 0; 
+                }
+            }
+
+            ctx.putImageData(rawData, 0, 0);
+            state.originalImageData = rawData;
+            state.originalImageObject = new Image();
+            state.originalImageObject.src = tempCanvas.toDataURL();
+
+            this.resetView();
+            this.ui.updateCanvas(state.originalImageData);
+            this.ui.showCanvas();
+            
+            this.checkEyedropperStatus();
+        });
+
+        // 모드 변경 시 체크
+        eventBus.on('MODE_CHANGED', (mode) => {
+            this.checkEyedropperStatus();
+        });
+        
+        // 옵션 변경 시 체크 (Wplace 팔레트 사용 체크박스 등)
+        eventBus.on('OPTION_CHANGED', () => {
+             this.checkEyedropperStatus();
+        });
+
+        // [추가] 팔레트 변경 시 체크 (확실한 업데이트를 위해 추가)
+        eventBus.on('PALETTE_UPDATED', () => {
+            this.checkEyedropperStatus();
         });
     }
 
@@ -71,7 +112,6 @@ export class ImageViewerFeature {
         const container = this.ui.container;
         if (!container) return;
 
-        // 1. 스포이드 버튼 클릭 이벤트
         if (this.ui.eyedropperBtn) {
             this.ui.eyedropperBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -79,7 +119,6 @@ export class ImageViewerFeature {
             });
         }
 
-        // 클릭 차단
         container.addEventListener('click', (e) => {
             if (state.originalImageData) {
                 const isControl = e.target.closest('button, input, select, a, label, .top-right-ui');
@@ -91,7 +130,6 @@ export class ImageViewerFeature {
             }
         }, { capture: true });
 
-        // 줌
         container.addEventListener('wheel', (e) => {
             if (!state.originalImageData) return;
             e.preventDefault();
@@ -101,18 +139,16 @@ export class ImageViewerFeature {
             const zoomSpeed = 0.1;
 
             let newZoom = state.currentZoom + (delta * zoomSpeed * state.currentZoom);
-            newZoom = Math.max(10, Math.min(5000, newZoom)); // 최대 5000%
+            newZoom = Math.max(10, Math.min(5000, newZoom)); 
             
             state.currentZoom = newZoom;
             this.updateTransform();
         }, { passive: false });
 
-        // 마우스 다운
         container.addEventListener('mousedown', (e) => {
             if (!state.originalImageData) return;
             if (e.target.closest('button')) return;
 
-            // [스포이드 모드]
             if (this.isEyedropperActive) {
                 this.handleEyedropperPick(e);
                 return;
@@ -125,7 +161,6 @@ export class ImageViewerFeature {
             this.ui.setGrabbing(true);
         });
 
-        // 마우스 이동
         window.addEventListener('mousemove', (e) => {
             if (this.isEyedropperActive) {
                 this.handlePixelHover(e);
@@ -145,7 +180,6 @@ export class ImageViewerFeature {
             }
         });
 
-        // 마우스 업
         window.addEventListener('mouseup', () => {
             if (state.isDragging) {
                 state.isDragging = false;
@@ -153,14 +187,21 @@ export class ImageViewerFeature {
             }
         });
         
-        // 버튼 이벤트들
         if (this.ui.centerBtn) {
             this.ui.centerBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.resetView();
+                this.resetView(); 
             });
         }
-        if (this.ui.resetBtn) this.ui.resetBtn.addEventListener('click', () => this.resetView());
+
+        if (this.ui.resetBtn) {
+            this.ui.resetBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm(t('confirm_reset_all_settings'))) {
+                    eventBus.emit('REQUEST_RESET_ALL');
+                }
+            });
+        }
 
         if (this.ui.compareBtn) {
             const showOriginal = (e) => {
@@ -206,18 +247,14 @@ export class ImageViewerFeature {
         this.updateTransform();
     }
 
-    // [핵심 수정] 스포이드 토글 시 이미지 전환 로직 추가
     toggleEyedropper(active) {
         this.isEyedropperActive = active;
         this.ui.toggleEyedropperState(active);
         
         if (active) {
-            // [ON] 원본 이미지 표시 (정확한 색상 추출을 위해)
             this.ui.showOriginalImage();
         } else {
-            // [OFF] 정보창 숨기고, 변환 리프레시 (결과물 다시 보기)
             this.ui.updatePixelInfo(false);
-            console.log("스포이드 해제 -> 변환 리프레시 요청");
             eventBus.emit('OPTION_CHANGED');
         }
     }

@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-lang-key="app_title">NoaDot - 이미지/텍스트 변환기</title>
     <meta http-equiv="Content-Security-Policy" content="
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.firebase.com; 
-    connect-src 'self' wss://*.firebaseio.com https://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com;
-    ">
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.firebase.com https://cdnjs.cloudflare.com; 
+    connect-src 'self' wss://*.firebaseio.com https://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com https://cdnjs.cloudflare.com;">
     <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-
+    
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyC8o-GgPjhBepBUs3HF3cD7XMXP9-haUgI",
@@ -27,6 +26,8 @@
         const COMMENTS_COLLECTION = "noadot_comments";
 
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
 <body>
 
@@ -461,21 +462,21 @@
                         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                     </svg>
                     <select id="paletteSortSelect" style="border: none; background: transparent; font-size: 12px; color: #555; cursor: pointer; outline: none; font-weight: bold;">
-                        <optgroup label="기본">
-                            <option value="default">등록 순서</option>
+                        <optgroup data-lang-label="sort_group_default" label="기본">
+                            <option value="default" data-lang-key="sort_option_default">등록 순서</option>
                         </optgroup>
-                        <optgroup label="사용량">
-                            <option value="usage_desc">많은 순 (▼)</option>
-                            <option value="usage_asc">적은 순 (▲)</option>
+                        <optgroup data-lang-label="sort_group_usage" label="사용량">
+                            <option value="usage_desc" data-lang-key="sort_option_usage_desc">많은 순 (▼)</option>
+                            <option value="usage_asc" data-lang-key="sort_option_usage_asc">적은 순 (▲)</option>
                         </optgroup>
-                        <optgroup label="밝기">
-                            <option value="bright_desc">밝은 순 (White▼)</option>
-                            <option value="bright_asc">어두운 순 (Black▲)</option>
+                        <optgroup data-lang-label="sort_group_brightness" label="밝기">
+                            <option value="bright_desc" data-lang-key="sort_option_bright_desc">밝은 순 (White▼)</option>
+                            <option value="bright_asc" data-lang-key="sort_option_bright_asc">어두운 순 (Black▲)</option>
                         </optgroup>
-                        <optgroup label="RGB 값">
-                            <option value="r_desc">Red 높은 순</option>
-                            <option value="g_desc">Green 높은 순</option>
-                            <option value="b_desc">Blue 높은 순</option>
+                        <optgroup data-lang-label="sort_group_rgb" label="RGB 값">
+                            <option value="r_desc" data-lang-key="sort_option_r_desc">Red 높은 순</option>
+                            <option value="g_desc" data-lang-key="sort_option_g_desc">Green 높은 순</option>
+                            <option value="b_desc" data-lang-key="sort_option_b_desc">Blue 높은 순</option>
                         </optgroup>
                     </select>
                 </div>
@@ -545,6 +546,25 @@
                 </div>
             </div>
             <button id="downloadBtn" disabled data-lang-key="btn_download">다운로드</button>
+            <div id="download-options-container" style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">
+                
+                <div class="custom-checkbox-wrapper">
+                    <input type="checkbox" id="chkDownloadUplace" class="custom-checkbox-input" disabled>
+                    <label for="chkDownloadUplace" class="custom-checkbox-label">
+                        <span class="checkmark"></span>
+                        <span data-lang-key="label_download_uplace">Uplace 버전으로 다운로드 (.you)</span>
+                    </label>
+                </div>
+
+                <div class="custom-checkbox-wrapper">
+                    <input type="checkbox" id="chkDownloadSeparated" class="custom-checkbox-input">
+                    <label for="chkDownloadSeparated" class="custom-checkbox-label">
+                        <span class="checkmark"></span>
+                        <span data-lang-key="label_download_separated">색상별 이미지 별도 다운로드 (.zip)</span>
+                    </label>
+                </div>
+
+            </div>
         </section>
         <section id="comment-entry-section" style="text-align: center; margin: 20px 0;">
             <button id="open-comment-modal" data-lang-key="COMMENT_MODAL_OPEN_BUTTON" class="comment-open-btn">

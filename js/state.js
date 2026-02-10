@@ -8,7 +8,6 @@ export const CONFIG = {
         brightnessSlider: 0,
         contrastSlider: 0,
         ditheringSlider: 0,
-        // [New] RGB 가중치 기본값 (0 = 변화 없음)
         rgbWeightR: 0,
         rgbWeightG: 0,
         rgbWeightB: 0
@@ -19,7 +18,10 @@ export const state = {
     sessionPresets: [], 
     exportScale: 1, 
     isApplyingPreset: false,
-    language: 'ko',
+    
+    // [핵심 수정] 저장된 언어가 있으면 불러오고, 없으면 'ko'를 기본값으로 사용
+    language: localStorage.getItem('noadot_language') || 'ko',
+    
     appMode: 'image',
     isConverting: false,
     processId: 0,
@@ -47,12 +49,10 @@ export const state = {
     aspectRatio: 1,
     validPixelRatio: 1,
 
-    // [변환 옵션]
     saturationSlider: 100,
     brightnessSlider: 0,
     contrastSlider: 0,
     
-    // [New] RGB 채널 가중치 (-100 ~ 100)
     rgbWeightR: 0,
     rgbWeightG: 0,
     rgbWeightB: 0,
@@ -80,7 +80,6 @@ export const state = {
 
     disabledHexes: [],
     
-    // [New] 팔레트 정렬 모드 (default, usage_desc, r_desc, g_desc, b_desc, bright_desc, bright_asc)
     paletteSortMode: 'default',
     
     addedColors: [],
@@ -103,18 +102,26 @@ export const state = {
     timeoutId: null
 };
 
-// ... (이하 t, hexToRgb, rgbToHex, getTextColorForBg 함수들은 기존과 동일하게 유지) ...
+// --- 다국어 텍스트 반환 헬퍼 함수 ---
 export const t = (key, params = {}) => {
     const lang = state.language || 'ko';
     const dict = languageData ? languageData[lang] : null;
+    
     let text = key;
-    if (dict && dict[key]) text = dict[key];
+    if (dict && dict[key]) {
+        text = dict[key];
+    }
+
     Object.keys(params).forEach(paramKey => {
         text = text.replace(new RegExp(`{${paramKey}}`, 'g'), params[paramKey]);
     });
+
     return text;
 };
 
+window.t = t;
+
+// --- 순수 유틸리티 함수 ---
 export const hexToRgb = (hex) => {
     let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     if (!result) {

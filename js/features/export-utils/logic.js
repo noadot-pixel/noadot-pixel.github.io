@@ -1,162 +1,185 @@
-// js/features/export-utils/logic.js
 import { eventBus } from '../../core/EventBus.js';
-import { state } from '../../state.js';
-import { ExportUI } from './ui.js';
+import { state, rgbToHex, t } from '../../state.js';
+import { wplaceFreeColors, wplacePaidColors } from '../../../data/palettes.js';
 
 export class ExportFeature {
     constructor() {
-        this.ui = new ExportUI();
-        this.initListeners();
-        // CRC32 테이블 미리 생성 (성능 최적화)
-        this.crcTable = this.makeCRCTable();
+        this.downloadBtn = document.getElementById('downloadBtn');
+        this.chkUplace = document.getElementById('chkDownloadUplace');
+        this.chkSeparated = document.getElementById('chkDownloadSeparated');
+        
+        if (this.downloadBtn) this.downloadBtn.disabled = true;
+
+        this.initEvents();
+        this.initBusListeners();
+        this.updateUplaceOptionVisibility();
     }
 
-    initListeners() {
-        eventBus.on('CONVERSION_COMPLETE', () => {
-            if (this.ui.downloadBtn) this.ui.downloadBtn.disabled = false;
+    initBusListeners() {
+        eventBus.on('CONVERSION_START', () => {
+            if (this.downloadBtn) this.downloadBtn.disabled = true;
         });
 
-        eventBus.on('IMAGE_LOADED', () => {
-            if (this.ui.downloadBtn) this.ui.downloadBtn.disabled = true;
+        eventBus.on('CONVERSION_COMPLETE', (data) => {
+            if (data && data.imageData) {
+                state.finalDownloadableData = data.imageData;
+                if (this.downloadBtn) this.downloadBtn.disabled = false;
+            }
         });
+        
+        eventBus.on('MODE_CHANGED', () => this.updateUplaceOptionVisibility());
+        eventBus.on('PALETTE_UPDATED', () => this.updateUplaceOptionVisibility());
+    }
 
-        if (this.ui.downloadBtn) {
-            this.ui.downloadBtn.addEventListener('click', () => {
+    initEvents() {
+        if (this.downloadBtn) {
+            this.downloadBtn.addEventListener('click', () => {
                 this.handleDownload();
             });
         }
+
+        document.addEventListener('click', () => this.updateUplaceOptionVisibility());
     }
 
-    handleDownload() {
-        const imageData = state.latestConversionData;
-        if (!imageData) {
-            alert("변환된 이미지가 없습니다.");
+    updateUplaceOptionVisibility() {
+        if (!this.chkUplace) return;
+        
+        const isWplaceRelated = state.currentMode === 'wplace' || (state.currentMode === 'geopixels' && state.useWplaceInGeoMode);
+        
+        if (isWplaceRelated) {
+            this.chkUplace.disabled = false;
+            if(this.chkUplace.nextElementSibling) this.chkUplace.nextElementSibling.style.color = '#555';
+        } else {
+            this.chkUplace.disabled = true;
+            this.chkUplace.checked = false;
+            if(this.chkUplace.nextElementSibling) this.chkUplace.nextElementSibling.style.color = '#ccc';
+        }
+    }
+
+    getTimestamp() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        const h = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        return `${y}${m}${d}_${h}${min}`;
+    }
+
+    async handleDownload() {
+        if (!state.finalDownloadableData) {
+            alert(t('alert_no_data_to_download')); 
             return;
         }
 
-        const scale = state.exportScale || 1;
+        const imageData = state.finalDownloadableData;
+        const isUplace = this.chkUplace && this.chkUplace.checked;
+        const isSeparated = this.chkSeparated && this.chkSeparated.checked;
+        const timestamp = this.getTimestamp();
 
+        // 1. 아무 옵션도 없으면 기본 PNG 다운로드
+        if (!isUplace && !isSeparated) {
+            const fileName = `NOADOT_Export_${timestamp}.png`;
+            this.downloadCanvasAsPng(imageData, fileName);
+            return;
+        }
+
+        // 2. Uplace (.you) 다운로드 -> [수정] 제작 중 알림 처리
+        if (isUplace) {
+            // await this.generateAndDownloadUplace(imageData); // 기존 로직 주석 처리
+            alert(t('alert_uplace_wip')); // "제작 중" 메시지 출력
+        }
+
+        // 3. 색상별 분리 다운로드 (.zip)
+        if (isSeparated) {
+            await this.generateAndDownloadZip(imageData, timestamp);
+        }
+    }
+
+    downloadCanvasAsPng(imageData, fileName) {
         const canvas = document.createElement('canvas');
+        canvas.width = imageData.width;
+        canvas.height = imageData.height;
         const ctx = canvas.getContext('2d');
-
-        canvas.width = imageData.width * scale;
-        canvas.height = imageData.height * scale;
-
-        ctx.imageSmoothingEnabled = false;
-        ctx.mozImageSmoothingEnabled = false;
-        ctx.webkitImageSmoothingEnabled = false;
-        ctx.msImageSmoothingEnabled = false;
-
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = imageData.width;
-        tempCanvas.height = imageData.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.putImageData(imageData, 0, 0);
-
-        ctx.drawImage(
-            tempCanvas, 
-            0, 0, imageData.width, imageData.height, 
-            0, 0, canvas.width, canvas.height
-        );
-
-        this.triggerFileDownload(canvas);
+        ctx.putImageData(imageData, 0, 0);
+        
+        canvas.toBlob((blob) => {
+            saveAs(blob, fileName);
+        });
     }
 
-    triggerFileDownload(canvas) {
-        // 1. [요청 사항 2] 파일명 포맷 변경
-        // Noadot_yyyy_mm_dd_hh_mm_{원본이미지이름}.png
-        const originalName = state.originalFileName || 'image';
-        const cleanName = originalName.replace(/\.[^/.]+$/, ""); 
+    // (참고: generateAndDownloadUplace 메서드는 나중을 위해 남겨두거나 삭제하셔도 됩니다.)
+
+    async generateAndDownloadZip(imageData, timestamp) {
+        if (!window.JSZip) {
+            alert(t('alert_jszip_missing')); 
+            return;
+        }
+
+        const zip = new JSZip();
+        const { width, height, data } = imageData;
+        const colorLayers = {}; 
         
-        const now = new Date();
-        const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        const hh = String(now.getHours()).padStart(2, '0');
-        const min = String(now.getMinutes()).padStart(2, '0');
+        const palette = [...wplaceFreeColors, ...wplacePaidColors];
+        const isWplaceRelated = state.currentMode === 'wplace' || (state.currentMode === 'geopixels' && state.useWplaceInGeoMode);
 
-        const fileName = `Noadot_${yyyy}_${mm}_${dd}_${hh}_${min}_${cleanName}.png`;
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+            if (a === 0) continue; 
 
-        // 2. [요청 사항 1] 메타데이터 주입 후 다운로드
-        // canvas.toBlob을 사용하여 바이너리 데이터를 얻고, tEXt 청크를 삽입합니다.
-        canvas.toBlob(async (blob) => {
-            if (!blob) return;
-
-            // 메타데이터 삽입 ("noadot_image" 태그)
-            const newBlob = await this.addMetadata(blob, "noadot_image", "true");
+            const hex = rgbToHex(r, g, b);
             
-            // 다운로드 트리거
-            const url = URL.createObjectURL(newBlob);
-            const link = document.createElement('a');
-            link.download = fileName;
-            link.href = url;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        }, 'image/png');
-    }
+            if (!colorLayers[hex]) {
+                colorLayers[hex] = {
+                    buffer: new Uint8ClampedArray(width * height * 4),
+                    count: 0,
+                    name: null 
+                };
 
-    // --- PNG 메타데이터 조작 헬퍼 함수들 ---
-
-    async addMetadata(blob, key, value) {
-        const buffer = await blob.arrayBuffer();
-        const uint8 = new Uint8Array(buffer);
-        
-        // 1. tEXt 청크 데이터 생성 (Keyword + Null + Text)
-        const keyBytes = new TextEncoder().encode(key);
-        const valBytes = new TextEncoder().encode(value);
-        const length = keyBytes.length + 1 + valBytes.length;
-        
-        // 청크 구조: Length(4) + Type(4) + Data(length) + CRC(4)
-        const chunkTotalLength = 4 + 4 + length + 4;
-        const chunkData = new Uint8Array(chunkTotalLength);
-        const view = new DataView(chunkData.buffer);
-        
-        // Length 작성 (Big Endian)
-        view.setUint32(0, length, false);
-        
-        // Type 작성 ("tEXt" = 0x74455874)
-        chunkData.set([116, 69, 88, 116], 4);
-        
-        // Data 작성
-        chunkData.set(keyBytes, 8);
-        chunkData[8 + keyBytes.length] = 0; // Null separator
-        chunkData.set(valBytes, 8 + keyBytes.length + 1);
-        
-        // CRC 계산 (Type + Data 부분만 계산)
-        const crcInput = chunkData.slice(4, 4 + 4 + length);
-        const crc = this.calculateCRC32(crcInput);
-        view.setUint32(4 + 4 + length, crc, false); // CRC 작성 (Big Endian)
-        
-        // 2. 청크 삽입 (IHDR 청크 뒤인 33번째 바이트 위치에 삽입)
-        // PNG Signature(8) + IHDR(25) = 33
-        const finalBuffer = new Uint8Array(uint8.length + chunkTotalLength);
-        finalBuffer.set(uint8.slice(0, 33), 0);
-        finalBuffer.set(chunkData, 33);
-        finalBuffer.set(uint8.slice(33), 33 + chunkTotalLength);
-        
-        return new Blob([finalBuffer], { type: 'image/png' });
-    }
-
-    makeCRCTable() {
-        let c;
-        const table = [];
-        for (let n = 0; n < 256; n++) {
-            c = n;
-            for (let k = 0; k < 8; k++) {
-                c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+                if (isWplaceRelated) {
+                    const matched = palette.find(c => 
+                        c.rgb[0] === r && c.rgb[1] === g && c.rgb[2] === b
+                    );
+                    colorLayers[hex].name = matched && matched.name ? matched.name : hex;
+                } else {
+                    colorLayers[hex].name = hex;
+                }
             }
-            table[n] = c >>> 0;
-        }
-        return table;
-    }
 
-    calculateCRC32(buf) {
-        let crc = -1; // 0xFFFFFFFF
-        for (let i = 0; i < buf.length; i++) {
-            crc = (crc >>> 8) ^ this.crcTable[(crc ^ buf[i]) & 0xFF];
+            const layer = colorLayers[hex];
+            layer.buffer[i] = r;
+            layer.buffer[i+1] = g;
+            layer.buffer[i+2] = b;
+            layer.buffer[i+3] = a; 
+            layer.count++;
         }
-        return (crc ^ -1) >>> 0;
+
+        const promises = Object.keys(colorLayers).map(hex => {
+            return new Promise((resolve) => {
+                const layerInfo = colorLayers[hex];
+                const layerCanvas = document.createElement('canvas');
+                layerCanvas.width = width;
+                layerCanvas.height = height;
+                const ctx = layerCanvas.getContext('2d');
+                
+                const imgData = new ImageData(layerInfo.buffer, width, height);
+                ctx.putImageData(imgData, 0, 0);
+
+                // 파일명 규칙 적용
+                // 특수문자 제거 후 파일명 생성
+                const safeName = layerInfo.name.replace(/[\/\\?%*:|"<>]/g, '_');
+                const fileName = `${safeName} - ${layerInfo.count}.png`;
+
+                layerCanvas.toBlob((blob) => {
+                    zip.file(fileName, blob);
+                    resolve();
+                });
+            });
+        });
+
+        await Promise.all(promises);
+
+        const content = await zip.generateAsync({ type: "blob" });
+        saveAs(content, `NOADOT_Export_${timestamp}.zip`);
     }
 }

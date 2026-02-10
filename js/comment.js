@@ -1,16 +1,14 @@
-// js/comment.js 파일 전체 내용
+// js/comment.js
+// [수정] import 문 삭제 (SyntaxError 해결)
+// window.t 가 state.js에서 정의되므로 바로 사용 가능합니다.
 
 // ====================================================================
 // [1] 고유 식별자(UUID) 로직 및 검증 함수
 // ====================================================================
 
-/**
- * UUID를 생성하거나 로컬 저장소에서 가져옵니다.
- */
 function getOrCreateUUID() {
     let uuid = localStorage.getItem('user_uuid');
     if (!uuid) {
-        // UUID v4 형식 생성
         uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
             var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
@@ -20,45 +18,28 @@ function getOrCreateUUID() {
     return uuid;
 }
 
-/**
- * 문자열 기반으로 짧은 해시 코드를 생성합니다. (작성자 구별용)
- */
 function simpleHash(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
         const char = str.charCodeAt(i);
         hash = ((hash << 5) - hash) + char;
-        hash |= 0; // 32bit 정수로 변환
+        hash |= 0; 
     }
-    // 해시 값을 16진수 4자리로 만들고 앞에 #을 붙임
     return '#' + Math.abs(hash).toString(16).substring(0, 4).toUpperCase();
 }
 
-
-/**
- * 입력 내용을 검증합니다.
- * @param {string} input 입력된 텍스트
- * @param {number} maxLength 최대 길이
- * @param {string} type 입력 필드의 종류 ('닉네임' 또는 '댓글 내용')
- */
 function validateInput(input, maxLength, type) {
     if (input.length > maxLength) {
         alert(`${type}은(는) 최대 ${maxLength}자까지 입력 가능합니다.`);
         return false;
     }
-
-    // 한글, 영어 대소문자, 숫자, 기본 공백 외에는 금지합니다.
-    
-
     return true;
 }
 
-
 // ====================================================================
-// [2] HTML 요소 정의 및 이벤트 리스너 연결 (팝업 제어)
+// [2] HTML 요소 정의 및 이벤트 리스너 연결
 // ====================================================================
 
-// HTML 요소 정의 (ID가 index.html과 일치해야 합니다)
 const modal = document.getElementById('comment-modal');
 const openBtn = document.getElementById('open-comment-modal');
 const closeBtn = document.getElementById('close-comment-modal');
@@ -91,9 +72,8 @@ if (submitBtn) {
     }
 }
 
-
 // ====================================================================
-// [3] 댓글 등록 및 대댓글 등록 기능 (검증 로직 포함)
+// [3] 댓글 등록 및 대댓글 등록 기능
 // ====================================================================
 
 async function addComment(nickname, content) {
@@ -107,15 +87,8 @@ async function addComment(nickname, content) {
         return;
     }
     
-    // ★★★ 닉네임 검증 (20자 제한) ★★★
-    if (!validateInput(finalNickname, 20, '닉네임')) {
-        return;
-    }
-    
-    // ★★★ 내용 검증 (400자 제한) ★★★
-    if (!validateInput(trimmedContent, 400, '댓글 내용')) {
-        return;
-    }
+    if (!validateInput(finalNickname, 20, '닉네임')) return;
+    if (!validateInput(trimmedContent, 400, '댓글 내용')) return;
 
     try {
         await db.collection(COMMENTS_COLLECTION).add({ 
@@ -127,7 +100,6 @@ async function addComment(nickname, content) {
         
         console.log("댓글 등록 성공!");
         document.getElementById('comment-input').value = '';
-        
         loadComments();
 
     } catch (e) {
@@ -144,15 +116,8 @@ async function addReply(parentId, nickname, content) {
     const trimmedContent = content.trim();
     if (trimmedContent === '') return alert("대댓글 내용을 입력해주세요.");
 
-    // ★★★ 닉네임 검증 (20자 제한) ★★★
-    if (!validateInput(finalNickname, 20, '닉네임')) {
-        return;
-    }
-
-    // ★★★ 내용 검증 (400자 제한) ★★★
-    if (!validateInput(trimmedContent, 400, '댓글 내용')) {
-        return;
-    }
+    if (!validateInput(finalNickname, 20, '닉네임')) return;
+    if (!validateInput(trimmedContent, 400, '댓글 내용')) return;
 
     try {
         await db.collection(COMMENTS_COLLECTION).add({
@@ -170,7 +135,6 @@ async function addReply(parentId, nickname, content) {
         console.error("대댓글 등록 중 오류 발생: ", e);
     }
 }
-
 
 // ====================================================================
 // [4] 댓글 불러오기 및 렌더링 로직
@@ -195,9 +159,7 @@ async function loadComments() {
             data.id = doc.id;
             
             if (data.parentId) {
-                if (!replies[data.parentId]) {
-                    replies[data.parentId] = [];
-                }
+                if (!replies[data.parentId]) replies[data.parentId] = [];
                 replies[data.parentId].push(data);
             } else {
                 comments.push(data);
@@ -220,12 +182,7 @@ async function loadComments() {
     }
 }
 
-
-/**
- * 댓글 및 대댓글을 재귀적으로 렌더링합니다.
- */
 function renderComment(comment, container, repliesMap, depth) {
-    // 24시간제 시간 형식 적용
     const time = comment.timestamp 
                      ? comment.timestamp.toDate().toLocaleString('ko-KR', { 
                            year: 'numeric', month: '2-digit', day: '2-digit', 
@@ -237,12 +194,10 @@ function renderComment(comment, container, repliesMap, depth) {
     const margin = depth * 30; 
     const replyPlaceholderId = `reply-form-${comment.id}`;
     
-    // 해시 코드 생성 및 스타일
     const userHash = comment.userUUID ? simpleHash(comment.userUUID) : '#0000'; 
     const hashStyle = `color: #007bff; font-weight: normal; margin-left: 5px;`; 
-    
-    // 삭제 관련 로직 모두 제거됨
 
+    // [참고] t() 함수는 state.js에서 window.t로 등록되었으므로 여기서 바로 사용 가능합니다.
     const commentHtml = `
         <div data-comment-id="${comment.id}" style="
             border: 1px solid ${depth === 0 ? '#ccc' : '#eee'}; 
@@ -260,7 +215,7 @@ function renderComment(comment, container, repliesMap, depth) {
             
             <button onclick="document.getElementById('${replyPlaceholderId}').style.display = 'block';" 
                     style="font-size: 0.9em; color: #007bff; background: none; border: none; cursor: pointer;">
-                [대댓글 달기]
+                ${t('btn_reply_comment')} 
             </button>
             
             <div id="${replyPlaceholderId}" style="display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; padding-left: 10px; border-left: 3px solid #ffc107;">
@@ -283,7 +238,6 @@ function renderComment(comment, container, repliesMap, depth) {
     `;
     container.insertAdjacentHTML('beforeend', commentHtml);
 
-    // 대댓글이 있다면 재귀적으로 렌더링
     if (repliesMap[comment.id]) {
         repliesMap[comment.id].forEach(reply => {
             renderComment(reply, container, repliesMap, depth + 1);

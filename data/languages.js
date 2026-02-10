@@ -149,6 +149,24 @@ export const languageData = {
         option_color_method_ciede2000: "Wdot (CIEDE2000) - 정밀/느림",
 
         tag_point: "포인트 색상",
+        // data/languages.js 파일 ko 객체 내부에 추가
+        alert_no_data_to_download: "다운로드할 데이터가 없습니다. 먼저 변환을 진행해주세요.",
+        alert_jszip_missing: "압축 라이브러리(JSZip)를 불러오지 못했습니다. 페이지를 새로고침 해주세요.",
+
+        confirm_reset_all_settings: "모든 설정을 초기화하시겠습니까?",
+        sort_group_default: "기본",
+        sort_option_default: "등록 순서",
+        sort_group_usage: "사용량",
+        sort_option_usage_desc: "많은 순 (▼)",
+        sort_option_usage_asc: "적은 순 (▲)",
+        sort_group_brightness: "밝기",
+        sort_option_bright_desc: "밝은 순 (White▼)",
+        sort_option_bright_asc: "어두운 순 (Black▲)",
+        sort_group_rgb: "RGB 값",
+        sort_option_r_desc: "Red 높은 순",
+        sort_option_g_desc: "Green 높은 순",
+        sort_option_b_desc: "Blue 높은 순",
+        btn_reply_comment: "[대댓글 달기]",
 
         // [신규] 업스케일 섹션
         section_upscale: "업스케일 (Upscale)",
@@ -247,6 +265,10 @@ export const languageData = {
         alert_2much_error: "비율 차이가 커서 비교 불가",
         alert_first_gene: "먼저 이미지를 변환해주세요.",
         alert_error_general: "파일 읽기 오류",
+
+        // --- 다운로드 옵션 라벨 (이게 빠졌었습니다!) ---
+        label_download_uplace: "(연구중, 작동하지 않음)Uplace 버전으로 다운로드 (.you)",
+        label_download_separated: "색상별 이미지 별도 다운로드 (.zip)",
         
         // [수정/추가] 추천 태그
         tag_dominant: "고비율 색상",
@@ -554,5 +576,27 @@ export const languageData = {
         COMMENT_ACTION_REPLY: "[Reply]",
         COMMENT_ACTION_DELETE: "[Delete]",
         COMMENT_ALERT_NO_CONTENT: "Please enter comment content.",
+
+        confirm_reset_all_settings: "Do you want to reset all settings?",
+        sort_group_default: "Default",
+        sort_option_default: "Registration Order",
+        sort_group_usage: "Usage",
+        sort_option_usage_desc: "Most Used (▼)",
+        sort_option_usage_asc: "Least Used (▲)",
+        sort_group_brightness: "Brightness",
+        sort_option_bright_desc: "Brightest First (White▼)",
+        sort_option_bright_asc: "Darkest First (Black▲)",
+        sort_group_rgb: "RGB Values",
+        sort_option_r_desc: "Highest Red",
+        sort_option_g_desc: "Highest Green",
+        sort_option_b_desc: "Highest Blue",
+        btn_reply_comment: "[Write a Reply]",
+        // data/languages.js 파일 ko 객체 내부에 추가
+        alert_no_data_to_download: "There is no data to download. Please run the conversion first.",
+        alert_jszip_missing: "Failed to load the compression library (JSZip). Please refresh the page.",
+
+        // --- Download Option Labels ---
+        label_download_uplace: "(Under research, not functioning)Download as Uplace version (.you)",
+        label_download_separated: "Download separated images by color (.zip)",
     }
 };
