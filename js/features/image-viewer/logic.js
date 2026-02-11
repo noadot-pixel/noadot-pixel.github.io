@@ -15,6 +15,8 @@ export class ImageViewerFeature {
         this.startDragX = 0;
         this.startDragY = 0;
         this.hasDragged = false;
+        
+        this.lastTouchDistance = 0;
 
         this.initBusListeners();
         this.initInteractions();
@@ -102,7 +104,21 @@ export class ImageViewerFeature {
         const container = this.ui.container;
         if (!container) return;
 
-        // 스포이드 버튼 이벤트
+        // [New] 줌 버튼 이벤트 (10% 단위)
+        if (this.ui.zoomInBtn) {
+            this.ui.zoomInBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // 캔버스 클릭 방지
+                this.adjustZoom(10);
+            });
+        }
+        if (this.ui.zoomOutBtn) {
+            this.ui.zoomOutBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.adjustZoom(-10);
+            });
+        }
+
+        // 스포이드 버튼
         if (this.ui.eyedropperBtn) {
             this.ui.eyedropperBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -110,19 +126,21 @@ export class ImageViewerFeature {
             });
         }
 
-        // 클릭 이벤트 (드래그가 아닐 때만 처리 등)
+        // 컨테이너 클릭 (배경 클릭 시 업로드 방지 등)
         container.addEventListener('click', (e) => {
             if (state.originalImageData) {
+                // UI 컨트롤 클릭은 통과
                 const isControl = e.target.closest('button, input, select, a, label, .top-right-ui');
                 if (isControl) return; 
 
+                // 그 외에는 전파 중단
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
             }
         }, { capture: true });
 
-        // 휠 줌 이벤트
+        // 휠 줌
         container.addEventListener('wheel', (e) => {
             if (!state.originalImageData) return;
             e.preventDefault();
@@ -138,9 +156,7 @@ export class ImageViewerFeature {
             this.updateTransform();
         }, { passive: false });
 
-        // ==========================================
-        // [1] 마우스 드래그 이벤트 (기존 유지)
-        // ==========================================
+        // 마우스 드래그 시작
         container.addEventListener('mousedown', (e) => {
             if (!state.originalImageData) return;
             if (e.target.closest('button')) return;
@@ -183,21 +199,26 @@ export class ImageViewerFeature {
             }
         });
 
-        // ==========================================
-        // [2] 터치 이벤트 추가 (모바일/태블릿 지원)
-        // ==========================================
-        
-        // 터치 시작
+        // [모바일 터치]
         container.addEventListener('touchstart', (e) => {
             if (!state.originalImageData) return;
-            if (e.target.closest('button')) return; // 버튼 터치 시 드래그 방지
+            if (e.target.closest('button')) return;
 
-            // 스포이드 모드일 때는 터치로 색상 추출
+            // 핀치 줌
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                state.isDragging = false;
+                this.lastTouchDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                return;
+            }
+
+            // 스포이드
             if (this.isEyedropperActive) {
-                // 터치 좌표로 색상 추출 처리 (첫 번째 터치 포인트 사용)
                 if (e.touches.length > 0) {
                     const touch = e.touches[0];
-                    // 마우스 이벤트 형식으로 변환하여 호출
                     this.handleEyedropperPick({ 
                         clientX: touch.clientX, 
                         clientY: touch.clientY 
@@ -206,25 +227,43 @@ export class ImageViewerFeature {
                 return;
             }
 
-            // 일반 드래그 (손가락 1개일 때만)
+            // 일반 드래그
             if (e.touches.length === 1) {
                 state.isDragging = true;
                 this.hasDragged = false;
                 const touch = e.touches[0];
-                
-                // 현재 터치 위치 - 현재 Pan 위치 = 시작 오프셋
                 this.startDragX = touch.clientX - state.panX;
                 this.startDragY = touch.clientY - state.panY;
                 this.ui.setGrabbing(true);
             }
-        }, { passive: false }); // passive: false여야 preventDefault 사용 가능
+        }, { passive: false });
 
-        // 터치 이동
         window.addEventListener('touchmove', (e) => {
-            if (state.isDragging && e.touches.length === 1) {
-                // 브라우저 기본 스크롤 동작 방지 (이미지만 움직이도록)
-                e.preventDefault(); 
+            // 핀치 줌 동작
+            if (e.touches.length === 2 && this.lastTouchDistance > 0) {
+                e.preventDefault();
                 
+                const currentDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+
+                const delta = currentDist - this.lastTouchDistance;
+                const zoomFactor = 1.5; 
+                
+                let newZoom = state.currentZoom + (delta * zoomFactor);
+                newZoom = Math.max(10, Math.min(5000, newZoom));
+                
+                state.currentZoom = newZoom;
+                this.updateTransform();
+                
+                this.lastTouchDistance = currentDist;
+                return;
+            }
+
+            // 드래그 동작
+            if (state.isDragging && e.touches.length === 1) {
+                e.preventDefault();
                 const touch = e.touches[0];
                 const currentX = touch.clientX - this.startDragX;
                 const currentY = touch.clientY - this.startDragY;
@@ -235,17 +274,17 @@ export class ImageViewerFeature {
             }
         }, { passive: false });
 
-        // 터치 종료
-        window.addEventListener('touchend', () => {
-            if (state.isDragging) {
+        window.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) {
+                this.lastTouchDistance = 0; 
+            }
+            if (state.isDragging && e.touches.length === 0) {
                 state.isDragging = false;
                 this.ui.setGrabbing(false);
             }
         });
         
-        // ==========================================
-        // 기타 UI 버튼 이벤트
-        // ==========================================
+        // 기존 버튼 이벤트
         if (this.ui.centerBtn) {
             this.ui.centerBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -280,21 +319,24 @@ export class ImageViewerFeature {
                 }
             };
 
-            // 마우스
             this.ui.compareBtn.addEventListener('mousedown', showOriginal);
             this.ui.compareBtn.addEventListener('mouseup', showConverted);
             this.ui.compareBtn.addEventListener('mouseleave', showConverted);
-            
-            // 터치 (모바일 대응)
             this.ui.compareBtn.addEventListener('touchstart', showOriginal, {passive: false});
             this.ui.compareBtn.addEventListener('touchend', showConverted, {passive: false});
-            
             this.ui.compareBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                e.stopImmediatePropagation();
             });
         }
+    }
+
+    adjustZoom(amount) {
+        if (!state.originalImageData) return;
+        let newZoom = state.currentZoom + amount;
+        newZoom = Math.max(10, Math.min(5000, newZoom));
+        state.currentZoom = newZoom;
+        this.updateTransform();
     }
 
     updateTransform() {
@@ -322,20 +364,15 @@ export class ImageViewerFeature {
 
     handleEyedropperPick(e) {
         if (!state.originalImageData) return;
-        
         const rect = this.ui.canvas.getBoundingClientRect();
         const scaleX = this.ui.canvas.width / rect.width;
         const scaleY = this.ui.canvas.height / rect.height;
-
         const x = Math.floor((e.clientX - rect.left) * scaleX);
         const y = Math.floor((e.clientY - rect.top) * scaleY);
-
         if (x < 0 || x >= this.ui.canvas.width || y < 0 || y >= this.ui.canvas.height) return;
-
         const ctx = this.ui.canvas.getContext('2d');
         const p = ctx.getImageData(x, y, 1, 1).data;
         const rgb = [p[0], p[1], p[2]];
-
         eventBus.emit('REQUEST_ADD_COLOR', rgb);
     }
 
@@ -345,7 +382,6 @@ export class ImageViewerFeature {
         const scaleY = this.ui.canvas.height / rect.height;
         const x = Math.floor((e.clientX - rect.left) * scaleX);
         const y = Math.floor((e.clientY - rect.top) * scaleY);
-
         if (x >= 0 && x < this.ui.canvas.width && y >= 0 && y < this.ui.canvas.height) {
             const ctx = this.ui.canvas.getContext('2d');
             const p = ctx.getImageData(x, y, 1, 1).data;

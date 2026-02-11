@@ -307,6 +307,9 @@ export const languageData = {
         tooltip_eyedropper: "색상 추출 (스포이드)",
         tooltip_compare_hold: "원본 보기 (누르고 있기)",
         tooltip_center_zoom: "화면 중앙으로 이동",
+
+        tooltip_zoom_in: "확대 (+)",
+        tooltip_zoom_out: "축소 (-)",
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
@@ -598,5 +601,8 @@ export const languageData = {
         // --- Download Option Labels ---
         label_download_uplace: "(Under research, not functioning)Download as Uplace version (.you)",
         label_download_separated: "Download separated images by color (.zip)",
+
+        tooltip_zoom_in: "Zoom In (+)",
+        tooltip_zoom_out: "Zoom Out (-)",
     }
 };
