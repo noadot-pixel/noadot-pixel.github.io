@@ -19,21 +19,16 @@ export class ImageViewerFeature {
         this.initBusListeners();
         this.initInteractions();
         
-        // 초기화 시점 상태 체크
         this.checkEyedropperStatus();
     }
 
-    // [핵심 기능 1] 버튼 숨기기/보이기 제어 (로직에서 직접 UI 스타일 조작)
     checkEyedropperStatus() {
-        // 조건: wplace 모드이거나, geopixels 모드이면서 wplace 팔레트 옵션을 켰을 때
         const isWplaceRelated = state.currentMode === 'wplace' || (state.currentMode === 'geopixels' && state.useWplaceInGeoMode);
         
-        // 버튼이 존재하면 display 속성 제어
         if (this.ui.eyedropperBtn) {
             this.ui.eyedropperBtn.style.display = isWplaceRelated ? 'none' : 'flex';
         }
 
-        // 숨겨야 하는 상황인데 스포이드 기능이 켜져있다면 -> 강제로 끄기
         if (isWplaceRelated && this.isEyedropperActive) {
             this.toggleEyedropper(false);
         }
@@ -53,7 +48,6 @@ export class ImageViewerFeature {
             this.ui.toggleLoading(false);
         });
 
-        // [핵심 기능 2] 이미지 로드 시 불투명도 전처리
         eventBus.on('IMAGE_LOADED', (source) => {
             const tempCanvas = document.createElement('canvas');
             
@@ -73,7 +67,6 @@ export class ImageViewerFeature {
             const rawData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
             const data = rawData.data;
 
-            // 불투명도 255 미만은 모두 투명(0) 처리
             for (let i = 0; i < data.length; i += 4) {
                 if (data[i + 3] < 255) {
                     data[i + 3] = 0; 
@@ -92,17 +85,14 @@ export class ImageViewerFeature {
             this.checkEyedropperStatus();
         });
 
-        // 모드 변경 시 체크
         eventBus.on('MODE_CHANGED', (mode) => {
             this.checkEyedropperStatus();
         });
         
-        // 옵션 변경 시 체크 (Wplace 팔레트 사용 체크박스 등)
         eventBus.on('OPTION_CHANGED', () => {
              this.checkEyedropperStatus();
         });
 
-        // [추가] 팔레트 변경 시 체크 (확실한 업데이트를 위해 추가)
         eventBus.on('PALETTE_UPDATED', () => {
             this.checkEyedropperStatus();
         });
@@ -112,6 +102,7 @@ export class ImageViewerFeature {
         const container = this.ui.container;
         if (!container) return;
 
+        // 스포이드 버튼 이벤트
         if (this.ui.eyedropperBtn) {
             this.ui.eyedropperBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -119,6 +110,7 @@ export class ImageViewerFeature {
             });
         }
 
+        // 클릭 이벤트 (드래그가 아닐 때만 처리 등)
         container.addEventListener('click', (e) => {
             if (state.originalImageData) {
                 const isControl = e.target.closest('button, input, select, a, label, .top-right-ui');
@@ -130,6 +122,7 @@ export class ImageViewerFeature {
             }
         }, { capture: true });
 
+        // 휠 줌 이벤트
         container.addEventListener('wheel', (e) => {
             if (!state.originalImageData) return;
             e.preventDefault();
@@ -145,6 +138,9 @@ export class ImageViewerFeature {
             this.updateTransform();
         }, { passive: false });
 
+        // ==========================================
+        // [1] 마우스 드래그 이벤트 (기존 유지)
+        // ==========================================
         container.addEventListener('mousedown', (e) => {
             if (!state.originalImageData) return;
             if (e.target.closest('button')) return;
@@ -186,7 +182,70 @@ export class ImageViewerFeature {
                 this.ui.setGrabbing(false);
             }
         });
+
+        // ==========================================
+        // [2] 터치 이벤트 추가 (모바일/태블릿 지원)
+        // ==========================================
         
+        // 터치 시작
+        container.addEventListener('touchstart', (e) => {
+            if (!state.originalImageData) return;
+            if (e.target.closest('button')) return; // 버튼 터치 시 드래그 방지
+
+            // 스포이드 모드일 때는 터치로 색상 추출
+            if (this.isEyedropperActive) {
+                // 터치 좌표로 색상 추출 처리 (첫 번째 터치 포인트 사용)
+                if (e.touches.length > 0) {
+                    const touch = e.touches[0];
+                    // 마우스 이벤트 형식으로 변환하여 호출
+                    this.handleEyedropperPick({ 
+                        clientX: touch.clientX, 
+                        clientY: touch.clientY 
+                    });
+                }
+                return;
+            }
+
+            // 일반 드래그 (손가락 1개일 때만)
+            if (e.touches.length === 1) {
+                state.isDragging = true;
+                this.hasDragged = false;
+                const touch = e.touches[0];
+                
+                // 현재 터치 위치 - 현재 Pan 위치 = 시작 오프셋
+                this.startDragX = touch.clientX - state.panX;
+                this.startDragY = touch.clientY - state.panY;
+                this.ui.setGrabbing(true);
+            }
+        }, { passive: false }); // passive: false여야 preventDefault 사용 가능
+
+        // 터치 이동
+        window.addEventListener('touchmove', (e) => {
+            if (state.isDragging && e.touches.length === 1) {
+                // 브라우저 기본 스크롤 동작 방지 (이미지만 움직이도록)
+                e.preventDefault(); 
+                
+                const touch = e.touches[0];
+                const currentX = touch.clientX - this.startDragX;
+                const currentY = touch.clientY - this.startDragY;
+
+                state.panX = currentX;
+                state.panY = currentY;
+                this.updateTransform();
+            }
+        }, { passive: false });
+
+        // 터치 종료
+        window.addEventListener('touchend', () => {
+            if (state.isDragging) {
+                state.isDragging = false;
+                this.ui.setGrabbing(false);
+            }
+        });
+        
+        // ==========================================
+        // 기타 UI 버튼 이벤트
+        // ==========================================
         if (this.ui.centerBtn) {
             this.ui.centerBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -221,10 +280,12 @@ export class ImageViewerFeature {
                 }
             };
 
+            // 마우스
             this.ui.compareBtn.addEventListener('mousedown', showOriginal);
             this.ui.compareBtn.addEventListener('mouseup', showConverted);
             this.ui.compareBtn.addEventListener('mouseleave', showConverted);
             
+            // 터치 (모바일 대응)
             this.ui.compareBtn.addEventListener('touchstart', showOriginal, {passive: false});
             this.ui.compareBtn.addEventListener('touchend', showConverted, {passive: false});
             
