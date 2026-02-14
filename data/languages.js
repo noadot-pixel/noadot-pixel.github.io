@@ -3,7 +3,7 @@
 export const languageData = {
     ko: {
         app_title: "NoaDot - 이미지/텍스트 변환기",
-        app_header: "🎨 노아도트 v6.2",
+        app_header: "🎨 노아도트 v6.5",
         // ... (기존 텍스트는 동일) ...!
         section_mode: "모드 선택",
         mode_image: "🖼️ 이미지",
@@ -313,7 +313,7 @@ export const languageData = {
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
-        app_header: "🎨 NoaDot v6.2",
+        app_header: "🎨 NoaDot v6.5",
         section_mode: "Select Mode",
         mode_image: "🖼️ Image",
         mode_text: "✏️ Text",

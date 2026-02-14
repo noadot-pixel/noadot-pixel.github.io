@@ -31,13 +31,17 @@ export class ConversionOptionsUI {
         this.gradientAngleSlider = document.getElementById('gradientAngleSlider');
         this.gradientStrengthSlider = document.getElementById('gradientStrengthSlider');
 
+        // [수정 1] 만화 필터 그룹 ID 수정 (cel-shading-options -> celShadingOptions)
         this.celShadingApply = document.getElementById('celShadingApply');
-        this.celShadingControls = document.getElementById('cel-shading-options');
+        this.celShadingControls = document.getElementById('celShadingOptions'); 
+        
         this.celShadingLevelsSlider = document.getElementById('celShadingLevelsSlider');
         this.celShadingColorSpaceSelect = document.getElementById('celShadingColorSpaceSelect');
         
+        // [수정 2] 외곽선 설정 그룹 ID 수정 (cel-shading-outline-settings -> outline-sub-settings)
         this.celShadingOutline = document.getElementById('celShadingOutline');
-        this.celShadingOutlineSettings = document.getElementById('cel-shading-outline-settings');
+        this.celShadingOutlineSettings = document.getElementById('outline-sub-settings');
+        
         this.celShadingOutlineThresholdSlider = document.getElementById('celShadingOutlineThresholdSlider');
         this.celShadingOutlineColorSelect = document.getElementById('celShadingOutlineColorSelect');
         
@@ -105,17 +109,13 @@ export class ConversionOptionsUI {
         }
     }
 
-    // [핵심 수정] 숫자(텍스트)를 표시할 요소를 찾는 로직 강화
+    // 숫자(텍스트)를 표시할 요소를 찾는 로직 강화
     updateDisplay(key, value) {
         // 1. 텍스트 값 업데이트
-        // 우선순위 1: key에서 'Slider'를 뺀 이름 + 'Value' (예: saturationSlider -> saturationValue)
         let displayId = key.replace('Slider', '') + 'Value';
         let display = document.getElementById(displayId);
 
-        // 우선순위 2: 그냥 key + 'Value' (예: rgbWeightR -> rgbWeightRValue)
         if (!display) display = document.getElementById(key + 'Value');
-        
-        // 우선순위 3: Legacy (key + 'Val')
         if (!display) display = document.getElementById(key + 'Val');
         
         if (display) {
