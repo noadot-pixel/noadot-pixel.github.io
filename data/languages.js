@@ -82,6 +82,10 @@ export const languageData = {
 
         section_palette: "팔레트 선택",
 
+        label_download_split: "도안 분할 다운로드 (.zip)",
+        label_split_count: "분할 수 (가로 x 세로)",
+        label_maintain_size: "원본 사이즈 유지하기 (여백 투명화)",
+
         confirm_mode_switch_to_text: "모드 변환 시 업로드한 이미지가 초기화됩니다. 변경하시겠습니까?",
         confirm_mode_switch_to_image: "모드 변환 시 폰트 및 텍스트 내용이 초기화됩니다. 변경하시겠습니까?",
         placeholder_image_upload: "창 클릭 혹은 이미지를 화면으로 드래그",
@@ -369,6 +373,10 @@ export const languageData = {
         tag_user_added: "Custom",
 
         alert_image_only: "Only image files can be uploaded.",
+
+        label_download_split: "Split Draft Download (.zip)",
+        label_split_count: "Split Count (Cols x Rows)",
+        label_maintain_size: "Maintain Original Size (Transparent Padding)",
 
         tooltip_reset_all: "Reset Settings (Keep Image)",
         tooltip_eyedropper: "Eyedropper (Pick Color)",
