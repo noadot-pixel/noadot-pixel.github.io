@@ -564,6 +564,32 @@
                     </label>
                 </div>
 
+                <div class="custom-checkbox-wrapper">
+                    <input type="checkbox" id="chkDownloadSplit" class="custom-checkbox-input">
+                    <label for="chkDownloadSplit" class="custom-checkbox-label">
+                        <span class="checkmark"></span>
+                        <span data-lang-key="label_download_split">도안 분할 다운로드 (.zip)</span>
+                    </label>
+                </div>
+
+                <div id="split-options" style="display: none; padding-left: 28px; margin-top: 10px; border-left: 2px solid #ddd;">
+                    <div class="control-group" style="margin-bottom: 8px;">
+                        <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">분할 수 (가로 x 세로)</label>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <input type="number" id="splitCols" value="2" min="1" style="width: 50px; padding: 2px; border: 1px solid #ccc; border-radius: 4px;">
+                            <span style="font-size: 12px;">x</span>
+                            <input type="number" id="splitRows" value="2" min="1" style="width: 50px; padding: 2px; border: 1px solid #ccc; border-radius: 4px;">
+                        </div>
+                    </div>
+                    <div class="custom-checkbox-wrapper">
+                        <input type="checkbox" id="chkMaintainSize" class="custom-checkbox-input">
+                        <label for="chkMaintainSize" class="custom-checkbox-label" style="font-size: 12px;">
+                            <span class="checkmark"></span>
+                            <span data-lang-key="label_maintain_size">원본 사이즈 유지하기 (여백 투명화)</span>
+                        </label>
+                    </div>
+                </div>
+
             </div>
         </section>
         <section id="comment-entry-section" style="text-align: center; margin: 20px 0;">
