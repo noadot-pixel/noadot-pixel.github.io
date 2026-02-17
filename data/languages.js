@@ -148,9 +148,10 @@ export const languageData = {
         resize_output_scale: "출력 배율",
         // [신규] 색상 계산 방식 (드롭다운 옵션)
         option_color_method : "색상 계산 방식",
-        option_color_method_rgb: "일반 (RGB) - 빠름",
-        option_color_method_oklab: "고품질 (Oklab) - 권장",
-        option_color_method_ciede2000: "Wdot (CIEDE2000) - 정밀/느림",
+        option_color_method_rgb: "RGB - 단순 변환",
+        option_color_method_oklab: "OKlab - 색상 보정 변환",
+        option_color_method_ciede2000: "Wdot - 고품질 변환(웜톤)",
+        option_color_method_D65: "D65 - 고품질 변환(쿨톤)",
 
         tag_point: "포인트 색상",
         // data/languages.js 파일 ko 객체 내부에 추가
@@ -477,9 +478,10 @@ export const languageData = {
         confirm_reset_colors: "Are you sure you want to remove all added colors?", // [추가]
         resize_output_scale: "Output Scale",
         option_color_method : "Algorithm option",
-        option_color_method_rgb: "Standard (RGB) - Fast",
-        option_color_method_oklab: "High Quality (Oklab) - Recommended",
-        option_color_method_ciede2000: "Wdot (CIEDE2000) - Precise/Slow",
+        option_color_method_rgb: "RGB - Simple Conversion",
+        option_color_method_oklab: "OKlab - Color Calibration Conversion",
+        option_color_method_ciede2000: "Wdot - High Quality Conversion (Warmtone)",
+        option_color_method_D65: "D65 - High Quality Conversion (Cool Tone)",
 
         // [New] Upscale Section
         section_upscale: "Upscale",

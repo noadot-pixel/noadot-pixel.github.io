@@ -353,10 +353,11 @@
             <div class="control-group"  style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
                 <label for="colorMethodSelect" data-lang-key="option_color_method" data-tooltip-key="tooltip_color_method">색상 계산 방식</label>
                 <select id="colorMethodSelect" data-tooltip-key="tooltip_color_method">
-                    <option value="rgb" data-lang-key="option_color_method_rgb">일반 (RGB) - 빠름</option>
-                    <option value="oklab" selected data-lang-key="option_color_method_oklab">고품질 (Oklab) - 권장</option>
+                    <option value="rgb" data-lang-key="option_color_method_rgb">RGB - 단순 변환</option>
+                    <option value="oklab" selected data-lang-key="option_color_method_oklab">OKlab - 색상 보정 변환</option>
                     <!-- [New] Wdot 옵션 추가 -->
-                    <option value="ciede2000" data-lang-key="option_color_method_ciede2000">Wdot (CIEDE2000) - 정밀/느림</option>
+                    <option value="ciede2000" data-lang-key="option_color_method_ciede2000">Wdot - 고품질 변환(웜톤)</option>
+                    <option value="ciede2000-d65" data-lang-key="option_color_method_D65">D65 - 고품질 변환(쿨톤)</option>
                 </select>
             </div>
             

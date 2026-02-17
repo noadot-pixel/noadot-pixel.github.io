@@ -7,28 +7,57 @@ export const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 export const colorDistanceSq = (c1, c2) => ((c1[0] - c2[0]) ** 2) + ((c1[1] - c2[1]) ** 2) + ((c1[2] - c2[2]) ** 2);
 
 // ==============================================================
-// [New] Wdot 로직 이식 (RGB -> Lab 변환 및 CIEDE2000 공식)
+// [기존] Wdot 로직 (RGB -> Lab D50 변환)
+// 인쇄물 등 D50 환경에 적합
 // ==============================================================
 function rgbToLab(rgb) {
-    let r = rgb[0] / 255, g = rgb[1] / 255, b = rgb[2] / 255;
-    r = (r > 0.04045) ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
-    g = (g > 0.04045) ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
-    b = (b > 0.04045) ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
-    
-    let X = r * 0.4124 + g * 0.3576 + b * 0.1805;
-    let Y = r * 0.2126 + g * 0.7152 + b * 0.0722;
-    let Z = r * 0.0193 + g * 0.1192 + b * 0.9505;
-    
-    // ★ 이 부분을 D50 화이트 포인트로 수정합니다.
-    let x = X / 0.9642; // (D50 Xn: 0.9642)
-    let y = Y / 1.0000; // (D50 Yn: 1.0000)
-    let z = Z / 0.8249; // (D50 Zn: 0.8249)
-    
-    x = (x > 0.008856) ? Math.cbrt(x) : (7.787 * x) + (16 / 116);
-    y = (y > 0.008856) ? Math.cbrt(y) : (7.787 * y) + (16 / 116);
-    z = (z > 0.008856) ? Math.cbrt(z) : (7.787 * z) + (16 / 116);
-    
-    return [(116 * y) - 16, 500 * (x - y), 200 * (y - z)];
+    let r = rgb[0] / 255, g = rgb[1] / 255, b = rgb[2] / 255;
+    r = (r > 0.04045) ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
+    g = (g > 0.04045) ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
+    b = (b > 0.04045) ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
+    
+    let X = r * 0.4124 + g * 0.3576 + b * 0.1805;
+    let Y = r * 0.2126 + g * 0.7152 + b * 0.0722;
+    let Z = r * 0.0193 + g * 0.1192 + b * 0.9505;
+    
+    // D50 Reference White
+    let x = X / 0.9642; 
+    let y = Y / 1.0000; 
+    let z = Z / 0.8249; 
+    
+    x = (x > 0.008856) ? Math.cbrt(x) : (7.787 * x) + (16 / 116);
+    y = (y > 0.008856) ? Math.cbrt(y) : (7.787 * y) + (16 / 116);
+    z = (z > 0.008856) ? Math.cbrt(z) : (7.787 * z) + (16 / 116);
+    
+    return [(116 * y) - 16, 500 * (x - y), 200 * (y - z)];
+}
+
+// ==============================================================
+// [신규] 웹 표준 로직 (RGB -> Lab D65 변환)
+// 모니터 화면, 웹 이미지에 적합 (피부톤 문제 해결)
+// ==============================================================
+function rgbToLabD65(rgb) {
+    let r = rgb[0] / 255, g = rgb[1] / 255, b = rgb[2] / 255;
+    r = (r > 0.04045) ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
+    g = (g > 0.04045) ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
+    b = (b > 0.04045) ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
+    
+    // sRGB to XYZ (D65) Matrix
+    let X = r * 0.4124564 + g * 0.3575761 + b * 0.1804375;
+    let Y = r * 0.2126729 + g * 0.7151522 + b * 0.0721750;
+    let Z = r * 0.0193339 + g * 0.1191920 + b * 0.9503041;
+    
+    // D65 Reference White (2° Observer)
+    // Xn: 95.047, Yn: 100.000, Zn: 108.883
+    let x = X / 0.95047; 
+    let y = Y / 1.00000; 
+    let z = Z / 1.08883; 
+    
+    x = (x > 0.008856) ? Math.cbrt(x) : (7.787 * x) + (16 / 116);
+    y = (y > 0.008856) ? Math.cbrt(y) : (7.787 * y) + (16 / 116);
+    z = (z > 0.008856) ? Math.cbrt(z) : (7.787 * z) + (16 / 116);
+    
+    return [(116 * y) - 16, 500 * (x - y), 200 * (y - z)];
 }
 
 function ciede2000(lab1, lab2) {
@@ -98,13 +127,12 @@ function ciede2000(lab1, lab2) {
 }
 
 // ==============================================================
-// ColorConverter 객체 (외부에서 호출용)
+// ColorConverter 객체
 // ==============================================================
 export const ColorConverter = {
     srgbToLinear(c) { return (c > 0.04045) ? Math.pow((c + 0.055) / 1.055, 2.4) : c / 12.92; },
     
     rgbToOklab(rgb) {
-        // ... (기존 Oklab 변환 로직 유지) ...
         const r = this.srgbToLinear(rgb[0] / 255);
         const g = this.srgbToLinear(rgb[1] / 255);
         const b = this.srgbToLinear(rgb[2] / 255);
@@ -122,28 +150,36 @@ export const ColorConverter = {
         ];
     },
     
-    // Wdot 모드용 함수들
-    rgbToLab: rgbToLab,
+    // 모드별 변환 함수 노출
+    rgbToLab: rgbToLab,       // D50 (기존)
+    rgbToLabD65: rgbToLabD65, // D65 (신규)
     ciede2000: ciede2000,
-
-    // ★ [중요 수정] quantization.js에서 호출하는 이름과 맞춰줍니다.
     deltaE2000: ciede2000, 
     
-    // Oklab 거리 계산 (유클리드)
     deltaOklab(lab1, lab2) { 
         return (lab1[0] - lab2[0])**2 + (lab1[1] - lab2[1])**2 + (lab1[2] - lab2[2])**2; 
     }
 };
 
 // ==============================================================
-// 가장 가까운 색 찾기 (Find Closest Color) - 3가지 모드 지원
+// 가장 가까운 색 찾기
 // ==============================================================
 export const findClosestColor = (r1, g1, b1, palette, paletteConverted, colorMethod) => {
     let minDistance = Infinity;
     let closestIndex = 0;
 
-    if (colorMethod === 'ciede2000') {
-        // [Mode 3] Wdot 모드 (CIEDE2000) - 가장 느림, 최고 정확도
+    if (colorMethod === 'ciede2000-d65') {
+        // [New Mode] CIEDE2000 (D65) - 웹 표준
+        const targetLab = ColorConverter.rgbToLabD65([r1, g1, b1]);
+        for (let i = 0; i < paletteConverted.length; i++) {
+            const dist = ColorConverter.ciede2000(targetLab, paletteConverted[i]);
+            if (dist < minDistance) { 
+                minDistance = dist; 
+                closestIndex = i; 
+            }
+        }
+    } else if (colorMethod === 'ciede2000') {
+        // [Old Mode] CIEDE2000 (D50) - 기존 Wdot 로직
         const targetLab = ColorConverter.rgbToLab([r1, g1, b1]);
         for (let i = 0; i < paletteConverted.length; i++) {
             const dist = ColorConverter.ciede2000(targetLab, paletteConverted[i]);
@@ -153,7 +189,7 @@ export const findClosestColor = (r1, g1, b1, palette, paletteConverted, colorMet
             }
         }
     } else if (colorMethod === 'oklab') {
-        // [Mode 2] Noadot 고품질 (Oklab) - 빠르고 정확함
+        // [Mode 2] Oklab
         const targetOklab = ColorConverter.rgbToOklab([r1, g1, b1]);
         for (let i = 0; i < paletteConverted.length; i++) {
             const dist = ColorConverter.deltaOklab(targetOklab, paletteConverted[i]);
@@ -163,7 +199,7 @@ export const findClosestColor = (r1, g1, b1, palette, paletteConverted, colorMet
             }
         }
     } else {
-        // [Mode 1] 일반 (RGB Redmean) - 매우 빠름
+        // [Mode 1] RGB
         for (let i = 0; i < palette.length; i++) {
             const [r2, g2, b2] = palette[i];
             const rMean = (r1 + r2) * 0.5;
@@ -181,16 +217,13 @@ export const findClosestColor = (r1, g1, b1, palette, paletteConverted, colorMet
     return { color: palette[closestIndex] || [0, 0, 0] };
 };
 
-// (패턴 디더링용, 속도를 위해 단순 거리 계산 사용)
+// (패턴 디더링용, RGB 거리 사용)
 export const findTwoClosestColors = (r, g, b, palette, paletteConverted, colorMethod) => {
     if (palette.length < 2) { 
         const c = palette[0] || [0,0,0]; 
         return { darker: c, brighter: c }; 
     }
     
-    // 성능을 위해 패턴 디더링에서는 복잡한 ciede2000 대신 RGB 방식을 주로 사용하거나,
-    // 필요하다면 위와 같은 분기 처리를 넣을 수 있습니다.
-    // 여기서는 RGB 거리 기준으로 근사합니다.
     let d1 = Infinity, idx1 = -1;
     let d2 = Infinity, idx2 = -1;
     

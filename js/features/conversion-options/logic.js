@@ -1,12 +1,12 @@
 import { eventBus } from '../../core/EventBus.js';
-import { state, CONFIG, t } from '../../state.js';
+import { state, CONFIG, t, rgbToHex } from '../../state.js';
 import { ConversionOptionsUI } from './ui.js';
+import { geopixelsColors, wplaceFreeColors, wplacePaidColors } from '../../../data/palettes.js';
 
 export class ConversionOptionsFeature {
     constructor() {
         this.ui = new ConversionOptionsUI();
         
-        // 동적 RGB 슬라이더 주입 (밝기 슬라이더가 있는 섹션 하단에)
         const brightnessSlider = document.getElementById('brightnessSlider');
         if (brightnessSlider) {
             const section = brightnessSlider.closest('.option-section') || brightnessSlider.parentElement.parentElement;
@@ -15,7 +15,6 @@ export class ConversionOptionsFeature {
             }
         }
 
-        // [기본값 설정] 애킨슨 디더링
         if (!state.ditheringAlgorithmSelect || state.ditheringAlgorithmSelect === 'none') {
             state.ditheringAlgorithmSelect = 'Atkinson';
         }
@@ -23,6 +22,8 @@ export class ConversionOptionsFeature {
         this.initEvents();
         this.initBusListeners();
         this.loadInitialState();
+        
+        this.updateOutlineDropdown();
     }
 
     initBusListeners() {
@@ -34,17 +35,96 @@ export class ConversionOptionsFeature {
             if (key === 'celShadingApply') this.ui.toggleGroup(this.ui.celShadingControls, value);
             if (key === 'celShadingOutline') this.ui.toggleGroup(this.ui.celShadingOutlineSettings, value);
         });
+
+        eventBus.on('MODE_CHANGED', () => this.updateOutlineDropdown());
+        eventBus.on('PALETTE_UPDATED', () => this.updateOutlineDropdown());
+        
+        eventBus.on('OPTION_CHANGED', () => {
+            this.updateOutlineDropdown();
+        });
+    }
+
+    // [수정됨] 사용자 색상(addedColors) 로드 및 포맷 안전장치 추가
+    updateOutlineDropdown() {
+        const groups = [];
+        const currentMode = state.currentMode || 'geopixels';
+
+        // [Helper] 데이터 포맷 통일 함수
+        const formatList = (list) => {
+            if (!Array.isArray(list)) return [];
+            return list.map(c => ({
+                name: c.name || 'Unknown',
+                hex: c.hex || (c.rgb ? rgbToHex(c.rgb[0], c.rgb[1], c.rgb[2]) : '#000000')
+            }));
+        };
+
+        // 1. 사용자 추가 색상 (변수명 수정: addedColors)
+        // 혹시 모를 상황에 대비해 addedColors와 customColors 둘 다 확인
+        const userColors = state.addedColors || state.customColors || [];
+        
+        if (userColors.length > 0) {
+            const customGroup = {
+                label: t('palette_user') || 'User Added',
+                colors: userColors.map(c => {
+                    // c가 [r,g,b] 배열인지, 객체인지 확인하여 처리
+                    let r, g, b;
+                    if (Array.isArray(c)) {
+                        [r, g, b] = c;
+                    } else if (c.rgb && Array.isArray(c.rgb)) {
+                        [r, g, b] = c.rgb;
+                    } else {
+                        r = 0; g = 0; b = 0; // Fallback
+                    }
+                    
+                    return {
+                        hex: rgbToHex(r, g, b),
+                        name: 'User Color'
+                    };
+                })
+            };
+            groups.push(customGroup);
+        }
+
+        // 2. 모드별 팔레트 구성
+        if (currentMode === 'geopixels') {
+            groups.push({
+                label: 'GeoPixels Default',
+                colors: formatList(geopixelsColors)
+            });
+
+            if (state.useWplaceInGeoMode) {
+                groups.push({
+                    label: 'Wplace Free',
+                    colors: formatList(wplaceFreeColors)
+                });
+                groups.push({
+                    label: 'Wplace Paid',
+                    colors: formatList(wplacePaidColors)
+                });
+            }
+        } else if (currentMode === 'wplace') {
+            groups.push({
+                label: 'Wplace Free',
+                colors: formatList(wplaceFreeColors)
+            });
+            groups.push({
+                label: 'Wplace Paid',
+                colors: formatList(wplacePaidColors)
+            });
+        }
+
+        // UI에 전달
+        this.ui.updateOutlineColorList(groups);
     }
 
     initEvents() {
-        // 1. 입력 요소 이벤트 바인딩 함수
         const bindInput = (element, stateKey, isGroupToggle = false, groupElement = null) => {
             if (!element) return;
             
             if (element.type === 'range') {
                 element.addEventListener('input', (e) => {
                     const val = parseInt(e.target.value, 10);
-                    this.ui.updateDisplay(stateKey, val); // 텍스트만 즉시 업데이트
+                    this.ui.updateDisplay(stateKey, val); 
                 });
                 element.addEventListener('change', (e) => {
                     const val = parseInt(e.target.value, 10);
@@ -69,7 +149,6 @@ export class ConversionOptionsFeature {
             }
         };
 
-        // --- 요소 연결 ---
         bindInput(this.ui.saturationInput, 'saturationSlider');
         bindInput(this.ui.brightnessInput, 'brightnessSlider');
         bindInput(this.ui.contrastInput, 'contrastSlider');
@@ -102,6 +181,7 @@ export class ConversionOptionsFeature {
         bindInput(this.ui.celShadingColorSpaceSelect, 'celShadingColorSpaceSelect');
         bindInput(this.ui.celShadingOutline, 'celShadingOutline', true, this.ui.celShadingOutlineSettings);
         bindInput(this.ui.celShadingOutlineThresholdSlider, 'celShadingOutlineThresholdSlider');
+        
         bindInput(this.ui.celShadingOutlineColorSelect, 'celShadingOutlineColorSelect');
 
         if (this.ui.celShadingRetryBtn) {
@@ -113,7 +193,6 @@ export class ConversionOptionsFeature {
 
         bindInput(this.ui.colorMethodSelect, 'colorMethodSelect');
 
-        // [중요] 전체 리셋 버튼 연결
         if (this.ui.resetAllBtn) {
             this.ui.resetAllBtn.addEventListener('click', () => {
                 if (confirm(t('confirm_reset_all_settings'))) {
@@ -122,12 +201,10 @@ export class ConversionOptionsFeature {
             });
         }
 
-        // [중요] 개별 리셋 버튼들 연결 (.reset-btn)
         if (this.ui.individualResetBtns) {
             this.ui.individualResetBtns.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
-                    // HTML의 data-target="saturationSlider" 등을 읽어옴
                     const targetId = btn.getAttribute('data-target');
                     if (targetId) {
                         this.resetIndividualOption(targetId);
@@ -166,13 +243,15 @@ export class ConversionOptionsFeature {
         this.ui.toggleGroup(this.ui.gradientControls, state.applyGradient);
         this.ui.toggleGroup(this.ui.celShadingControls, state.celShadingApply);
         this.ui.toggleGroup(this.ui.celShadingOutlineSettings, state.celShadingOutline);
+        
+        this.updateOutlineDropdown();
+        if (state.celShadingOutlineColorSelect) {
+            this.ui.celShadingOutlineColorSelect.value = state.celShadingOutlineColorSelect;
+        }
     }
 
-    // [개별 리셋 처리]
     resetIndividualOption(targetId) {
         let defaultValue = 0;
-        
-        // 각 슬라이더별 기본값 정의
         switch(targetId) {
             case 'saturationSlider': defaultValue = 100; break;
             case 'brightnessSlider': defaultValue = 0; break;
@@ -186,17 +265,12 @@ export class ConversionOptionsFeature {
             default: defaultValue = 0;
         }
 
-        // state 및 UI 업데이트
         state[targetId] = defaultValue;
         this.ui.updateDisplay(targetId, defaultValue);
-        
-        // 변환 실행
         this.triggerDebouncedUpdate();
     }
 
-    // [전체 리셋 처리]
     resetOptions() {
-        // RGB 리셋
         state.rgbWeightR = CONFIG.DEFAULTS.rgbWeightR;
         state.rgbWeightG = CONFIG.DEFAULTS.rgbWeightG;
         state.rgbWeightB = CONFIG.DEFAULTS.rgbWeightB;
@@ -205,7 +279,6 @@ export class ConversionOptionsFeature {
             saturationSlider: 100,
             brightnessSlider: 0,
             contrastSlider: 0,
-            // [요청 반영] 기본값 Atkinson
             ditheringAlgorithmSelect: 'atkinson', 
             ditheringSlider: 0,
             applyPattern: false,
@@ -236,6 +309,7 @@ export class ConversionOptionsFeature {
         this.ui.updateDisplay('rgbWeightB', 0);
 
         this.ui.resetUI();
+        this.updateOutlineDropdown(); 
         eventBus.emit('OPTION_CHANGED');
     }
 }
