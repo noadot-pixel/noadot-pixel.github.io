@@ -55,7 +55,7 @@ export const languageData = {
         option_apply_gradient: "투명도 그라데이션 적용",
         gradient_angle: "각도",
         gradient_strength: "강도",
-        option_pixelated_scaling: "선명한 리사이징 (픽셀 아트용)",
+        label_sharp_resizing: "선명한 리사이징 (픽셀 선명도 증가)",
         section_ai_preset: "✨프리셋 추천(테스트 기능)",
         btn_get_recommendations: "프리셋 추천",
         
@@ -464,7 +464,7 @@ export const languageData = {
         tooltip_gradient: "Applies a dithered transparency effect in a linear gradient. 'Angle' controls the direction, and 'Strength' controls the overall transparency.",
         extract_mode_smh : "Tonal Range",
         placeholder_no_new_recommendations: "No new recommendations for this mode, or all have been added.",
-        option_pixelated_scaling: "Pixel-perfect Scaling (for Pixel Art)",
+        label_sharp_resizing: "Pixel-perfect Scaling (Pixel Art Detail Up)",
         tooltip_pixelated_scaling: "When checked, keeps pixel edges sharp during resizing. For regular photos, uncheck this for a smoother result.",
         section_ai_preset: "✨Preset Recommendations(test)",
         btn_get_recommendations: "Get Presets",
