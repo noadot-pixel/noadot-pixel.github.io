@@ -104,10 +104,19 @@ export class ImageViewerFeature {
         const container = this.ui.container;
         if (!container) return;
 
-        // [New] 줌 버튼 이벤트 (10% 단위)
+        // [신규] 선명한 리사이징 체크박스 이벤트
+        if (this.ui.chkSharpResizing) {
+            this.ui.chkSharpResizing.addEventListener('change', (e) => {
+                // 체크됨(true) -> Sharp(선명하게) -> smoothing false
+                // 체크해제(false) -> Smooth(부드럽게) -> smoothing true
+                this.ui.toggleImageSmoothing(e.target.checked);
+            });
+        }
+
+        // 줌 버튼 이벤트
         if (this.ui.zoomInBtn) {
             this.ui.zoomInBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); // 캔버스 클릭 방지
+                e.stopPropagation(); 
                 this.adjustZoom(10);
             });
         }
@@ -126,14 +135,12 @@ export class ImageViewerFeature {
             });
         }
 
-        // 컨테이너 클릭 (배경 클릭 시 업로드 방지 등)
+        // 컨테이너 클릭
         container.addEventListener('click', (e) => {
             if (state.originalImageData) {
-                // UI 컨트롤 클릭은 통과
                 const isControl = e.target.closest('button, input, select, a, label, .top-right-ui');
                 if (isControl) return; 
 
-                // 그 외에는 전파 중단
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
@@ -156,7 +163,7 @@ export class ImageViewerFeature {
             this.updateTransform();
         }, { passive: false });
 
-        // 마우스 드래그 시작
+        // 마우스 드래그
         container.addEventListener('mousedown', (e) => {
             if (!state.originalImageData) return;
             if (e.target.closest('button')) return;
@@ -199,7 +206,7 @@ export class ImageViewerFeature {
             }
         });
 
-        // [모바일 터치]
+        // 모바일 터치 이벤트
         container.addEventListener('touchstart', (e) => {
             if (!state.originalImageData) return;
             if (e.target.closest('button')) return;
@@ -227,7 +234,7 @@ export class ImageViewerFeature {
                 return;
             }
 
-            // 일반 드래그
+            // 드래그
             if (e.touches.length === 1) {
                 state.isDragging = true;
                 this.hasDragged = false;
@@ -239,7 +246,7 @@ export class ImageViewerFeature {
         }, { passive: false });
 
         window.addEventListener('touchmove', (e) => {
-            // 핀치 줌 동작
+            // 핀치 줌
             if (e.touches.length === 2 && this.lastTouchDistance > 0) {
                 e.preventDefault();
                 
@@ -261,7 +268,7 @@ export class ImageViewerFeature {
                 return;
             }
 
-            // 드래그 동작
+            // 드래그
             if (state.isDragging && e.touches.length === 1) {
                 e.preventDefault();
                 const touch = e.touches[0];
