@@ -44,12 +44,10 @@ export class ConversionOptionsFeature {
         });
     }
 
-    // [수정됨] 사용자 색상(addedColors) 로드 및 포맷 안전장치 추가
     updateOutlineDropdown() {
         const groups = [];
         const currentMode = state.currentMode || 'geopixels';
 
-        // [Helper] 데이터 포맷 통일 함수
         const formatList = (list) => {
             if (!Array.isArray(list)) return [];
             return list.map(c => ({
@@ -58,22 +56,19 @@ export class ConversionOptionsFeature {
             }));
         };
 
-        // 1. 사용자 추가 색상 (변수명 수정: addedColors)
-        // 혹시 모를 상황에 대비해 addedColors와 customColors 둘 다 확인
         const userColors = state.addedColors || state.customColors || [];
         
         if (userColors.length > 0) {
             const customGroup = {
                 label: t('palette_user') || 'User Added',
                 colors: userColors.map(c => {
-                    // c가 [r,g,b] 배열인지, 객체인지 확인하여 처리
                     let r, g, b;
                     if (Array.isArray(c)) {
                         [r, g, b] = c;
                     } else if (c.rgb && Array.isArray(c.rgb)) {
                         [r, g, b] = c.rgb;
                     } else {
-                        r = 0; g = 0; b = 0; // Fallback
+                        r = 0; g = 0; b = 0;
                     }
                     
                     return {
@@ -85,7 +80,6 @@ export class ConversionOptionsFeature {
             groups.push(customGroup);
         }
 
-        // 2. 모드별 팔레트 구성
         if (currentMode === 'geopixels') {
             groups.push({
                 label: 'GeoPixels Default',
@@ -113,7 +107,6 @@ export class ConversionOptionsFeature {
             });
         }
 
-        // UI에 전달
         this.ui.updateOutlineColorList(groups);
     }
 
@@ -177,11 +170,14 @@ export class ConversionOptionsFeature {
                 eventBus.emit('OPTION_CHANGED');
             });
         }
+        
+        // [신규] 알고리즘 선택 드롭다운 연결
+        bindInput(this.ui.celShadingAlgorithmSelect, 'celShadingAlgorithmSelect');
+
         bindInput(this.ui.celShadingLevelsSlider, 'celShadingLevelsSlider');
         bindInput(this.ui.celShadingColorSpaceSelect, 'celShadingColorSpaceSelect');
         bindInput(this.ui.celShadingOutline, 'celShadingOutline', true, this.ui.celShadingOutlineSettings);
         bindInput(this.ui.celShadingOutlineThresholdSlider, 'celShadingOutlineThresholdSlider');
-        
         bindInput(this.ui.celShadingOutlineColorSelect, 'celShadingOutlineColorSelect');
 
         if (this.ui.celShadingRetryBtn) {
@@ -228,7 +224,7 @@ export class ConversionOptionsFeature {
             'ditheringAlgorithmSelect', 'ditheringSlider',
             'applyPattern', 'patternTypeSelect', 'patternSizeSlider',
             'applyGradient', 'gradientTypeSelect', 'gradientDitherSizeSlider', 'gradientAngleSlider', 'gradientStrengthSlider',
-            'celShadingApply', 'celShadingLevelsSlider', 'celShadingColorSpaceSelect',
+            'celShadingApply', 'celShadingAlgorithmSelect', 'celShadingLevelsSlider', 'celShadingColorSpaceSelect', // [신규] algorithm 추가
             'celShadingOutline', 'celShadingOutlineThresholdSlider', 'celShadingOutlineColorSelect',
             'colorMethodSelect'
         ];
@@ -252,6 +248,7 @@ export class ConversionOptionsFeature {
 
     resetIndividualOption(targetId) {
         let defaultValue = 0;
+        
         switch(targetId) {
             case 'saturationSlider': defaultValue = 100; break;
             case 'brightnessSlider': defaultValue = 0; break;
@@ -291,6 +288,7 @@ export class ConversionOptionsFeature {
             gradientStrengthSlider: 100,
             colorMethodSelect: 'oklab',
             celShadingApply: false,
+            celShadingAlgorithmSelect: 'kmeans', // [신규] 기본값 K-Means
             celShadingLevelsSlider: 8,
             celShadingColorSpaceSelect: 'oklab',
             celShadingOutline: false,

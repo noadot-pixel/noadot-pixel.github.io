@@ -377,6 +377,17 @@
                 <fieldset class="sub-fieldset">
                     <legend data-lang-key="cartoon_section_quant">색상 추출 (Quantization)</legend>
                     
+                    <div class="control-group">
+                        <label for="celShadingAlgorithmSelect" data-lang-key="cartoon_algorithm">알고리즘</label>
+                        <select id="celShadingAlgorithmSelect">
+                            <option value="kmeans" selected>K-Means (기본 - 균형잡힘)</option>
+                            <option value="wu">Wu's Algorithm (최고 품질 - 추천)</option>
+                            <option value="mediancut">Median Cut (대중적)</option>
+                            <option value="octree">Octree (빠름)</option>
+                            <option value="popularity">Popularity (빈도수 - 단순함)</option>
+                        </select>
+                    </div>
+
                     <!-- 1. 색상 레벨 슬라이더 (유지) -->
                     <div class="control-group">
                         <label for="celShadingLevelsSlider"><span data-lang-key="cartoon_color_level">색상 레벨</span>: <span id="celShadingLevelsValue">8</span></label>
