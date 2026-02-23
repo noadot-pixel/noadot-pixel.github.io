@@ -34,6 +34,7 @@ export class ConversionOptionsFeature {
             if (key === 'applyGradient') this.ui.toggleGroup(this.ui.gradientControls, value);
             if (key === 'celShadingApply') this.ui.toggleGroup(this.ui.celShadingControls, value);
             if (key === 'celShadingOutline') this.ui.toggleGroup(this.ui.celShadingOutlineSettings, value);
+            if (key === 'applyRefinement') this.ui.toggleGroup(this.ui.refinementOptions, value);
         });
 
         eventBus.on('MODE_CHANGED', () => this.updateOutlineDropdown());
@@ -142,6 +143,17 @@ export class ConversionOptionsFeature {
             }
         };
 
+        bindInput(this.ui.applyAspireDither, 'applyAspireDither');
+        bindInput(this.ui.applyRefinement, 'applyRefinement', true, this.ui.refinementOptions);
+        bindInput(this.ui.refinementSlider, 'refinementSlider');
+
+        bindInput(this.ui.refinementSlider, 'refinementSlider');
+        bindInput(this.ui.aspireDitherCheck, 'aspireDitherCheck');
+
+        bindInput(this.ui.celShadingRefinementSlider, 'celShadingRefinementSlider');
+        bindInput(this.ui.refinementSlider, 'refinementSlider');
+        bindInput(this.ui.aspireDitherCheck, 'aspireDitherCheck');
+
         bindInput(this.ui.saturationInput, 'saturationSlider');
         bindInput(this.ui.brightnessInput, 'brightnessSlider');
         bindInput(this.ui.contrastInput, 'contrastSlider');
@@ -149,6 +161,8 @@ export class ConversionOptionsFeature {
         bindInput(this.ui.rgbRInput, 'rgbWeightR');
         bindInput(this.ui.rgbGInput, 'rgbWeightG');
         bindInput(this.ui.rgbBInput, 'rgbWeightB');
+
+        bindInput(this.ui.celShadingAspireDither, 'celShadingAspireDither');
 
         bindInput(this.ui.ditheringSelect, 'ditheringAlgorithmSelect'); 
         bindInput(this.ui.ditheringIntensity, 'ditheringSlider');
@@ -219,14 +233,14 @@ export class ConversionOptionsFeature {
 
     loadInitialState() {
         const keys = [
-            'saturationSlider', 'brightnessSlider', 'contrastSlider',
+            'saturationSlider', 'brightnessSlider', 'contrastSlider', 'celShadingRefinementSlider', 'celShadingAspireDither',
             'rgbWeightR', 'rgbWeightG', 'rgbWeightB', 
             'ditheringAlgorithmSelect', 'ditheringSlider',
             'applyPattern', 'patternTypeSelect', 'patternSizeSlider',
             'applyGradient', 'gradientTypeSelect', 'gradientDitherSizeSlider', 'gradientAngleSlider', 'gradientStrengthSlider',
             'celShadingApply', 'celShadingAlgorithmSelect', 'celShadingLevelsSlider', 'celShadingColorSpaceSelect', // [신규] algorithm 추가
             'celShadingOutline', 'celShadingOutlineThresholdSlider', 'celShadingOutlineColorSelect',
-            'colorMethodSelect'
+            'colorMethodSelect', 'refinementSlider', 'aspireDitherCheck','refinementSlider', 'aspireDitherCheck', 'celShadingApply',
         ];
 
         keys.forEach(key => {
@@ -273,6 +287,8 @@ export class ConversionOptionsFeature {
         state.rgbWeightB = CONFIG.DEFAULTS.rgbWeightB;
 
         const defaults = {
+            celShadingOutlineColorSelect: '#000000',
+            celShadingAspireDither: false,
             saturationSlider: 100,
             brightnessSlider: 0,
             contrastSlider: 0,
@@ -294,7 +310,12 @@ export class ConversionOptionsFeature {
             celShadingOutline: false,
             celShadingOutlineThresholdSlider: 50,
             celShadingOutlineColorSelect: '#000000',
-            celShadingRandomSeed: 0
+            celShadingRandomSeed: 0,
+            refinementSlider: 0,
+            aspireDitherCheck: false,
+            refinementSlider: 0,
+            aspireDitherCheck: false,
+            celShadingApply: false,
         };
 
         Object.keys(defaults).forEach(key => {

@@ -1,3 +1,4 @@
+// js/core/WorkerBridge.js
 import { eventBus } from './EventBus.js';
 import { state, hexToRgb } from '../state.js';
 
@@ -54,12 +55,8 @@ export class WorkerBridge {
                     break;
 
                 case 'recommendationResult':
-                    console.log("[Bridge] 추천 결과 수신함:", payload.recommendations); // [로그 5]
-                    
                     if (!payload.tags) payload.tags = [];
-                    // 이벤트 전송
                     eventBus.emit('IMAGE_ANALYZED', payload);
-                    console.log("[Bridge] IMAGE_ANALYZED 이벤트 발송 완료"); // [로그 6]
                     break;
             }
         };
@@ -84,6 +81,8 @@ export class WorkerBridge {
             message.options.ditheringIntensity = 0;
             message.options.applyPattern = false;
             message.options.applyGradient = false;
+            message.options.applyAspireDither = false;
+            message.options.applyRefinement = false;
             message.options.celShading = { apply: false };
             
             state.isConverting = true;
@@ -130,7 +129,6 @@ export class WorkerBridge {
             this.isWorkerBusy = true; 
             state.isConverting = true;
             eventBus.emit('CONVERSION_START');
-
             this.worker.postMessage(this.packOptions());
         };
 
@@ -166,8 +164,14 @@ export class WorkerBridge {
                 colorMethod: state.colorMethodSelect ?? 'oklab',
                 pixelatedScaling: false,
                 
+                // [신규] 체크박스 상태 추가 (만화 필터 밖으로 독립됨)
+                applyAspireDither: state.applyAspireDither ?? false,
+                applyRefinement: state.applyRefinement ?? false,
+                refinementStrength: state.refinementSlider ?? 50,
+                
                 celShading: {
                     apply: state.celShadingApply ?? false,
+                    algorithm: state.celShadingAlgorithmSelect ?? 'kmeans',
                     levels: state.celShadingLevelsSlider ?? 8,
                     colorSpace: state.celShadingColorSpaceSelect ?? 'oklab',
                     outline: state.celShadingOutline ?? false,

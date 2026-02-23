@@ -296,11 +296,27 @@
                 <input type="range" id="ditheringSlider" min="0" max="100" value="0">
             </div>
 
+            <div class="control-group"  style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
+                <label for="colorMethodSelect" data-lang-key="option_color_method" data-tooltip-key="tooltip_color_method">색상 계산 방식</label>
+                <select id="colorMethodSelect" data-tooltip-key="tooltip_color_method">
+                    <option value="rgb" data-lang-key="option_color_method_rgb">RGB - 단순 변환</option>
+                    <option value="oklab" selected data-lang-key="option_color_method_oklab">OKlab - 색상 보정 변환</option>
+                    <!-- [New] Wdot 옵션 추가 -->
+                    <option value="ciede2000" data-lang-key="option_color_method_ciede2000">Wdot - 고품질 변환(웜톤)</option>
+                    <option value="ciede2000-d65" data-lang-key="option_color_method_D65">D65 - 고품질 변환(쿨톤)</option>
+                </select>
+            </div>
+
+            <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
+                <input type="checkbox" id="chkSharpResizing" checked>
+                <label for="chkSharpResizing" data-lang-key="label_sharp_resizing">선명한 리사이징 (픽셀 보정)</label>
+            </div>
+
             <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
                 <input type="checkbox" id="applyPattern">
                 <label for="applyPattern" data-lang-key="option_apply_pattern" data-tooltip-key="tooltip_cartoon_filter">패턴 적용</label>
             </div>
-            <div id="pattern-options" class="sub-options" style="display: none;">
+            <div id="patternOptions" class="sub-options" style="display: none; padding-left: 5px; padding-bottom: 10px;">
                 <div class="control-group">
                     <label for="patternTypeSelect" data-lang-key="pattern_type">패턴 종류</label>
                     <select id="patternTypeSelect">
@@ -318,13 +334,12 @@
                     <input type="range" id="patternSizeSlider" min="2" max="32" value="4">
                 </div>
             </div>
-            
+
             <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
                 <input type="checkbox" id="applyGradient">
                 <label for="applyGradient" data-lang-key="option_apply_gradient" data-tooltip-key="tooltip_gradient">투명도 그라데이션 적용</label>
             </div>
-            <div id="gradient-options" class="sub-options" style="display: none;">
-                
+            <div id="gradientOptions" class="sub-options" style="display: none; padding-left: 5px; padding-bottom: 10px;">
                 <div class="control-group">
                     <label for="gradientTypeSelect" data-lang-key="gradient_type">스타일</label>
                     <select id="gradientTypeSelect">
@@ -348,53 +363,43 @@
                 </div>
             </div>
 
-
-
-            <div class="control-group"  style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
-                <label for="colorMethodSelect" data-lang-key="option_color_method" data-tooltip-key="tooltip_color_method">색상 계산 방식</label>
-                <select id="colorMethodSelect" data-tooltip-key="tooltip_color_method">
-                    <option value="rgb" data-lang-key="option_color_method_rgb">RGB - 단순 변환</option>
-                    <option value="oklab" selected data-lang-key="option_color_method_oklab">OKlab - 색상 보정 변환</option>
-                    <!-- [New] Wdot 옵션 추가 -->
-                    <option value="ciede2000" data-lang-key="option_color_method_ciede2000">Wdot - 고품질 변환(웜톤)</option>
-                    <option value="ciede2000-d65" data-lang-key="option_color_method_D65">D65 - 고품질 변환(쿨톤)</option>
-                </select>
-            </div>
-            
-            <div class="control-group checkbox-group" style="margin-top: 10px; border-top: 1px dashed #eee; padding-top: 10px;">
-                <input type="checkbox" id="chkSharpResizing" checked>
-                <label for="chkSharpResizing" data-lang-key="label_sharp_resizing">선명한 리사이징 (픽셀 보정)</label>
-            </div>
-
-            <!-- 만화 필터 메인 토글 -->
             <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
-                <input type="checkbox" id="celShadingApply">
-                <label for="celShadingApply" data-lang-key="option_cartoon_filter" data-tooltip-key="tooltip_cartoon_filter">만화 스타일 필터</label>
+                <input type="checkbox" id="applyAspireDither">
+                <label for="applyAspireDither" data-lang-key="option_apply_aspire">Aspire 스타일</label>
             </div>
 
-            <!-- "만화 필터 스튜디오" 상세 옵션 -->
-            <div id="celShadingOptions" class="sub-options" style="display: none;">
-                <fieldset class="sub-fieldset">
+            <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
+                <input type="checkbox" id="applyRefinement">
+                <label for="applyRefinement" data-lang-key="option_apply_refinement">면 평탄화</label>
+            </div>
+            <div id="refinementOptions" class="sub-options" style="display: none; padding-left: 5px; padding-bottom: 10px;">
+                <div class="control-group">
+                    <label for="refinementSlider" data-lang-key="label_refinement_strength">강도: <span id="refinementValue">50</span></label>
+                    <input type="range" id="refinementSlider" min="1" max="100" value="50" step="1">
+                </div>
+            </div>
+
+            <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px; margin-bottom: 10px;">
+                <input type="checkbox" id="celShadingApply">
+                <label for="celShadingApply" data-lang-key="option_cartoon_filter">만화 스타일 필터 (Cel Shading)</label>
+            </div>
+            <div id="celShadingOptions" class="sub-options" style="display: none; padding-left: 5px;">
+                <fieldset class="sub-fieldset" style="margin-bottom: 10px;">
                     <legend data-lang-key="cartoon_section_quant">색상 추출 (Quantization)</legend>
-                    
                     <div class="control-group">
                         <label for="celShadingAlgorithmSelect" data-lang-key="cartoon_algorithm">알고리즘</label>
                         <select id="celShadingAlgorithmSelect">
-                            <option value="kmeans" selected>K-Means (기본 - 균형잡힘)</option>
-                            <option value="wu">Wu's Algorithm (최고 품질 - 추천)</option>
-                            <option value="mediancut">Median Cut (대중적)</option>
-                            <option value="octree">Octree (빠름)</option>
-                            <option value="popularity">Popularity (빈도수 - 단순함)</option>
+                            <option value="kmeans" selected data-lang-key="option_kmeans">K-Means (기본 - 균형잡힘)</option>
+                            <option value="wu" data-lang-key="option_wu">Wu's Algorithm (최고 품질 - 추천)</option>
+                            <option value="mediancut" data-lang-key="option_mediancut">Median Cut (대중적)</option>
+                            <option value="octree" data-lang-key="option_octree">Octree (빠름)</option>
+                            <option value="popularity" data-lang-key="option_popularity">Popularity (빈도수 - 단순함)</option>
                         </select>
                     </div>
-
-                    <!-- 1. 색상 레벨 슬라이더 (유지) -->
                     <div class="control-group">
                         <label for="celShadingLevelsSlider"><span data-lang-key="cartoon_color_level">색상 레벨</span>: <span id="celShadingLevelsValue">8</span></label>
                         <input type="range" id="celShadingLevelsSlider" min="2" max="32" value="8">
                     </div>
-
-                    <!-- 2. 색 공간 선택 (유지) -->
                     <div class="control-group">
                         <label for="celShadingColorSpaceSelect" data-lang-key="cartoon_quant_space">색 공간</label>
                         <select id="celShadingColorSpaceSelect">
@@ -402,31 +407,23 @@
                             <option value="rgb" data-lang-key="space_rgb">일반 (RGB)</option>
                         </select>
                     </div>
-
-                    <!-- [신규] 3. 다른 색상 조합 시도 버튼 (랜덤 시드 변경) -->
                     <div class="control-group" style="justify-content: flex-end; margin-top: 5px;">
                         <button id="celShadingRetryBtn" class="analyze-button" 
                             data-lang-key="btn_retry_color_combination" 
                             data-tooltip-key="tooltip_retry_seed"
                             style="width: 100%;">
-                        🎲 다른 색상 조합 시도
-                    </button>
-                            
+                            🎲 다른 색상 조합 시도
                         </button>
                     </div>
                 </fieldset>
 
                 <fieldset class="sub-fieldset">
                     <legend data-lang-key="cartoon_section_outline">외곽선 (Outline)</legend>
-    
-                    <!-- 외곽선 표시 토글 -->
-                    <div class="control-group checkbox-group" style="padding-left: 0;">
+                    <div class="control-group checkbox-group" style="padding-left: 0; margin-bottom: 0;">
                         <input type="checkbox" id="celShadingOutline">
                         <label for="celShadingOutline" data-lang-key="cartoon_show_outline">외곽선 표시</label>
                     </div>
-
-                    <!-- [수정됨] 토글에 따라 보여질 하위 메뉴 그룹 -->
-                    <div id="outline-sub-settings" style="display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+                    <div id="celShadingOutlineOptions" style="display: none; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
                         <div class="control-group">
                             <label for="celShadingOutlineThresholdSlider"><span data-lang-key="cartoon_outline_threshold">외곽선 민감도</span>: <span id="celShadingOutlineThresholdValue">50</span></label>
                             <input type="range" id="celShadingOutlineThresholdSlider" min="10" max="150" value="50">
@@ -434,7 +431,6 @@
                         <div class="control-group color-picker-group">
                             <label for="celShadingOutlineColorSelect" data-lang-key="cartoon_outline_color">외곽선 색상</label>
                             <select id="celShadingOutlineColorSelect">
-                                <!-- JS가 채워넣음 -->
                             </select>
                         </div>
                     </div>
@@ -445,8 +441,14 @@
         <section class="mode-switcher">
             <h2 data-lang-key="section_palette">4. 팔레트 선택</h2>
             <div class="radio-toggle">
-                <input type="radio" id="geopixelsMode" name="paletteMode" value="geopixels" checked><label for="geopixelsMode">GeoPixels</label>
-                <input type="radio" id="wplaceMode" name="paletteMode" value="wplace"><label for="wplaceMode">Wplace</label>
+                <input type="radio" id="geopixelsMode" name="paletteMode" value="geopixels" checked>
+                <label for="geopixelsMode">GeoPixels</label>
+                
+                <input type="radio" id="wplaceMode" name="paletteMode" value="wplace">
+                <label for="wplaceMode">Wplace</label>
+
+                <input type="radio" id="uplaceMode" name="paletteMode" value="uplace">
+                <label for="uplaceMode">Uplace</label>
             </div>
         </section>
 
@@ -455,9 +457,17 @@
                 <details open class="palette-category"><summary><span class="palette-status-icon" data-target="geoPixelColors"></span><span data-lang-key="palette_geopixels_default">GeoPixels 기본 팔레트</span></summary><div class="palette-section"><div class="palette-buttons" id="geoPixelColors"></div></div></details>
                 <details class="palette-category"><summary><span class="palette-status-icon" data-target="wplaceFreeColorsInGeo,wplacePaidColorsInGeo"></span><span data-lang-key="palette_use_wplace">Wplace 팔레트 사용하기</span></summary><div class="palette-section"><div class="control-group checkbox-group"><input type="checkbox" id="useWplaceInGeoMode"><label for="useWplaceInGeoMode" data-lang-key="palette_use_wplace_in_geo">GeoPixels 모드에서 Wplace 팔레트 함께 사용</label></div><div id="wplace-palette-in-geo" style="display: none;"><h4 data-lang-key="palette_wplace_free">Wplace 무료</h4><div class="palette-buttons" id="wplaceFreeColorsInGeo"></div><h4 style="margin-top:15px;" data-lang-key="palette_wplace_paid">Wplace 유료</h4><div class="palette-buttons" id="wplacePaidColorsInGeo"></div></div></div></details>
             </div>
+            
             <div id="wplace-controls" style="display: none;">
                 <details open class="palette-category"><summary><span class="palette-status-icon" data-target="wplaceFreeColors"></span><span data-lang-key="palette_wplace_free">Wplace 무료 팔레트</span></summary><div class="palette-section"><div class="palette-buttons" id="wplaceFreeColors"></div></div></details>
                 <details class="palette-category"><summary><span class="palette-status-icon" data-target="wplacePaidColors"></span><span data-lang-key="palette_wplace_paid">Wplace 유료 팔레트</span></summary><div class="palette-section"><div class="palette-buttons" id="wplacePaidColors"></div></div></details>
+            </div>
+
+            <div id="uplace-controls" style="display: none;">
+                <details open class="palette-category">
+                    <summary><span class="palette-status-icon" data-target="uplaceColorsList"></span><span data-lang-key="palette_uplace_default">Uplace 팔레트</span></summary>
+                    <div class="palette-section"><div class="palette-buttons" id="uplaceColorsList"></div></div>
+                </details>
             </div>
         </div>
 
@@ -565,14 +575,6 @@
             <button id="downloadBtn" disabled data-lang-key="btn_download">다운로드</button>
             <div id="download-options-container" style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">
                 
-                <div class="custom-checkbox-wrapper">
-                    <input type="checkbox" id="chkDownloadUplace" class="custom-checkbox-input" disabled>
-                    <label for="chkDownloadUplace" class="custom-checkbox-label">
-                        <span class="checkmark"></span>
-                        <span data-lang-key="label_download_uplace">Uplace 버전으로 다운로드 (.you)</span>
-                    </label>
-                </div>
-
                 <div class="custom-checkbox-wrapper">
                     <input type="checkbox" id="chkDownloadSeparated" class="custom-checkbox-input">
                     <label for="chkDownloadSeparated" class="custom-checkbox-label">

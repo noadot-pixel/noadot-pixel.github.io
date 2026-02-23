@@ -1,6 +1,7 @@
 // js/features/palette-selector/ui.js
 
-import { geopixelsColors, wplaceFreeColors, wplacePaidColors } from '../../../data/palettes.js';
+// [수정] uplaceColors 추가 임포트
+import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors } from '../../../data/palettes.js';
 import { rgbToHex, state } from '../../state.js'; 
 import { eventBus } from '../../core/EventBus.js'; 
 
@@ -10,15 +11,19 @@ export class PaletteSelectorUI {
 
         this.geoModeRadio = document.getElementById('geopixelsMode');
         this.wplaceModeRadio = document.getElementById('wplaceMode');
+        // [신규] Uplace 라디오 버튼 연결
+        this.modeUplace = document.getElementById('uplaceMode');
 
         this.geoControls = document.getElementById('geopixels-controls');
         this.wplaceControls = document.getElementById('wplace-controls');
+        this.uplaceControls = document.getElementById('uplace-controls'); // [신규] Uplace 컨트롤 연결
         this.userPaletteSection = document.getElementById('user-palette-section');
 
         // 타겟 컨테이너들
         this.geoPixelColorsContainer = document.getElementById('geoPixelColors');
         this.wplaceFreeColorsContainer = document.getElementById('wplaceFreeColors');
         this.wplacePaidColorsContainer = document.getElementById('wplacePaidColors');
+        this.uplaceColorsList = document.getElementById('uplaceColorsList'); // [신규] Uplace 컨테이너 연결
 
         this.useWplaceInGeoCheckbox = document.getElementById('useWplaceInGeoMode');
         this.wplaceInGeoSection = document.getElementById('wplace-palette-in-geo');
@@ -92,7 +97,7 @@ export class PaletteSelectorUI {
                 transform: scale(1.05);
             }
 
-            /* [New] 픽셀 카운트 배지 (우측 하단 고정) */
+            /* 픽셀 카운트 배지 (우측 하단 고정) */
             .grid-count-badge {
                 position: absolute;
                 bottom: 2px;
@@ -112,17 +117,26 @@ export class PaletteSelectorUI {
         document.head.appendChild(style);
     }
 
+    // [수정] 모드에 따라 Uplace 화면 전환 로직 추가
     updateDisplay(mode) {
         if (mode === 'geopixels') {
             if (this.geoControls) this.geoControls.style.display = 'block';
             if (this.wplaceControls) this.wplaceControls.style.display = 'none';
+            if (this.uplaceControls) this.uplaceControls.style.display = 'none';
             if (this.userPaletteSection) this.userPaletteSection.style.display = 'block';
             if (this.geoModeRadio) this.geoModeRadio.checked = true;
-        } else {
+        } else if (mode === 'wplace') {
             if (this.geoControls) this.geoControls.style.display = 'none';
             if (this.wplaceControls) this.wplaceControls.style.display = 'block';
+            if (this.uplaceControls) this.uplaceControls.style.display = 'none';
             if (this.userPaletteSection) this.userPaletteSection.style.display = 'none';
             if (this.wplaceModeRadio) this.wplaceModeRadio.checked = true;
+        } else if (mode === 'uplace') {
+            if (this.geoControls) this.geoControls.style.display = 'none';
+            if (this.wplaceControls) this.wplaceControls.style.display = 'none';
+            if (this.uplaceControls) this.uplaceControls.style.display = 'block';
+            if (this.userPaletteSection) this.userPaletteSection.style.display = 'none';
+            if (this.modeUplace) this.modeUplace.checked = true;
         }
     }
 
@@ -132,13 +146,15 @@ export class PaletteSelectorUI {
         }
     }
 
-    // [수정] stats(통계)를 받아 하위 함수로 전달
+    // [수정] Uplace 색상을 화면에 그려주도록 추가
     renderPalettes(stats = {}) {
         if (this.geoPixelColorsContainer) this.fillContainerWithColors(this.geoPixelColorsContainer, geopixelsColors, stats);
         if (this.wplaceFreeColorsContainer) this.fillContainerWithColors(this.wplaceFreeColorsContainer, wplaceFreeColors, stats);
         if (this.wplacePaidColorsContainer) this.fillContainerWithColors(this.wplacePaidColorsContainer, wplacePaidColors, stats);
         if (this.wplaceFreeColorsInGeoContainer) this.fillContainerWithColors(this.wplaceFreeColorsInGeoContainer, wplaceFreeColors, stats);
         if (this.wplacePaidColorsInGeoContainer) this.fillContainerWithColors(this.wplacePaidColorsInGeoContainer, wplacePaidColors, stats);
+        // [신규] Uplace 리스트 렌더링
+        if (this.uplaceColorsList) this.fillContainerWithColors(this.uplaceColorsList, uplaceColors, stats);
     }
 
     fillContainerWithColors(container, colors, stats) {
@@ -187,7 +203,7 @@ export class PaletteSelectorUI {
                 swatch.classList.add('disabled');
             }
 
-            // [New] 카운트 뱃지 추가
+            // 카운트 뱃지 추가
             const count = stats[hex];
             if (count && count > 0) {
                 const badge = document.createElement('div');

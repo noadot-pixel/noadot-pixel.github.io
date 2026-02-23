@@ -4,7 +4,6 @@ export const languageData = {
     ko: {
         app_title: "NoaDot - 이미지/텍스트 변환기",
         app_header: "🎨 노아도트 v6.5",
-        // ... (기존 텍스트는 동일) ...!
         section_mode: "모드 선택",
         mode_image: "🖼️ 이미지",
         mode_text: "✏️ 텍스트",
@@ -40,6 +39,8 @@ export const languageData = {
         dithering_atkinson: "애킨슨",
         dithering_none: "사용 안함",
         option_dithering_strength: "디더링 강도",
+        
+        // 패턴 옵션
         option_apply_pattern: "패턴 적용",
         pattern_type: "패턴 종류",
         pattern_size: "패턴 크기",
@@ -50,16 +51,26 @@ export const languageData = {
         pattern_diagonal_left: "대각선 (↘)",
         pattern_brick: "벽돌",
         pattern_bayer: "점묘화 (베이어8*8)",
-        option_hq_mode: "고품질 색상 계산 (느림)",
-        option_cartoon_filter: "만화 스타일 필터",
+        
+        // 그라데이션 옵션
         option_apply_gradient: "투명도 그라데이션 적용",
+        gradient_type: "스타일",
+        gradient_dither_size: "입자 크기",
         gradient_angle: "각도",
         gradient_strength: "강도",
+
+        // [신규] Aspire 및 면 평탄화 옵션
+        option_apply_aspire: "Aspire 스타일",
+        option_apply_refinement: "면 평탄화",
+        label_refinement_strength: "강도",
+
+        option_hq_mode: "고품질 색상 계산 (느림)",
+        option_cartoon_filter: "만화 스타일 필터",
         label_sharp_resizing: "선명한 리사이징 (픽셀 선명도 증가)",
         section_ai_preset: "✨프리셋 추천(테스트 기능)",
         btn_get_recommendations: "프리셋 추천",
         
-        // --- ▼ 신규/수정된 텍스트 ▼ ---
+        // 만화 필터 상세
         cartoon_section_quant: "색상 추출",
         alert_image_only: "이미지 파일만 업로드 가능합니다.",
         cartoon_color_level: "색상 레벨",
@@ -67,8 +78,14 @@ export const languageData = {
         quant_kmeans_plus: "안정적 (K-Means++)",
         quant_random: "무작위 (빠름)",
         cartoon_quant_space: "색 공간",
-        space_oklab: "고품질 (OKLab)",
-        space_rgb: "일반 (RGB)",
+        space_oklab: "OKLab",
+        space_rgb: "RGB",
+
+        option_kmeans: "K-Means (기본 - 균형잡힘)",
+        option_wu: "K-Means Wu's Algorithm (최고 품질 - 추천)",
+        option_mediancut: "Median Cut (대중적)",
+        option_octree: "Octree (빠름)",
+        option_popularity: "Popularity (빈도수 - 단순함)",
 
         cartoon_section_map: "색상 매핑",
         cartoon_map_mode: "매핑 모드",
@@ -78,7 +95,6 @@ export const languageData = {
         cartoon_section_outline: "외곽선",
         cartoon_show_outline: "외곽선 표시",
         cartoon_outline_threshold: "외곽선 민감도",
-        // --- ▲ 신규/수정된 텍스트 ▲ ---
 
         section_palette: "팔레트 선택",
 
@@ -86,12 +102,11 @@ export const languageData = {
         label_split_count: "분할 수 (가로 x 세로)",
         label_maintain_size: "원본 사이즈 유지하기 (여백 투명화)",
 
-        confirm_mode_switch_to_text: "모드 변환 시 업로드한 이미지가 초기화됩니다. 변경하시겠습니까?",
-        confirm_mode_switch_to_image: "모드 변환 시 폰트 및 텍스트 내용이 초기화됩니다. 변경하시겠습니까?",
+        confirm_mode_switch_to_text: "모드 전환 시 업로드한 이미지가 초기화됩니다. 변경하시겠습니까?",
+        confirm_mode_switch_to_image: "모드 전환 시 폰트 및 텍스트 내용이 초기화됩니다. 변경하시겠습니까?",
         placeholder_image_upload: "창 클릭 혹은 이미지를 화면으로 드래그",
         placeholder_text_preview: "해당 화면을 통해 텍스트를 미리 확인할 수 있습니다",
 
-        // ... (이하 모든 기존 텍스트는 동일) ...
         palette_geopixels_default: "GeoPixels 기본 팔레트",
         palette_use_wplace: "Wplace 팔레트 사용하기",
         palette_use_wplace_in_geo: "GeoPixels 모드에서 Wplace 팔레트 함께 사용",
@@ -111,12 +126,10 @@ export const languageData = {
         btn_export_palette: "파일로 내보내기",
         btn_import_palette: "파일에서 불러오기",
         btn_download: "다운로드",
-        placeholder_image_upload: "창 클릭 혹은 이미지를 화면으로 드래그",
         placeholder_text_editor: "여기에 텍스트를 입력하세요...",
         placeholder_recommend: "이미지를 업로드하면<br>추천 색상이 표시됩니다.",
         placeholder_add_color: "아래에서 직접 색상을 추가하세요.",
         placeholder_hex: "HEX 코드 입력 (예: #FFFFFF)",
-        placeholder_text_preview: "왼쪽에서 텍스트를 입력하면 여기에 미리보기가 표시됩니다.",
         tooltip_dithering: "제한된 색상으로 이미지의 색을 표현할 때, 점을 찍는 방식으로 색상 간의 경계를 부드럽게 만들어 계단 현상을 줄여주는 기법입니다. 이미지의 디테일을 향상시킵니다.",
         tooltip_pattern: "이미지의 명암과 패턴 지도를 비교하여, 팔레트 내의 가장 가까운 두 색상으로 픽셀을 다시 그립니다. 일반 디더링과 함께 사용하면 더 복합적인 질감을 만들 수 있습니다. (만화 스타일 필터와는 함께 사용할 수 없습니다.)",
         tooltip_hq_mode: "사람의 시각에 더 가깝게 색상 차이를 계산하는 Oklab/CIEDE2000 방식을 사용합니다. 색상의 정확도가 크게 향상되지만, 변환 속도가 느려질 수 있습니다.",
@@ -132,8 +145,6 @@ export const languageData = {
         confirm_reset_added_colors: "정말로 추가한 모든 색상을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
         confirm_load_palette_from_png: "이미지에서 '추가한 색상' 목록을 발견했습니다. 현재 목록을 덮어쓰고 불러오시겠습니까?",
         alert_png_metadata_info: "해당 이미지는 NoaDot을 통해 변환된 기록이 있습니다.",
-        confirm_mode_switch_to_text: "모드를 전환하시면 업로드한 이미지 내용은 초기화됩니다. 계속하시겠습니까?",
-        confirm_mode_switch_to_image: "모드를 전환하시면 작성하신 텍스트 내용은 초기화됩니다. 계속하시겠습니까?",
         alert_already_added: "이미 추가된 색상입니다.",
         placeholder_no_recommendations: "선택된 모드에 맞는<br>추천 색상이 없습니다.",
         alert_some_colors_failed: "일부 색상을 추가하지 못했습니다. (중복 또는 유효하지 않은 형식)",
@@ -144,9 +155,9 @@ export const languageData = {
         preset_category_available: "사용 가능한 프리셋",
         btn_retry_color_combination: "🎲 다른 색상 조합 시도",
         cartoon_outline_color: "외곽선 색상",
-        confirm_reset_colors: "추가한 색상을 모두 삭제하시겠습니까?", // [추가]
+        confirm_reset_colors: "추가한 색상을 모두 삭제하시겠습니까?",
         resize_output_scale: "출력 배율",
-        // [신규] 색상 계산 방식 (드롭다운 옵션)
+        
         option_color_method : "색상 계산 방식",
         option_color_method_rgb: "RGB - 단순 변환",
         option_color_method_oklab: "OKlab - 색상 보정 변환",
@@ -154,7 +165,6 @@ export const languageData = {
         option_color_method_D65: "D65 - 고품질 변환(쿨톤)",
 
         tag_point: "포인트 색상",
-        // data/languages.js 파일 ko 객체 내부에 추가
         alert_no_data_to_download: "다운로드할 데이터가 없습니다. 먼저 변환을 진행해주세요.",
         alert_jszip_missing: "압축 라이브러리(JSZip)를 불러오지 못했습니다. 페이지를 새로고침 해주세요.",
 
@@ -173,88 +183,47 @@ export const languageData = {
         sort_option_b_desc: "Blue 높은 순",
         btn_reply_comment: "[대댓글 달기]",
 
-        // [신규] 업스케일 섹션
         section_upscale: "업스케일 (Upscale)",
         upscale_1x: "1x (기본)",
         upscale_2x: "2x (EPX)",
         upscale_3x: "3x (EPX)",
 
-        // [신규] 툴팁 (마우스 올리면 뜨는 설명)
+        label_cartoon_refinement: "색상 보정 강하게 잡기 (뭉개기/정리)",
+
         tooltip_upload_image: "클릭해서 이미지를 업로드하거나, 이곳으로 드래그하세요.",
-        tooltip_center_zoom: "화면을 중앙으로 맞추고 줌을 100%로 초기화합니다.",
-        
         tooltip_resize_mode: "이미지 크기를 줄이는 방식을 선택합니다.\n- 픽셀: 지정한 픽셀만큼 줄임\n- 비율: % 단위로 줄임",
         tooltip_pixel_scale: "원본 이미지에서 가로/세로 픽셀을 얼마나 뺄지 결정합니다.",
         tooltip_export_scale: "다운로드할 때 이미지 크기를 정수 배로 키웁니다.\n(작은 픽셀 아트를 선명하게 크게 저장할 때 유용)",
-        
-        tooltip_dithering: "색상 수를 줄일 때 점을 찍어 부드럽게 표현하는 기법입니다.",
-        tooltip_pattern: "이미지 위에 특정한 무늬(격자, 빗살 등)를 덮어씌웁니다.",
-        tooltip_gradient: "이미지의 투명도나 밝기에 그라데이션 효과를 줍니다.",
-        
-        tooltip_pixelated_scaling: "체크 시: 도트가 뚜렷하게 리사이징됩니다 (Nearest Neighbor).\n해제 시: 부드럽게 리사이징됩니다 (Bilinear).",
         tooltip_color_method: "색상 유사도를 계산하는 수학적 알고리즘입니다.\n- RGB: 빠르지만 부정확할 수 있음\n- Oklab: 사람이 보는 색감과 비슷함\n- Wdot: 가장 정밀하지만 연산이 느림",
-        
-        tooltip_cartoon_filter: "이미지를 만화처럼 단순화하고 외곽선을 그립니다.",
         tooltip_retry_seed: "만화 필터의 색상 추출 알고리즘(K-means)의 랜덤 시드를 변경하여,\n같은 설정에서 다른 색상 조합을 찾아봅니다.",
-        
         tooltip_palette_geopixels: "전 세계 지형 데이터에 최적화된 기본 팔레트입니다.",
         tooltip_palette_wplace: "Wplace 프로젝트에서 사용되는 공식 팔레트입니다.",
         tooltip_user_palette: "직접 색상 코드를 입력하거나, 이미지에서 추출하여 나만의 팔레트를 만듭니다.",
-        
-        tooltip_highlight_sensitivity: "이미지에서 '주요 색상'을 추출할 때, 얼마나 밝은 부분까지 포함할지 결정합니다.",
         tooltip_upscale_options: "EPX 알고리즘을 사용하여 픽셀 깨짐 없이 해상도를 2배/3배로 늘립니다.",
         
-        // 모달/팝업
-        modal_preset_save_title: "프리셋 저장 방식 선택",
-        modal_preset_name_title: "프리셋 이름 입력",
-        btn_save_file: "파일로 저장 (.json)",
-        btn_save_session: "보관함에 추가 (임시)",
-
-        modal_preset_list_title: "프리셋 목록",
-        msg_empty_list: "목록이 비어있습니다.",
-        btn_apply: "적용",
-        badge_my_custom: "My Custom",
-        confirm_delete_preset: "정말로 삭제하시겠습니까?",
-        alert_preset_applied_name: "'{name}' 프리셋이 적용되었습니다.",
-
-        // 놓친 것들 모음집 kr
-        size_change_download: "(다운로드 시 적용)",
-        preset_recommended: "프리셋 추천",
-        preset_save: "프리셋\n저장하기",
-        preset_load: "프리셋\n불러오기",
-        preset_storage : "프리셋\n보관함",
-        btn_analyze_colors: "색상 분석",
-        popup_preset_title: "✨ 추천 스타일 프리셋",
-
-        
-        // [신규] 프리셋 저장 모달
         modal_preset_save_title: "프리셋을 어떻게 저장하시겠습니까?",
         modal_preset_save_desc: "현재 적용된 모든 옵션과 추가된 색상이 저장됩니다.",
         btn_save_file: "📂 파일로 저장하기 (.json)",
         btn_save_session: "✨ 스타일 프리셋 목록에 추가",
         btn_close: "닫기 (X)",
 
-
-        // [모달 2: 프리셋 이름 입력]
         modal_name_title: "프리셋 이름 지정",
         modal_name_desc: "저장할 프리셋의 이름을 입력해주세요.",
         placeholder_preset_name: "예: 나만의 흑백 스타일",
         btn_confirm_save: "저장하기",
         btn_cancel: "취소",
         
-        // [신규] 색상 추천 태그
         tag_dominant: "고비율 색상",
         tag_shadow: "어두운 톤 (명암)",
         tag_highlight: "밝은 톤 (하이라이트)",
         tag_kmean: "주요 군집 (K-Means)",
+        tag_mid: "중간 톤",
+        tag_light: "밝은 톤",
+        tag_harmony: "추천 보색 (Harmony)", 
 
-        // [신규] UI 텍스트
         info_total_pixels: "총 픽셀 수",
         tooltip_compare_hold: "꾹 눌러서 원본 이미지와 비교하기",
 
-        // [신규] 시스템 메시지 (Alert/Confirm)
-        alert_reset_confirm: "모든 설정을 초기화하시겠습니까?",
-        alert_reset_colors: "추가한 색상을 모두 삭제하시겠습니까?",
         alert_no_image: "이미지를 먼저 업로드해주세요.",
         alert_mode_switch_text: "텍스트 모드로 전환하시겠습니까?\n(현재 작업 중인 이미지는 초기화됩니다.)",
         alert_mode_switch_image: "이미지 모드로 전환하시겠습니까?\n(작성 중인 텍스트는 초기화됩니다.)",
@@ -271,16 +240,9 @@ export const languageData = {
         alert_first_gene: "먼저 이미지를 변환해주세요.",
         alert_error_general: "파일 읽기 오류",
 
-        // --- 다운로드 옵션 라벨 (이게 빠졌었습니다!) ---
         label_download_uplace: "(연구중, 작동하지 않음)Uplace 버전으로 다운로드 (.you)",
         label_download_separated: "색상별 이미지 별도 다운로드 (.zip)",
         
-        // [수정/추가] 추천 태그
-        tag_dominant: "고비율 색상",
-        tag_mid: "중간 톤",
-        tag_light: "밝은 톤",
-        tag_harmony: "추천 보색 (Harmony)", // 신규
-
         alert_font_uploaded: "폰트 '{name}' 업로드 완료!",
         alert_font_load_error: "폰트 로드 실패. 유효한 TTF/OTF 파일인지 확인하세요.",
         suffix_user: " (사용자)",
@@ -306,15 +268,25 @@ export const languageData = {
         COMMENT_ALERT_NO_CONTENT: "댓글 내용을 입력해주세요.",
         COMMENT_ALERT_ADMIN_REQUIRED: "관리자 권한이 없습니다.",
         COMMENT_CONFIRM_DELETE: "정말로 이 댓글과 모든 대댓글을 삭제하시겠습니까?",
-        // --- 댓글 시스템 스트링 끝 ---
 
         tooltip_reset_all: "설정 초기화 (이미지 유지)",
         tooltip_eyedropper: "색상 추출 (스포이드)",
-        tooltip_compare_hold: "원본 보기 (누르고 있기)",
-        tooltip_center_zoom: "화면 중앙으로 이동",
-
         tooltip_zoom_in: "확대 (+)",
         tooltip_zoom_out: "축소 (-)",
+
+        modal_preset_list_title: "프리셋 목록",
+        msg_empty_list: "목록이 비어있습니다.",
+        btn_apply: "적용",
+        badge_my_custom: "My Custom",
+        confirm_delete_preset: "정말로 삭제하시겠습니까?",
+        alert_preset_applied_name: "'{name}' 프리셋이 적용되었습니다.",
+        size_change_download: "(다운로드 시 적용)",
+        preset_recommended: "프리셋 추천",
+        preset_save: "프리셋\n저장하기",
+        preset_load: "프리셋\n불러오기",
+        preset_storage : "프리셋\n보관함",
+        btn_analyze_colors: "색상 분석",
+        popup_preset_title: "✨ 추천 스타일 프리셋",
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
@@ -355,7 +327,7 @@ export const languageData = {
         dithering_none: "None",
         option_dithering_strength: "Dithering Strength",
 
-        // [New] Pattern related
+        // Pattern related
         option_apply_pattern: "Apply Pattern",
         pattern_type: "Pattern Type",
         pattern_size: "Pattern Size",
@@ -365,7 +337,19 @@ export const languageData = {
         pattern_diagonal_right: "Diagonal (↙)",
         pattern_diagonal_left: "Diagonal (↘)",
         pattern_brick: "Brick",
-        pattern_bayer: "pointage (bayer8*8)",
+        pattern_bayer: "Stippling (Bayer 8x8)",
+        
+        // Gradient related
+        option_apply_gradient: "Apply Transparency Gradient",
+        gradient_type: "Style",
+        gradient_dither_size: "Particle Size",
+        gradient_angle: "Angle",
+        gradient_strength: "Strength",
+
+        // [New] Aspire & Refinement related
+        option_apply_aspire: "Aspire Style",
+        option_apply_refinement: "Surface Flattening",
+        label_refinement_strength: "Strength",
 
         alert_invalid_color_code: "No valid color code found.",
         alert_input_color_value: "Please enter a color value.",
@@ -403,12 +387,26 @@ export const languageData = {
         suffix_user: " (User)",
         label_user_color: "User Added Color",
 
+        option_kmeans: "K-Means (Default - Balanced)",
+        option_wu: "K-Means Wu's Algorithm (Highest Quality - Recommended)",
+        option_mediancut: "Median Cut (Commonly Used)",
+        option_octree: "Octree (Fast)",
+        option_popularity: "Popularity (Frequency-Based - Simple)",
+
         placeholder_hex: "HEX code input (ex: #FFFFFF)",
 
         option_hq_mode: "High Quality Color Calc (Slow)",
         option_cartoon_filter: "Cartoon Style Filter",
+        cartoon_section_quant: "Color Extraction",
+        cartoon_algorithm: "Algorithm",
         cartoon_color_level: "Color Levels",
+        cartoon_quant_space: "Color Space",
+        space_oklab: "OKLab",
+        space_rgb: "RGB",
+        cartoon_section_outline: "Outline Settings",
         cartoon_show_outline: "Show Outline",
+        cartoon_outline_threshold: "Outline Sensitivity",
+
         section_palette: "Select Palette",
         palette_geopixels_default: "GeoPixels Default Palette",
         palette_use_wplace: "Use Wplace Palette",
@@ -429,39 +427,27 @@ export const languageData = {
         btn_export_palette: "Export to File",
         btn_import_palette: "Import from File",
         btn_download: "Download",
-        placeholder_image_upload: "Click or drag & drop an image here",
         placeholder_text_editor: "Enter text here...",
         placeholder_recommend: "Upload an image to see<br>recommended colors.",
         placeholder_add_color: "Add colors from the inputs below.",
-        placeholder_hex: "Enter HEX code (e.g., #FF595E)",
-        placeholder_text_preview: "Enter text on the left to see a preview here.",
-
-        // Tooltips
+        
         tooltip_dithering: "A technique that uses dots to simulate shades and reduce color banding when using a limited color palette. It improves the detail of the image.",
-        tooltip_pattern: "Compares the image's brightness with a pattern map to redraw pixels using the two closest colors from the palette. Can be combined with standard dithering for more complex textures. (Cannot be used with Cartoon Filter.)",
+        tooltip_pattern: "Compares the image's brightness with a pattern map to redraw pixels using the two closest colors from the palette. Can be combined with standard dithering for more complex textures.",
         tooltip_hq_mode: "Uses Oklab/CIEDE2000 for more perceptually accurate color difference calculations. Greatly improves color accuracy but may slow down conversion.",
         tooltip_cartoon_filter: "Reconstructs the image with flat color areas for a cartoon-like feel. As this works opposite to dithering or patterns, other effects may be ignored.",
         tooltip_highlight_sensitivity: "Controls how sensitively 'highlight colors' are detected around edges and complex patterns for color recommendation. Higher values detect more subtle highlights.",
-        tooltip_center_zoom: "Center view and reset zoom",
         tooltip_bold: "Bold",
         tooltip_italic: "Italic",
 
-        // Alerts
         alert_no_color_to_export: "There are no colors to export.",
         alert_no_color_to_reset: "There are no colors to reset.",
         confirm_reset_added_colors: "Are you sure you want to delete all added colors? This action cannot be undone.",
         confirm_load_palette_from_png: "An 'Added Colors' list was found in the image. Overwrite the current list and load it?",
         alert_png_metadata_info: "This image contains a record of being converted by NoaDot.",
-        confirm_mode_switch_to_text: "Switching modes will reset the uploaded image. Continue?",
-        confirm_mode_switch_to_image: "Switching modes will reset your text. Continue?",
         alert_already_added: "This color has already been added.",
-        placeholder_no_recommendations: "No recommended colors found<br>for the selected mode.",
         alert_some_colors_failed: "Failed to add some colors (duplicates or invalid format).",
         placeholder_no_recommendations: "No recommended colors found<br>for the selected mode.",
         
-        option_apply_gradient: "Apply Transparency Gradient",
-        gradient_angle: "Angle",
-        gradient_strength: "Strength",
         tooltip_gradient: "Applies a dithered transparency effect in a linear gradient. 'Angle' controls the direction, and 'Strength' controls the overall transparency.",
         extract_mode_smh : "Tonal Range",
         placeholder_no_new_recommendations: "No new recommendations for this mode, or all have been added.",
@@ -475,7 +461,7 @@ export const languageData = {
         preset_category_available: "Available Presets",
         btn_retry_color_combination: "🎲 Retry Color Combo",
         cartoon_outline_color: "Outline Color",
-        confirm_reset_colors: "Are you sure you want to remove all added colors?", // [추가]
+        confirm_reset_colors: "Are you sure you want to remove all added colors?",
         resize_output_scale: "Output Scale",
         option_color_method : "Algorithm option",
         option_color_method_rgb: "RGB - Simple Conversion",
@@ -483,60 +469,35 @@ export const languageData = {
         option_color_method_ciede2000: "Wdot - High Quality Conversion (Warmtone)",
         option_color_method_D65: "D65 - High Quality Conversion (Cool Tone)",
 
-        // [New] Upscale Section
+        label_cartoon_refinement: "Strong Color Refinement (Blur/Cleanup)",
+
         section_upscale: "Upscale",
         upscale_1x: "1x (Default)",
         upscale_2x: "2x (EPX)",
         upscale_3x: "3x (EPX)",
 
-        // [New] Tooltips
         tooltip_upload_image: "Click to upload or drag & drop an image here.",
-        tooltip_center_zoom: "Reset zoom to 100% and center the canvas.",
         
         tooltip_resize_mode: "Choose how to resize the image.\n- Pixel: Reduce by specific pixels\n- Ratio: Reduce by percentage",
         tooltip_pixel_scale: "Determines how many pixels to subtract from the width/height.",
         tooltip_export_scale: "Multiplies the image size for download.\n(Useful for saving small pixel art in high resolution)",
         
-        tooltip_dithering: "A technique to create the illusion of color depth using dots.",
-        tooltip_pattern: "Overlays a specific pattern (grid, diagonal, etc.) on the image.",
-        tooltip_gradient: "Applies a gradient effect to transparency or brightness.",
-        
-        tooltip_pixelated_scaling: "Checked: Sharp edges (Nearest Neighbor).\nUnchecked: Smooth edges (Bilinear).",
         tooltip_color_method: "Mathematical algorithm for color similarity.\n- RGB: Fast but less accurate\n- Oklab: Perceptually uniform\n- Wdot: Most precise but slow",
         
-        tooltip_cartoon_filter: "Simplifies the image and adds outlines like a cartoon.",
         tooltip_retry_seed: "Changes the random seed for color extraction (K-means)\nto find a different color combination.",
         
         tooltip_palette_geopixels: "Default palette optimized for GeoPixels terrain.",
         tooltip_palette_wplace: "Official palette used in the Wplace project.",
         tooltip_user_palette: "Create your own palette by inputting codes or extracting from image.",
         
-        tooltip_highlight_sensitivity: "Determines how sensitive the analyzer is to bright areas when extracting colors.",
         tooltip_upscale_options: "Increases resolution by 2x/3x using the EPX algorithm without blurring.",
 
-        // Modals
-        modal_preset_save_title: "Save Preset As...",
-        modal_preset_name_title: "Enter Preset Name",
-        btn_save_file: "Save to File (.json)",
-        btn_save_session: "Add to Collection (Temp)",
-
-        // 놓친 것들 모음집 en
-        size_change_download: "Apply when download",
-        preset_recommended: "preset recommended",
-        preset_save: "preset\nsave",
-        preset_load: "preset\nload",
-        preset_storage : "preset\nstorage",
-        btn_analyze_colors: "color amalysis",
-        popup_preset_title: "✨ recommended style preset",
-
-        // [New] Preset Save Modal
         modal_preset_save_title: "How would you like to save?",
         modal_preset_save_desc: "All current options and added colors will be saved.",
         btn_save_file: "📂 Save to File (.json)",
         btn_save_session: "✨ Add to Preset Collection",
         btn_close: "Close",
 
-        // [Modal 2: Preset Name Input]
         modal_name_title: "Enter Preset Name",
         modal_name_desc: "Please enter a name for your preset.",
         placeholder_preset_name: "Ex: My Custom Style",
@@ -544,19 +505,14 @@ export const languageData = {
         btn_cancel: "Cancel",
         tag_point: "Point Color",
         
-        // [New] Color Recommendation Tags
         tag_dominant: "Dominant Color",
         tag_shadow: "Shadow Tone",
         tag_highlight: "Highlight Tone",
         tag_kmean: "Major Cluster (K-Means)",
 
-        // [New] UI Texts
         info_total_pixels: "Total Pixels",
-        tooltip_compare_hold: "Hold to compare with original",
 
-        // [New] System Messages
         alert_reset_confirm: "Are you sure you want to reset all settings?",
-        alert_reset_colors: "Are you sure you want to remove all added colors?",
         alert_no_image: "Please upload an image first.",
         alert_mode_switch_text: "Switch to Text Mode?\n(Current image will be reset.)",
         alert_mode_switch_image: "Switch to Image Mode?\n(Current text will be reset.)",
@@ -573,8 +529,6 @@ export const languageData = {
         alert_first_gene: "Please convert the image first.",
         alert_error_general: "File Read Error",
         
-        // [New] Recommendation Tags
-        tag_dominant: "Dominant Color",
         tag_mid: "Midtone",
         tag_light: "Light Tone",
         tag_harmony: "Harmony (Complementary)",
@@ -604,15 +558,22 @@ export const languageData = {
         sort_option_g_desc: "Highest Green",
         sort_option_b_desc: "Highest Blue",
         btn_reply_comment: "[Write a Reply]",
-        // data/languages.js 파일 ko 객체 내부에 추가
+        
         alert_no_data_to_download: "There is no data to download. Please run the conversion first.",
         alert_jszip_missing: "Failed to load the compression library (JSZip). Please refresh the page.",
 
-        // --- Download Option Labels ---
         label_download_uplace: "(Under research, not functioning)Download as Uplace version (.you)",
         label_download_separated: "Download separated images by color (.zip)",
 
         tooltip_zoom_in: "Zoom In (+)",
         tooltip_zoom_out: "Zoom Out (-)",
+
+        size_change_download: "Apply when download",
+        preset_recommended: "preset recommended",
+        preset_save: "preset\nsave",
+        preset_load: "preset\nload",
+        preset_storage : "preset\nstorage",
+        btn_analyze_colors: "color amalysis",
+        popup_preset_title: "✨ recommended style preset",
     }
 };

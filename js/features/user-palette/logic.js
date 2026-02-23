@@ -54,6 +54,10 @@ export class UserPaletteFeature {
 
             this.renderUIOnly();
         });
+        eventBus.on('LANGUAGE_CHANGED', () => {
+            // 언어가 변경되면 현재 상태 그대로 UI만 다시 그려서 번역을 즉시 적용합니다.
+            this.renderUIOnly();
+        });
     }
 
     resetStats() {

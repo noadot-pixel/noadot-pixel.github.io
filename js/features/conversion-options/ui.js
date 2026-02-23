@@ -7,6 +7,8 @@ export class ConversionOptionsUI {
         this.brightnessInput = document.getElementById('brightnessSlider');
         this.contrastInput = document.getElementById('contrastSlider');
         
+        this.celShadingRefinementSlider = document.getElementById('celShadingRefinementSlider'); // [추가]
+
         // 개별 리셋 버튼 참조
         this.individualResetBtns = document.querySelectorAll('.reset-btn[data-target]');
 
@@ -20,12 +22,12 @@ export class ConversionOptionsUI {
         this.ditheringIntensity = document.getElementById('ditheringSlider');
 
         this.applyPatternCheck = document.getElementById('applyPattern');
-        this.patternControls = document.getElementById('pattern-options'); 
+        this.patternControls = document.getElementById('patternOptions');
         this.patternTypeSelect = document.getElementById('patternTypeSelect');
         this.patternSizeSlider = document.getElementById('patternSizeSlider');
 
         this.applyGradientCheck = document.getElementById('applyGradient');
-        this.gradientControls = document.getElementById('gradient-options');
+        this.gradientControls = document.getElementById('gradientOptions');
         this.gradientTypeSelect = document.getElementById('gradientTypeSelect');
         this.gradientDitherSizeSlider = document.getElementById('gradientDitherSizeSlider');
         this.gradientAngleSlider = document.getElementById('gradientAngleSlider');
@@ -33,6 +35,11 @@ export class ConversionOptionsUI {
 
         this.celShadingApply = document.getElementById('celShadingApply');
         this.celShadingControls = document.getElementById('celShadingOptions'); 
+
+        this.refinementSlider = document.getElementById('refinementSlider');
+        this.aspireDitherCheck = document.getElementById('aspireDitherCheck');
+
+        this.celShadingAspireDither = document.getElementById('celShadingAspireDither');
         
         // [신규] 알고리즘 선택 드롭다운 참조
         this.celShadingAlgorithmSelect = document.getElementById('celShadingAlgorithmSelect');
@@ -41,8 +48,7 @@ export class ConversionOptionsUI {
         this.celShadingColorSpaceSelect = document.getElementById('celShadingColorSpaceSelect');
         
         this.celShadingOutline = document.getElementById('celShadingOutline');
-        this.celShadingOutlineSettings = document.getElementById('outline-sub-settings');
-        
+        this.celShadingOutlineSettings = document.getElementById('celShadingOutlineOptions');        
         this.celShadingOutlineThresholdSlider = document.getElementById('celShadingOutlineThresholdSlider');
         this.celShadingOutlineColorSelect = document.getElementById('celShadingOutlineColorSelect');
         
@@ -51,6 +57,11 @@ export class ConversionOptionsUI {
         
         // 전체 리셋 버튼
         this.resetAllBtn = document.getElementById('resetAllOptionsBtn'); 
+
+        this.applyAspireDither = document.getElementById('applyAspireDither');
+        this.applyRefinement = document.getElementById('applyRefinement');
+        this.refinementOptions = document.getElementById('refinementOptions');
+        this.refinementSlider = document.getElementById('refinementSlider');
 
         this.initLang();
     }

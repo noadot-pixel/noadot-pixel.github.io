@@ -5,3 +5,40 @@ export const wplaceFreeColors = [{rgb:[0,0,0],name:"black"},{rgb:[60,60,60],name
 export const wplacePaidColors = [{rgb:[170,170,170],name:"medium gray"},{rgb:[165,14,30],name:"dark red"},{rgb:[250,128,114],name:"light red"},{rgb:[228,92,26],name:"dark orange"},{rgb:[156,132,49],name:"dark goldenrod"},{rgb:[197,173,49],name:"goldenrod"},{rgb:[232,212,95],name:"light goldenrod"},{rgb:[74,107,58],name:"dark olive"},{rgb:[90,148,74],name:"olive"},{rgb:[132,197,115],name:"light olive"},{rgb:[15,121,159],name:"dark cyan"},{rgb:[187,250,242],name:"light cyan"},{rgb:[125,199,255],name:"light blue"},{rgb:[77,49,184],name:"dark indigo"},{rgb:[74,66,132],name:"dark slate blue"},{rgb:[122,113,196],name:"slate blue"},{rgb:[181,174,241],name:"light slate blue"},{rgb:[155,82,73],name:"dark peach"},{rgb:[209,128,120],name:"peach"},{rgb:[250,182,164],name:"light peach"},{rgb:[219,164,99],name:"light brown"},{rgb:[123,99,82],name:"dark tan"},{rgb:[156,132,107],name:"tan"},{rgb:[214,181,148],name:"light tan"},{rgb:[209,128,81],name:"dark beige"},{rgb:[255,197,165],name:"light beige"},{rgb:[109,100,63],name:"dark stone"},{rgb:[148,140,107],name:"stone"},{rgb:[205,197,158],name:"light stone"},{rgb:[51,57,65],name:"dark slate"},{rgb:[109,117,141],name:"slate"},{rgb:[179,185,209],name:"light slate"}];
 
 export const geopixelsColors = [{rgb:[255,255,255],name:null},{rgb:[244,245,159],name:null},{rgb:[255,202,58],name:null},{rgb:[255,159,28],name:null},{rgb:[255,89,94],name:null},{rgb:[231,29,54],name:null},{rgb:[243,187,194],name:null},{rgb:[255,133,161],name:null},{rgb:[189,99,125],name:null},{rgb:[205,180,219],name:null},{rgb:[106,76,147],name:null},{rgb:[77,25,77],name:null},{rgb:[168,208,220],name:null},{rgb:[46,196,182],name:null},{rgb:[26,83,92],name:null},{rgb:[109,157,205],name:null},{rgb:[25,130,196],name:null},{rgb:[161,193,129],name:null},{rgb:[138,201,38],name:null},{rgb:[160,160,160],name:null},{rgb:[107,66,38],name:null},{rgb:[80,80,80],name:null},{rgb:[207,208,120],name:null},{rgb:[20,90,122],name:null},{rgb:[139,29,36],name:null},{rgb:[192,127,122],name:null},{rgb:[196,154,108],name:null},{rgb:[91,123,28],name:null},{rgb:[0,0,0],name:null}];
+
+// [기존 코드 유지: wplaceFreeColors, wplacePaidColors, geopixelsColors]
+
+export const uplaceColors = [
+    {rgb:[0, 0, 0], name:"black"}, {rgb:[44, 12, 14], name:"black currant"}, {rgb:[39, 32, 19], name:"deep bronze"}, 
+    {rgb:[36, 36, 36], name:"dark grey"}, {rgb:[26, 28, 44], name:"void"}, {rgb:[29, 20, 39], name:"midnight violet"}, 
+    {rgb:[51, 0, 51], name:"deep violet"}, {rgb:[75, 0, 75], name:"plum"}, {rgb:[102, 0, 102], name:"grape"}, 
+    {rgb:[128, 0, 128], name:"purple"}, {rgb:[160, 0, 160], name:"amethyst"}, {rgb:[192, 0, 192], name:"violet"}, 
+    {rgb:[224, 0, 224], name:"orchid"}, {rgb:[255, 0, 255], name:"electric magenta"}, {rgb:[222, 16, 127], name:"magenta"}, 
+    {rgb:[255, 56, 129], name:"got pink"}, {rgb:[255, 102, 107], name:"salmon"}, {rgb:[239, 125, 87], name:"coral"}, 
+    {rgb:[220, 141, 95], name:"peach"}, {rgb:[216, 157, 69], name:"goldenrod"}, {rgb:[168, 130, 54], name:"ochre"}, 
+    {rgb:[188, 111, 71], name:"tan"}, {rgb:[159, 91, 80], name:"terracotta"}, {rgb:[156, 84, 50], name:"copper"}, 
+    {rgb:[119, 94, 40], name:"olive drab"}, {rgb:[124, 63, 32], name:"brown"}, {rgb:[92, 46, 26], name:"cocoa"}, 
+    {rgb:[77, 43, 37], name:"dark leather"}, {rgb:[91, 39, 49], name:"dark mauve"}, {rgb:[93, 39, 93], name:"tyrian"}, 
+    {rgb:[73, 73, 73], name:"grey"}, {rgb:[82, 77, 120], name:"faded denim"}, {rgb:[109, 109, 109], name:"Medium Grey"}, 
+    {rgb:[133, 132, 88], name:"sage"}, {rgb:[129, 156, 45], name:"moss"}, {rgb:[170, 216, 31], name:"acid green"}, 
+    {rgb:[126, 237, 86], name:"lime"}, {rgb:[167, 240, 112], name:"chartreuse"}, {rgb:[255, 227, 85], name:"bright yellow"}, 
+    {rgb:[255, 214, 53], name:"yellow"}, {rgb:[255, 205, 117], name:"mustard"}, {rgb:[255, 173, 125], name:"light skin"}, 
+    {rgb:[252, 151, 131], name:"light coral"}, {rgb:[255, 153, 170], name:"pastel pink"}, {rgb:[255, 189, 182], name:"pale salmon"}, 
+    {rgb:[255, 209, 179], name:"pale skin"}, {rgb:[252, 204, 218], name:"cotton candy"}, {rgb:[255, 224, 218], name:"pale peach"}, 
+    {rgb:[255, 232, 231], name:"mist white"}, {rgb:[255, 255, 255], name:"white"}, {rgb:[255, 248, 184], name:"pale yellow"}, 
+    {rgb:[218, 218, 218], name:"off white"}, {rgb:[216, 218, 234], name:"periwinkle mist"}, {rgb:[193, 246, 242], name:"ice blue"}, 
+    {rgb:[191, 190, 225], name:"lavender mist"}, {rgb:[182, 182, 182], name:"pale grey"}, {rgb:[200, 151, 139], name:"dusty rose"}, 
+    {rgb:[146, 146, 146], name:"light grey"}, {rgb:[137, 131, 174], name:"heather"}, {rgb:[180, 74, 192], name:"deep purple"}, 
+    {rgb:[106, 92, 255], name:"periwinkle"}, {rgb:[73, 58, 193], name:"indigo"}, {rgb:[36, 80, 164], name:"dark blue"}, 
+    {rgb:[0, 117, 111], name:"dark teal"}, {rgb:[0, 163, 104], name:"shamrock"}, {rgb:[0, 204, 120], name:"bright green"}, 
+    {rgb:[56, 183, 100], name:"slime green"}, {rgb:[0, 158, 170], name:"teal"}, {rgb:[0, 204, 192], name:"aqua"}, 
+    {rgb:[66, 240, 191], name:"bright turquoise"}, {rgb:[81, 233, 244], name:"cyan"}, {rgb:[148, 179, 255], name:"sky blue"}, 
+    {rgb:[228, 171, 255], name:"lavender"}, {rgb:[54, 144, 234], name:"blue"}, {rgb:[0, 72, 68], name:"dark slate"}, 
+    {rgb:[55, 84, 24], name:"pine"}, {rgb:[0, 69, 0], name:"forest green"}, {rgb:[0, 41, 0], name:"dark forest"}, 
+    {rgb:[61, 30, 12], name:"dark coffee"}, {rgb:[71, 0, 0], name:"black cherry"}, {rgb:[105, 0, 0], name:"burgundy"}, 
+    {rgb:[139, 0, 0], name:"dark red"}, {rgb:[172, 0, 0], name:"crimson"}, {rgb:[190, 0, 57], name:"cardinal"}, 
+    {rgb:[207, 46, 46], name:"brick red"}, {rgb:[177, 62, 83], name:"rose"}, {rgb:[163, 70, 3], name:"burnt orange"}, 
+    {rgb:[129, 30, 9], name:"rust"}, {rgb:[36, 20, 98], name:"deep indigo"}, {rgb:[0, 102, 0], name:"green"}, 
+    {rgb:[0, 143, 0], name:"kelly green"}, {rgb:[249, 128, 6], name:"vivid orange"}, {rgb:[255, 168, 0], name:"orange"}, 
+    {rgb:[255, 69, 0], name:"orange red"}, {rgb:[255, 0, 0], name:"red"}
+];

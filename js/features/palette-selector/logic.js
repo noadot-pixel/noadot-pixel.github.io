@@ -6,7 +6,7 @@ import { PaletteSelectorUI } from './ui.js';
 export class PaletteSelectorFeature {
     constructor() {
         this.ui = new PaletteSelectorUI();
-        this.lastPixelStats = {}; // [New] 통계 데이터 저장소
+        this.lastPixelStats = {}; // 통계 데이터 저장소
 
         this.initEvents();
         this.initBusListeners();
@@ -26,7 +26,12 @@ export class PaletteSelectorFeature {
             this.ui.wplaceModeRadio.addEventListener('change', () => this.setMode('wplace'));
         }
 
-        // 3. Geo 모드 내 Wplace 사용 체크박스
+        // 3. [신규] Uplace 모드 클릭
+        if (this.ui.modeUplace) {
+            this.ui.modeUplace.addEventListener('change', () => this.setMode('uplace'));
+        }
+
+        // 4. Geo 모드 내 Wplace 사용 체크박스
         if (this.ui.useWplaceInGeoCheckbox) {
             this.ui.useWplaceInGeoCheckbox.addEventListener('change', (e) => {
                 const isChecked = e.target.checked;
@@ -42,7 +47,7 @@ export class PaletteSelectorFeature {
     }
 
     initBusListeners() {
-        // [New] 이미지 분석 완료 시 통계 수신
+        // 이미지 분석 완료 시 통계 수신
         eventBus.on('IMAGE_ANALYZED', (data) => {
             this.lastPixelStats = data.pixelStats || {};
             // 통계 데이터를 포함하여 팔레트 다시 그리기
