@@ -1,6 +1,6 @@
 // js/features/text-converter/ui.js
-import { geopixelsColors, wplaceFreeColors, wplacePaidColors } from '/data/palettes.js';
-import { state, rgbToHex, t } from '../../state.js'; // [수정] t 함수 임포트
+import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors } from '../../../data/palettes.js';
+import { state, rgbToHex, t } from '../../state.js';
 
 export class TextConverterUI {
     constructor() {
@@ -49,6 +49,9 @@ export class TextConverterUI {
 
         this.initPaletteListener();
         this.updateColorSelects(); 
+        
+        // [수정] 화면에 처음 로드될 때 '기본값(글자 검정, 배경 흰색)'을 강제로 적용시킵니다.
+        this.applyDefaultColors(); 
     }
 
     initPaletteListener() {
@@ -100,7 +103,6 @@ export class TextConverterUI {
         if (mode === 'geopixels') {
             const geoOpts = (geopixelsColors || []).map(c => {
                 const hex = rgbToHex(c.rgb[0], c.rgb[1], c.rgb[2]);
-                // [참고] 'GeoPixels'는 고유명사라 유지 (필요 시 t('brand_geopixels')로 변경 가능)
                 return { type: 'opt', el: createOption(hex, c.name || 'GeoPixels', hex) };
             });
             finalOptions.push({ label: 'GeoPixels 팔레트', items: geoOpts });
@@ -114,7 +116,15 @@ export class TextConverterUI {
                 finalOptions.push({ label: 'Wplace 팔레트 (확장)', items: wplaceOpts });
             }
         } 
-        // 2. Wplace
+        // 2. Uplace [신규 추가] Uplace 모드일 때 Uplace 팔레트 95색을 불러옵니다.
+        else if (mode === 'uplace') {
+            const uplaceOpts = (uplaceColors || []).map(c => {
+                const hex = rgbToHex(c.rgb[0], c.rgb[1], c.rgb[2]);
+                return { type: 'opt', el: createOption(hex, c.name || 'Uplace', hex) };
+            });
+            finalOptions.push({ label: 'Uplace 팔레트', items: uplaceOpts });
+        }
+        // 3. Wplace
         else {
             const allWplace = [...(wplaceFreeColors||[]), ...(wplacePaidColors||[])];
             const wplaceOpts = allWplace.map(c => {
@@ -124,7 +134,7 @@ export class TextConverterUI {
             finalOptions.push({ label: 'Wplace 팔레트', items: wplaceOpts });
         }
 
-        // 3. User Custom
+        // 4. User Custom
         const userOpts = (state.addedColors || []).map(c => {
             try {
                 let hex = null;
@@ -151,7 +161,6 @@ export class TextConverterUI {
 
                 if (!hex || !/^#[0-9A-F]{6}$/i.test(hex)) return null;
 
-                // [수정] 다국어: "User Added" -> t('label_user_color')
                 return { type: 'opt', el: createOption(hex, t('label_user_color'), hex) };
             } catch (err) { return null; }
         }).filter(item => item !== null);
@@ -179,9 +188,9 @@ export class TextConverterUI {
 
     applyDefaultColors() {
         const mode = this.getCurrentPaletteMode();
-        this.setSelectValue(this.colors.text, '#000000');
-        this.setSelectValue(this.colors.bg, '#FFFFFF'); 
-        this.setSelectValue(this.colors.stroke, '#000000');
+        this.setSelectValue(this.colors.text, '#000000'); // 기본 텍스트 색상: 검정
+        this.setSelectValue(this.colors.bg, '#FFFFFF');   // 기본 배경 색상: 흰색
+        this.setSelectValue(this.colors.stroke, '#000000'); // 기본 테두리 색상: 검정
     }
 
     setSelectValue(select, val) {

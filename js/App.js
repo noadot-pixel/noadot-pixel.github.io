@@ -47,11 +47,23 @@ class App {
              if (this.userPalette && this.userPalette.resetStats) {
                  this.userPalette.resetStats();
              }
+             if (this.imageResizer && this.imageResizer.resetSettings) {
+                 this.imageResizer.resetSettings();
+             }
              
              // 다운로드 옵션(Uplace 체크박스) 상태 업데이트 요청
              if (this.exportFeature && this.exportFeature.updateUplaceOptionVisibility) {
                  this.exportFeature.updateUplaceOptionVisibility();
              }
+
+             // --- [여기서 스포이드와 비교 버튼을 확실하게 제어합니다!] ---
+             const compareBtn = document.getElementById('compareBtn');
+             const eyedropperBtn = document.getElementById('eyedropperBtn');
+             
+             // 텍스트 모드일 때는 'none'으로 숨기고, 이미지 모드일 때는 'flex'로 다시 보여줌
+             if (compareBtn) compareBtn.style.display = (mode === 'text') ? 'none' : 'flex';
+             if (eyedropperBtn) eyedropperBtn.style.display = (mode === 'text') ? 'none' : 'flex';
+             // -------------------------------------------------------
 
              eventBus.emit('IMAGE_ANALYZED', { pixelStats: {}, recommendations: [] });
              

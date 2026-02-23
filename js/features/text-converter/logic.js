@@ -1,161 +1,177 @@
-// js/features/text-converter/logic.js
 import { eventBus } from '../../core/EventBus.js';
-import { state, t } from '../../state.js'; // [수정] t 함수 임포트
+import { state } from '../../state.js';
 import { TextConverterUI } from './ui.js';
-import { TextRenderer } from './renderer.js';
 
 export class TextConverterFeature {
     constructor() {
         this.ui = new TextConverterUI();
-        this.renderer = new TextRenderer();
-        
-        if (!state.textState) {
-            state.textState = {
-                content: "",
-                fontFamily: "Malgun Gothic",
-                fontSize: 15,
-                letterSpacing: 0,
-                textLineHeight: 1.5,
-                padding: 10,
-                textColor: "#000000",
-                bgColor: "#FFFFFF",
-                strokeColor: "#000000",
-                strokeWidth: 0,
-                isBold: false,
-                isItalic: false
-            };
-        }
+        this.renderTimeout = null; 
+        this.isComposing = false;  
 
         this.initEvents();
-        this.initBusListeners();
-        
-        this.ui.applyDefaultColors();
-    }
-
-    initBusListeners() {
-        eventBus.on('TEXT_CONFIG_UPDATED', () => this.generateAndEmit());
-        
-        eventBus.on('MODE_CHANGED', (mode) => {
-            if (mode === 'text') {
-                this.ui.updateColorSelects(); 
-                this.ui.applyDefaultColors(); 
-                this.generateAndEmit();
-            }
-        });
-
-        eventBus.on('PALETTE_UPDATED', () => {
-            this.ui.updateColorSelects();
-        });
     }
 
     initEvents() {
+        const inputs = [
+            this.ui.textarea, 
+            this.ui.fontSelect, 
+            this.ui.sliders.fontSize,
+            this.ui.sliders.letterSpacing, 
+            this.ui.sliders.padding, 
+            this.ui.sliders.textLineHeight, 
+            this.ui.sliders.strokeWidth,
+            this.ui.colors.text, 
+            this.ui.colors.bg, 
+            this.ui.colors.stroke
+        ];
+
         if (this.ui.textarea) {
-            this.ui.textarea.addEventListener('input', (e) => {
-                state.textState.content = e.target.value;
-                this.generateAndEmit();
+            this.ui.textarea.addEventListener('compositionstart', () => { this.isComposing = true; });
+            this.ui.textarea.addEventListener('compositionend', () => { 
+                this.isComposing = false;
+                this.triggerTextRender(); 
             });
         }
-        
-        Object.entries(this.ui.sliders).forEach(([key, input]) => {
-            if (!input) return;
-            input.addEventListener('input', (e) => {
-                let val = parseFloat(e.target.value);
-                
-                if (key === 'textLineHeight') val /= 10; 
-                
-                state.textState[key] = val;
-                this.ui.updateValueDisplay(input.id, val);
-                this.generateAndEmit();
-            });
+
+        inputs.forEach(input => {
+            if (input) {
+                input.addEventListener('input', () => {
+                    if (!this.isComposing) {
+                        this.triggerTextRender();
+                    }
+                });
+            }
         });
-
-        Object.entries(this.ui.colors).forEach(([key, input]) => {
-            if (!input) return;
-            input.addEventListener('change', (e) => {
-                const propMap = { text: 'textColor', bg: 'bgColor', stroke: 'strokeColor' };
-                state.textState[propMap[key]] = e.target.value;
-                this.generateAndEmit();
-            });
-        });
-
-        if (this.ui.fontSelect) {
-            this.ui.fontSelect.addEventListener('change', (e) => {
-                state.textState.fontFamily = e.target.value;
-                this.generateAndEmit();
-            });
-        }
-
-        if (this.ui.uploadBtn) {
-            this.ui.uploadBtn.addEventListener('click', () => this.ui.triggerFontUpload());
-        }
 
         if (this.ui.fontInput) {
             this.ui.fontInput.addEventListener('change', (e) => this.handleFontUpload(e));
         }
 
         if (this.ui.boldBtn) {
-            this.ui.boldBtn.addEventListener('click', () => {
-                state.textState.isBold = !state.textState.isBold;
-                this.ui.boldBtn.classList.toggle('active');
-                this.generateAndEmit();
+            this.ui.boldBtn.addEventListener('click', (e) => {
+                state.textBold = !state.textBold;
+                e.currentTarget.classList.toggle('active');
+                this.triggerTextRender();
             });
         }
+
         if (this.ui.italicBtn) {
-            this.ui.italicBtn.addEventListener('click', () => {
-                state.textState.isItalic = !state.textState.isItalic;
-                this.ui.italicBtn.classList.toggle('active');
-                this.generateAndEmit();
+            this.ui.italicBtn.addEventListener('click', (e) => {
+                state.textItalic = !state.textItalic;
+                e.currentTarget.classList.toggle('active');
+                this.triggerTextRender();
             });
         }
     }
 
-    async handleFontUpload(e) {
-        const file = e.target.files[0];
+    handleFontUpload(event) {
+        const file = event.target.files[0];
         if (!file) return;
 
-        try {
-            const fontName = file.name.split('.')[0];
-            const buffer = await file.arrayBuffer();
-            const fontFace = new FontFace(fontName, buffer);
-            
-            await fontFace.load();
-            document.fonts.add(fontFace);
-
-            const option = document.createElement('option');
-            option.value = fontName;
-            // [수정] 다국어: 접미사 (User) 처리
-            option.textContent = fontName + t('suffix_user');
-            option.selected = true;
-            
-            this.ui.fontSelect.appendChild(option);
-            state.textState.fontFamily = fontName;
-            
-            // [수정] 다국어: 성공 메시지 ({name} 치환)
-            alert(t('alert_font_uploaded', { name: fontName }));
-            this.generateAndEmit();
-
-        } catch (err) {
-            console.error(err);
-            // [수정] 다국어: 실패 메시지
-            alert(t('alert_font_load_error'));
-        }
-        e.target.value = '';
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const fontName = 'CustomFont_' + Date.now();
+            const font = new FontFace(fontName, e.target.result);
+            font.load().then((loadedFont) => {
+                document.fonts.add(loadedFont);
+                
+                const option = document.createElement('option');
+                option.value = fontName;
+                option.textContent = file.name;
+                option.selected = true;
+                if (this.ui.fontSelect) this.ui.fontSelect.appendChild(option);
+                
+                this.triggerTextRender();
+            }).catch(err => {
+                console.error('폰트 로드 실패:', err);
+                alert('유효하지 않은 폰트 파일입니다.');
+            });
+        };
+        reader.readAsArrayBuffer(file);
     }
 
-    generateAndEmit() {
-        if (state.appMode !== 'text') {
-            return;
+    triggerTextRender() {
+        if (this.renderTimeout) clearTimeout(this.renderTimeout);
+        this.renderTimeout = setTimeout(() => {
+            this.renderTextToImage();
+        }, 150); 
+    }
+
+    renderTextToImage() {
+        if (!this.ui.textarea) return;
+        const text = this.ui.textarea.value;
+        if (!text || text.trim() === '') return;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        const fontFamily = this.ui.fontSelect ? this.ui.fontSelect.value : 'Arial';
+        const fontSize = this.ui.sliders.fontSize ? parseInt(this.ui.sliders.fontSize.value) : 15;
+        const letterSpacing = this.ui.sliders.letterSpacing ? parseInt(this.ui.sliders.letterSpacing.value) : 0;
+        const padding = this.ui.sliders.padding ? parseInt(this.ui.sliders.padding.value) : 10;
+        const lineHeightValue = this.ui.sliders.textLineHeight ? parseFloat(this.ui.sliders.textLineHeight.value) / 10 : 1.5;
+        const strokeWidth = this.ui.sliders.strokeWidth ? parseInt(this.ui.sliders.strokeWidth.value) : 0;
+        
+        const isBold = state.textBold ? 'bold' : 'normal';
+        const isItalic = state.textItalic ? 'italic' : 'normal';
+        const fontStyleString = `${isItalic} ${isBold} ${fontSize}px "${fontFamily}"`;
+
+        ctx.font = fontStyleString;
+        if ('letterSpacing' in ctx) {
+            ctx.letterSpacing = `${letterSpacing}px`;
         }
 
-        const result = this.renderer.render(state.textState);
-        if (!result) return;
+        const lines = text.split('\n');
+        let maxWidth = 0;
+        const lineHeight = fontSize * lineHeightValue;
 
-        state.originalImageObject = result.canvas; 
-        state.originalImageData = result.imageData;
-        state.aspectRatio = result.width / result.height;
-        state.resizeWidth = result.width;
-        state.resizeHeight = result.height;
+        lines.forEach(line => {
+            const metrics = ctx.measureText(line);
+            if (metrics.width > maxWidth) maxWidth = metrics.width;
+        });
 
-        eventBus.emit('IMAGE_LOADED', result.canvas);
+        if (!('letterSpacing' in ctx) && letterSpacing !== 0) {
+            maxWidth += (lines[0].length * letterSpacing);
+        }
+
+        canvas.width = Math.ceil(maxWidth + (padding * 2) + strokeWidth);
+        canvas.height = Math.ceil((lines.length * lineHeight) + (padding * 2) + strokeWidth);
+
+        ctx.font = fontStyleString;
+        ctx.textBaseline = 'top';
+        if ('letterSpacing' in ctx) {
+            ctx.letterSpacing = `${letterSpacing}px`;
+        }
+
+        const bgColor = this.ui.colors.bg ? this.ui.colors.bg.value : '#FFFFFF';
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = this.ui.colors.text ? this.ui.colors.text.value : '#000000';
+        ctx.strokeStyle = this.ui.colors.stroke ? this.ui.colors.stroke.value : '#000000';
+        ctx.lineWidth = strokeWidth * 2; 
+        ctx.lineJoin = 'round';
+
+        lines.forEach((line, index) => {
+            const x = padding + (strokeWidth / 2);
+            const y = padding + (index * lineHeight) + (strokeWidth / 2);
+
+            if (strokeWidth > 0) {
+                ctx.strokeText(line, x, y);
+            }
+            ctx.fillText(line, x, y);
+        });
+
+        state.originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        state.resizeWidth = canvas.width;
+        state.resizeHeight = canvas.height;
+        const widthInput = document.getElementById('scaleWidth');
+        const heightInput = document.getElementById('scaleHeight');
+        if (widthInput) widthInput.value = canvas.width;
+        if (heightInput) heightInput.value = canvas.height;
+
+        // [에러 해결 핵심] 이미지 데이터를 페이로드로 함께 전달!
+        eventBus.emit('IMAGE_LOADED', state.originalImageData);
     }
 }
