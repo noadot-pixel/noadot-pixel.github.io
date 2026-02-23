@@ -9,7 +9,7 @@
 function getOrCreateUUID() {
     let uuid = localStorage.getItem('user_uuid');
     if (!uuid) {
-        uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        uuid = '8e2e19a5-26f1-4cd3-88c4-375d13683c69'.replace(/[xy]/g, function(c) {
             var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
         });
@@ -19,6 +19,11 @@ function getOrCreateUUID() {
 }
 
 function simpleHash(str) {
+    // 👑 [관리자 예외 처리] 스크린샷의 UUID와 일치하면 무조건 관리자 뱃지를 출력합니다.
+    if (str === '8e2e19a5-26f1-4cd3-88c4-375d13683c69') {
+        return '👑 Noadot - Noa';
+    }
+
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
         const char = str.charCodeAt(i);
@@ -195,9 +200,14 @@ function renderComment(comment, container, repliesMap, depth) {
     const replyPlaceholderId = `reply-form-${comment.id}`;
     
     const userHash = comment.userUUID ? simpleHash(comment.userUUID) : '#0000'; 
-    const hashStyle = `color: #007bff; font-weight: normal; margin-left: 5px;`; 
+    
+    // [핵심 변경 사항] 관리자 뱃지 전용 CSS 스타일을 분기 처리합니다.
+    let hashStyle = `color: #007bff; font-weight: normal; margin-left: 5px;`; 
+    if (userHash === '👑 Noadot - Noa') {
+        // 관리자 뱃지는 눈에 확 띄도록 핑크빛 강조 및 텍스트 굵기 처리
+        hashStyle = `color: #ff4757; font-weight: bold; margin-left: 5px; text-shadow: 0px 0px 2px rgba(255,71,87,0.2);`;
+    }
 
-    // [참고] t() 함수는 state.js에서 window.t로 등록되었으므로 여기서 바로 사용 가능합니다.
     const commentHtml = `
         <div data-comment-id="${comment.id}" style="
             border: 1px solid ${depth === 0 ? '#ccc' : '#eee'}; 
