@@ -240,7 +240,6 @@ export const languageData = {
         alert_first_gene: "먼저 이미지를 변환해주세요.",
         alert_error_general: "파일 읽기 오류",
 
-        label_download_uplace: "(연구중, 작동하지 않음)Uplace 버전으로 다운로드 (.you)",
         label_download_separated: "색상별 이미지 별도 다운로드 (.zip)",
         
         alert_font_uploaded: "폰트 '{name}' 업로드 완료!",
@@ -255,6 +254,8 @@ export const languageData = {
         tag_user_added: "사용자 추가",
 
         text_line_height: "줄 간격",
+
+        palette_uplace_default: "youplace 팔레트",
 
         COMMENT_MODAL_TITLE: "피드백 및 댓글",
         COMMENT_MODAL_OPEN_BUTTON: "💬 댓글 달기",
@@ -430,6 +431,8 @@ export const languageData = {
         placeholder_text_editor: "Enter text here...",
         placeholder_recommend: "Upload an image to see<br>recommended colors.",
         placeholder_add_color: "Add colors from the inputs below.",
+
+        palette_uplace_default: "youplace palette",
         
         tooltip_dithering: "A technique that uses dots to simulate shades and reduce color banding when using a limited color palette. It improves the detail of the image.",
         tooltip_pattern: "Compares the image's brightness with a pattern map to redraw pixels using the two closest colors from the palette. Can be combined with standard dithering for more complex textures.",
@@ -562,7 +565,6 @@ export const languageData = {
         alert_no_data_to_download: "There is no data to download. Please run the conversion first.",
         alert_jszip_missing: "Failed to load the compression library (JSZip). Please refresh the page.",
 
-        label_download_uplace: "(Under research, not functioning)Download as Uplace version (.you)",
         label_download_separated: "Download separated images by color (.zip)",
 
         tooltip_zoom_in: "Zoom In (+)",
