@@ -1,3 +1,4 @@
+// js/features/export-utils/logic.js
 import { eventBus } from '../../core/EventBus.js';
 import { state, rgbToHex, t } from '../../state.js';
 import { wplaceFreeColors, wplacePaidColors } from '../../../data/palettes.js';
@@ -44,7 +45,7 @@ export class ExportFeature {
         }
 
         if (this.ui.chkUplace) {
-            this.ui.chkUplace.disabled = false;
+            this.ui.chkUplace.disabled = false; // 클릭 활성화 유지
         }
 
         this.initEvents();
@@ -64,11 +65,22 @@ export class ExportFeature {
             }
         });
 
+        // [수정] 팔레트 모드 변경 시 Uplace 옵션 껍데기를 표시/숨김 처리합니다.
         eventBus.on('PALETTE_MODE_CHANGED', (mode) => {
-            if (this.ui.chkUplace) {
-                this.ui.chkUplace.checked = (mode === 'uplace');
-            }
+            this.updateUplaceOptionVisibility();
         });
+    }
+
+    // App.js 등 외부에서 강제 동기화가 필요할 때를 대비한 메서드
+    updateUplaceOptionVisibility() {
+        if (this.ui.uplaceWrapper) {
+            if (state.currentMode === 'uplace') {
+                this.ui.uplaceWrapper.style.display = 'block'; // Uplace일 때만 짠!
+            } else {
+                this.ui.uplaceWrapper.style.display = 'none';  // 다른 모드면 숨김
+                if (this.ui.chkUplace) this.ui.chkUplace.checked = false; // 숨길 때 체크도 해제
+            }
+        }
     }
 
     initEvents() {
@@ -128,15 +140,15 @@ export class ExportFeature {
         const isSeparated = this.ui.chkSeparated && this.ui.chkSeparated.checked;
         const isSplit = this.ui.chkSplit && this.ui.chkSplit.checked;
         
-        const isUplaceChecked = this.ui.chkUplace && this.ui.chkUplace.checked;
+        // [핵심 변경] Uplace 모드이면서 + "도안 다운로드" 체크박스까지 체크되어야만 .you 생성
         const isUplaceMode = state.currentMode === 'uplace';
-        const isUplace = isUplaceChecked || isUplaceMode;
+        const isYouFileRequested = isUplaceMode && this.ui.chkUplace && this.ui.chkUplace.checked;
 
         const timestamp = this.getTimestamp();
 
         // 1. 단일 파일 다운로드 (ZIP 옵션이 켜져있지 않을 때)
         if (!isSeparated && !isSplit) {
-            if (isUplace) {
+            if (isYouFileRequested) {
                 const blob = this.createYouFileBlob(imageData, `NoaDot Export ${timestamp}`);
                 saveAs(blob, `NOADOT_Uplace_${timestamp}.you`);
             } else {
@@ -154,9 +166,9 @@ export class ExportFeature {
 
         const zip = new JSZip();
 
-        // Uplace 여부를 파라미터로 넘겨서 ZIP 내부 파일의 포맷을 결정
-        if (isSeparated) await this.addSeparatedColorsToZip(zip, imageData, isUplace);
-        if (isSplit) await this.addSplitImagesToZip(zip, imageData, isUplace);
+        // ZIP 내부 파일들도 .you 요청 여부에 따라 포맷을 결정
+        if (isSeparated) await this.addSeparatedColorsToZip(zip, imageData, isYouFileRequested);
+        if (isSplit) await this.addSplitImagesToZip(zip, imageData, isYouFileRequested);
 
         const content = await zip.generateAsync({ type: "blob" });
         saveAs(content, `NOADOT_Export_${timestamp}.zip`);
@@ -173,7 +185,6 @@ export class ExportFeature {
         });
     }
 
-    // [핵심 로직 분리] ImageData를 받아서 .you 형식의 Blob으로 변환하는 헬퍼 함수
     createYouFileBlob(imageData, namePrefix) {
         const { width, height, data } = imageData;
         const pixels = new Uint8Array(width * height);
@@ -221,7 +232,6 @@ export class ExportFeature {
         }
         base64Pixels = window.btoa(base64Pixels);
 
-        // 빠른 생성 시 고유 ID 부여를 위한 랜덤 값 추가
         const uniqueId = Date.now().toString() + Math.floor(Math.random() * 1000);
 
         const payload = {
@@ -244,8 +254,7 @@ export class ExportFeature {
         return new Blob([JSON.stringify(payload, null, 2)], { type: "application/octet-stream" });
     }
 
-    // 도안 분할 다운로드 (isUplace 여부에 따라 png 또는 you 파일 생성)
-    async addSplitImagesToZip(zip, imageData, isUplace) {
+    async addSplitImagesToZip(zip, imageData, isYouRequested) {
         const cols = parseInt(this.ui.splitCols.value) || 2;
         const rows = parseInt(this.ui.splitRows.value) || 2;
         const maintainSize = this.ui.chkMaintainSize.checked;
@@ -258,8 +267,7 @@ export class ExportFeature {
         masterCanvas.height = height;
         masterCanvas.getContext('2d').putImageData(imageData, 0, 0);
 
-        // Uplace 모드일 경우 폴더명을 직관적으로 변경
-        const folderName = isUplace ? "split_drafts_you" : "split_drafts";
+        const folderName = isYouRequested ? "split_drafts_you" : "split_drafts";
         const folder = zip.folder(folderName);
         
         const segW = Math.floor(width / cols);
@@ -285,14 +293,12 @@ export class ExportFeature {
                     ctx.drawImage(masterCanvas, x, y, w, h, 0, 0, w, h);
                 }
 
-                if (isUplace) {
-                    // .you 포맷 변환 및 추가
+                if (isYouRequested) {
                     const segmentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     const fileName = `part_${r + 1}_${c + 1}.you`;
                     const blob = this.createYouFileBlob(segmentImageData, `Part ${r + 1}-${c + 1}`);
                     folder.file(fileName, blob);
                 } else {
-                    // .png 포맷 변환 및 추가
                     const fileName = `part_${r + 1}_${c + 1}.png`;
                     const blob = await new Promise(resolve => canvas.toBlob(resolve));
                     folder.file(fileName, blob);
@@ -301,15 +307,14 @@ export class ExportFeature {
         }
     }
 
-    // 색상별 분할 다운로드 (isUplace 여부에 따라 png 또는 you 파일 생성)
-    async addSeparatedColorsToZip(zip, imageData, isUplace) {
+    async addSeparatedColorsToZip(zip, imageData, isYouRequested) {
         const { width, height, data } = imageData;
         const colorLayers = {}; 
         
         const palette = [...wplaceFreeColors, ...wplacePaidColors];
         const isWplaceRelated = state.currentMode === 'wplace' || (state.currentMode === 'geopixels' && state.useWplaceInGeoMode);
         
-        const folderName = isUplace ? "separated_colors_you" : "separated_colors";
+        const folderName = isYouRequested ? "separated_colors_you" : "separated_colors";
         const folder = zip.folder(folderName);
 
         for (let i = 0; i < data.length; i += 4) {
@@ -350,14 +355,12 @@ export class ExportFeature {
                 const imgData = new ImageData(layerInfo.buffer, width, height);
                 const safeName = layerInfo.name.replace(/[\/\\?%*:|"<>]/g, '_');
 
-                if (isUplace) {
-                    // .you 포맷 생성
+                if (isYouRequested) {
                     const fileName = `${safeName} - ${layerInfo.count}.you`;
                     const blob = this.createYouFileBlob(imgData, safeName);
                     folder.file(fileName, blob);
                     resolve();
                 } else {
-                    // .png 포맷 생성
                     const layerCanvas = document.createElement('canvas');
                     layerCanvas.width = width;
                     layerCanvas.height = height;
