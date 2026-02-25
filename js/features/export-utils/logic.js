@@ -4,6 +4,46 @@ import { state, rgbToHex, t } from '../../state.js';
 import { wplaceFreeColors, wplacePaidColors } from '../../../data/palettes.js';
 import { ExportUI } from './ui.js';
 
+// ==========================================
+// [보안 메타데이터 생성 및 PNG 청크 조작 유틸리티]
+// ==========================================
+const crcTable = new Uint32Array(256);
+for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let j = 0; j < 8; j++) {
+        c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+    }
+    crcTable[i] = c;
+}
+
+function crc32(buffer, offset, length) {
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < length; i++) {
+        crc = crcTable[(crc ^ buffer[offset + i]) & 0xFF] ^ (crc >>> 8);
+    }
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function createSecureStamp() {
+    // [핵심 연동] PresetManager가 수집한 모든 현재 레시피(상태)를 긁어옵니다.
+    const recipeData = typeof state.getCurrentPresetConfig === 'function' 
+                       ? state.getCurrentPresetConfig("NoaDot Auto Export Preset") 
+                       : {};
+
+    const info = {
+        engine: "Noadot-Pixel-Engine",
+        version: "6.2",
+        exportedAt: new Date().toISOString(),
+        verified: true,
+        recipe: recipeData // 캡슐화된 모든 설정값이 여기에 통째로 탑재됩니다!
+    };
+    
+    const jsonStr = JSON.stringify(info);
+    const encoded = btoa(unescape(encodeURIComponent(jsonStr)));
+    return `ND_STAMP:${encoded}`;
+}
+// ==========================================
+
 // [Uplace Base64 암호 해독 배열]
 const uplacePaletteOrder = [
     [0, 0, 0], [44, 12, 14], [39, 32, 19], [36, 36, 36], [26, 28, 44],
@@ -45,7 +85,7 @@ export class ExportFeature {
         }
 
         if (this.ui.chkUplace) {
-            this.ui.chkUplace.disabled = false; // 클릭 활성화 유지
+            this.ui.chkUplace.disabled = false;
         }
 
         this.initEvents();
@@ -65,20 +105,18 @@ export class ExportFeature {
             }
         });
 
-        // [수정] 팔레트 모드 변경 시 Uplace 옵션 껍데기를 표시/숨김 처리합니다.
         eventBus.on('PALETTE_MODE_CHANGED', (mode) => {
             this.updateUplaceOptionVisibility();
         });
     }
 
-    // App.js 등 외부에서 강제 동기화가 필요할 때를 대비한 메서드
     updateUplaceOptionVisibility() {
         if (this.ui.uplaceWrapper) {
             if (state.currentMode === 'uplace') {
-                this.ui.uplaceWrapper.style.display = 'block'; // Uplace일 때만 짠!
+                this.ui.uplaceWrapper.style.display = 'block'; 
             } else {
-                this.ui.uplaceWrapper.style.display = 'none';  // 다른 모드면 숨김
-                if (this.ui.chkUplace) this.ui.chkUplace.checked = false; // 숨길 때 체크도 해제
+                this.ui.uplaceWrapper.style.display = 'none';  
+                if (this.ui.chkUplace) this.ui.chkUplace.checked = false; 
             }
         }
     }
@@ -130,6 +168,50 @@ export class ExportFeature {
         return `${y}${m}${d}_${h}${min}`;
     }
 
+    injectMetadataToPng(buffer, key, value) {
+        const view = new DataView(buffer);
+        const chunks = [];
+        let offset = 8; 
+
+        while (offset < buffer.byteLength) {
+            const length = view.getUint32(offset);
+            const type = String.fromCharCode(
+                view.getUint8(offset + 4), view.getUint8(offset + 5),
+                view.getUint8(offset + 6), view.getUint8(offset + 7)
+            );
+
+            if (type === 'IEND') break; 
+            chunks.push(buffer.slice(offset, offset + 12 + length));
+            offset += 12 + length;
+        }
+
+        const textData = key + '\0' + value;
+        const textBytes = new Uint8Array(textData.length);
+        for (let i = 0; i < textData.length; i++) {
+            textBytes[i] = textData.charCodeAt(i) & 0xFF;
+        }
+
+        const chunkLength = textBytes.length;
+        const newChunk = new Uint8Array(12 + chunkLength);
+        const newView = new DataView(newChunk.buffer);
+
+        newView.setUint32(0, chunkLength);
+        newChunk.set([116, 69, 88, 116], 4); 
+        newChunk.set(textBytes, 8);
+        
+        const crc = crc32(newChunk, 4, 4 + chunkLength);
+        newView.setUint32(8 + chunkLength, crc);
+
+        const iendChunk = buffer.slice(offset, offset + 12);
+
+        return new Blob([
+            buffer.slice(0, 8), 
+            ...chunks, 
+            newChunk, 
+            iendChunk
+        ], { type: 'image/png' });
+    }
+
     async handleDownload() {
         if (!state.finalDownloadableData) {
             alert(t('alert_no_data_to_download')); 
@@ -140,25 +222,22 @@ export class ExportFeature {
         const isSeparated = this.ui.chkSeparated && this.ui.chkSeparated.checked;
         const isSplit = this.ui.chkSplit && this.ui.chkSplit.checked;
         
-        // [핵심 변경] Uplace 모드이면서 + "도안 다운로드" 체크박스까지 체크되어야만 .you 생성
         const isUplaceMode = state.currentMode === 'uplace';
         const isYouFileRequested = isUplaceMode && this.ui.chkUplace && this.ui.chkUplace.checked;
 
         const timestamp = this.getTimestamp();
 
-        // 1. 단일 파일 다운로드 (ZIP 옵션이 켜져있지 않을 때)
         if (!isSeparated && !isSplit) {
             if (isYouFileRequested) {
                 const blob = this.createYouFileBlob(imageData, `NoaDot Export ${timestamp}`);
                 saveAs(blob, `NOADOT_Uplace_${timestamp}.you`);
             } else {
                 const fileName = `NOADOT_Export_${timestamp}.png`;
-                this.downloadCanvasAsPng(imageData, fileName);
+                await this.downloadCanvasAsPng(imageData, fileName);
             }
             return;
         }
 
-        // 2. ZIP 파일 생성 (색상 분리 OR 도안 분할)
         if (!window.JSZip) {
             alert(t('alert_jszip_missing'));
             return;
@@ -166,7 +245,6 @@ export class ExportFeature {
 
         const zip = new JSZip();
 
-        // ZIP 내부 파일들도 .you 요청 여부에 따라 포맷을 결정
         if (isSeparated) await this.addSeparatedColorsToZip(zip, imageData, isYouFileRequested);
         if (isSplit) await this.addSplitImagesToZip(zip, imageData, isYouFileRequested);
 
@@ -174,15 +252,17 @@ export class ExportFeature {
         saveAs(content, `NOADOT_Export_${timestamp}.zip`);
     }
 
-    downloadCanvasAsPng(imageData, fileName) {
+    async downloadCanvasAsPng(imageData, fileName) {
         const canvas = document.createElement('canvas');
         canvas.width = imageData.width;
         canvas.height = imageData.height;
         canvas.getContext('2d').putImageData(imageData, 0, 0);
         
-        canvas.toBlob((blob) => {
-            saveAs(blob, fileName);
-        });
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        const arrayBuffer = await blob.arrayBuffer();
+        const secureBlob = this.injectMetadataToPng(arrayBuffer, "Comment", createSecureStamp());
+        
+        saveAs(secureBlob, fileName);
     }
 
     createYouFileBlob(imageData, namePrefix) {
@@ -300,8 +380,10 @@ export class ExportFeature {
                     folder.file(fileName, blob);
                 } else {
                     const fileName = `part_${r + 1}_${c + 1}.png`;
-                    const blob = await new Promise(resolve => canvas.toBlob(resolve));
-                    folder.file(fileName, blob);
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const secureBlob = this.injectMetadataToPng(arrayBuffer, "Comment", createSecureStamp());
+                    folder.file(fileName, secureBlob);
                 }
             }
         }
@@ -369,10 +451,12 @@ export class ExportFeature {
                     ctx.putImageData(imgData, 0, 0);
 
                     const fileName = `${safeName} - ${layerInfo.count}.png`;
-                    layerCanvas.toBlob((blob) => {
-                        folder.file(fileName, blob);
+                    layerCanvas.toBlob(async (blob) => {
+                        const arrayBuffer = await blob.arrayBuffer();
+                        const secureBlob = this.injectMetadataToPng(arrayBuffer, "Comment", createSecureStamp());
+                        folder.file(fileName, secureBlob);
                         resolve();
-                    });
+                    }, 'image/png');
                 }
             });
         });
