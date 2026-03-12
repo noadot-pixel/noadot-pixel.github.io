@@ -1,3 +1,4 @@
+// js/features/image-viewer/logic.js
 import { eventBus } from '../../core/EventBus.js';
 import { state, rgbToHex, t } from '../../state.js';
 import { ImageViewerUI } from './ui.js';
@@ -25,13 +26,13 @@ export class ImageViewerFeature {
     }
 
     checkEyedropperStatus() {
-        const isWplaceRelated = state.currentMode === 'wplace' || (state.currentMode === 'geopixels' && state.useWplaceInGeoMode);
+        const isFixedPalette = state.currentMode === 'wplace' || state.currentMode === 'uplace' || (state.currentMode === 'geopixels' && state.useWplaceInGeoMode);
         
         if (this.ui.eyedropperBtn) {
-            this.ui.eyedropperBtn.style.display = isWplaceRelated ? 'none' : 'flex';
+            this.ui.eyedropperBtn.style.display = isFixedPalette ? 'none' : 'flex';
         }
 
-        if (isWplaceRelated && this.isEyedropperActive) {
+        if (isFixedPalette && this.isEyedropperActive) {
             this.toggleEyedropper(false);
         }
     }
@@ -50,7 +51,9 @@ export class ImageViewerFeature {
             this.ui.toggleLoading(false);
         });
 
+        // 메인 이미지 업로드 (화면 강제 초기화)
         eventBus.on('IMAGE_LOADED', (source) => {
+            if (!source) return;
             const tempCanvas = document.createElement('canvas');
             
             if (source instanceof HTMLImageElement || source.tagName === 'IMG') {
@@ -70,9 +73,7 @@ export class ImageViewerFeature {
             const data = rawData.data;
 
             for (let i = 0; i < data.length; i += 4) {
-                if (data[i + 3] < 255) {
-                    data[i + 3] = 0; 
-                }
+                if (data[i + 3] < 255) data[i + 3] = 0; 
             }
 
             ctx.putImageData(rawData, 0, 0);
@@ -80,40 +81,54 @@ export class ImageViewerFeature {
             state.originalImageObject = new Image();
             state.originalImageObject.src = tempCanvas.toDataURL();
 
-            this.resetView();
+            this.resetView(); // 줌과 위치 초기화
             this.ui.updateCanvas(state.originalImageData);
             this.ui.showCanvas();
+            this.checkEyedropperStatus();
+        });
+
+        // [신규] 텍스트 변경 시 (화면 위치 및 줌 비율 유지)
+        eventBus.on('TEXT_CONVERTER_UPDATED', (source) => {
+            if (!source || !source.width || !source.height) return;
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = source.width;
+            tempCanvas.height = source.height;
+            const ctx = tempCanvas.getContext('2d');
+            ctx.putImageData(source, 0, 0);
+
+            const rawData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const data = rawData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i + 3] < 255) data[i + 3] = 0; 
+            }
+            ctx.putImageData(rawData, 0, 0);
             
+            state.originalImageData = rawData;
+            state.originalImageObject = new Image();
+            state.originalImageObject.src = tempCanvas.toDataURL();
+
+            // resetView()를 호출하지 않고 캔버스만 업데이트! (줌/팬 유지)
+            this.ui.updateCanvas(state.originalImageData);
+            this.updateTransform(); 
+            this.ui.showCanvas();
             this.checkEyedropperStatus();
         });
 
-        eventBus.on('MODE_CHANGED', (mode) => {
-            this.checkEyedropperStatus();
-        });
-        
-        eventBus.on('OPTION_CHANGED', () => {
-             this.checkEyedropperStatus();
-        });
-
-        eventBus.on('PALETTE_UPDATED', () => {
-            this.checkEyedropperStatus();
-        });
+        eventBus.on('MODE_CHANGED', () => this.checkEyedropperStatus());
+        eventBus.on('OPTION_CHANGED', () => this.checkEyedropperStatus());
+        eventBus.on('PALETTE_UPDATED', () => this.checkEyedropperStatus());
     }
 
     initInteractions() {
         const container = this.ui.container;
         if (!container) return;
 
-        // [신규] 선명한 리사이징 체크박스 이벤트
         if (this.ui.chkSharpResizing) {
             this.ui.chkSharpResizing.addEventListener('change', (e) => {
-                // 체크됨(true) -> Sharp(선명하게) -> smoothing false
-                // 체크해제(false) -> Smooth(부드럽게) -> smoothing true
                 this.ui.toggleImageSmoothing(e.target.checked);
             });
         }
 
-        // 줌 버튼 이벤트
         if (this.ui.zoomInBtn) {
             this.ui.zoomInBtn.addEventListener('click', (e) => {
                 e.stopPropagation(); 
@@ -127,7 +142,6 @@ export class ImageViewerFeature {
             });
         }
 
-        // 스포이드 버튼
         if (this.ui.eyedropperBtn) {
             this.ui.eyedropperBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -135,7 +149,6 @@ export class ImageViewerFeature {
             });
         }
 
-        // 컨테이너 클릭
         container.addEventListener('click', (e) => {
             if (state.originalImageData) {
                 const isControl = e.target.closest('button, input, select, a, label, .top-right-ui');
@@ -147,23 +160,30 @@ export class ImageViewerFeature {
             }
         }, { capture: true });
 
-        // 휠 줌
         container.addEventListener('wheel', (e) => {
             if (!state.originalImageData) return;
             e.preventDefault();
             e.stopPropagation();
 
             const delta = -Math.sign(e.deltaY);
-            const zoomSpeed = 0.1;
+            const zoomSpeed = 0.15;
 
-            let newZoom = state.currentZoom + (delta * zoomSpeed * state.currentZoom);
+            let newZoom = state.currentZoom * (1 + (delta * zoomSpeed));
             newZoom = Math.max(10, Math.min(5000, newZoom)); 
             
+            const rect = container.getBoundingClientRect();
+            const dx = e.clientX - rect.left - (rect.width / 2);
+            const dy = e.clientY - rect.top - (rect.height / 2);
+            
+            const scaleRatio = newZoom / state.currentZoom;
+            
+            state.panX = dx - (dx - state.panX) * scaleRatio;
+            state.panY = dy - (dy - state.panY) * scaleRatio;
+
             state.currentZoom = newZoom;
             this.updateTransform();
         }, { passive: false });
 
-        // 마우스 드래그
         container.addEventListener('mousedown', (e) => {
             if (!state.originalImageData) return;
             if (e.target.closest('button')) return;
@@ -206,12 +226,10 @@ export class ImageViewerFeature {
             }
         });
 
-        // 모바일 터치 이벤트
         container.addEventListener('touchstart', (e) => {
             if (!state.originalImageData) return;
             if (e.target.closest('button')) return;
 
-            // 핀치 줌
             if (e.touches.length === 2) {
                 e.preventDefault();
                 state.isDragging = false;
@@ -222,19 +240,14 @@ export class ImageViewerFeature {
                 return;
             }
 
-            // 스포이드
             if (this.isEyedropperActive) {
                 if (e.touches.length > 0) {
                     const touch = e.touches[0];
-                    this.handleEyedropperPick({ 
-                        clientX: touch.clientX, 
-                        clientY: touch.clientY 
-                    });
+                    this.handleEyedropperPick({ clientX: touch.clientX, clientY: touch.clientY });
                 }
                 return;
             }
 
-            // 드래그
             if (e.touches.length === 1) {
                 state.isDragging = true;
                 this.hasDragged = false;
@@ -246,52 +259,39 @@ export class ImageViewerFeature {
         }, { passive: false });
 
         window.addEventListener('touchmove', (e) => {
-            // 핀치 줌
             if (e.touches.length === 2 && this.lastTouchDistance > 0) {
                 e.preventDefault();
-                
                 const currentDist = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY
                 );
-
                 const delta = currentDist - this.lastTouchDistance;
-                const zoomFactor = 1.5; 
-                
-                let newZoom = state.currentZoom + (delta * zoomFactor);
+                let newZoom = state.currentZoom + (delta * 1.5);
                 newZoom = Math.max(10, Math.min(5000, newZoom));
                 
                 state.currentZoom = newZoom;
                 this.updateTransform();
-                
                 this.lastTouchDistance = currentDist;
                 return;
             }
 
-            // 드래그
             if (state.isDragging && e.touches.length === 1) {
                 e.preventDefault();
                 const touch = e.touches[0];
-                const currentX = touch.clientX - this.startDragX;
-                const currentY = touch.clientY - this.startDragY;
-
-                state.panX = currentX;
-                state.panY = currentY;
+                state.panX = touch.clientX - this.startDragX;
+                state.panY = touch.clientY - this.startDragY;
                 this.updateTransform();
             }
         }, { passive: false });
 
         window.addEventListener('touchend', (e) => {
-            if (e.touches.length < 2) {
-                this.lastTouchDistance = 0; 
-            }
+            if (e.touches.length < 2) this.lastTouchDistance = 0; 
             if (state.isDragging && e.touches.length === 0) {
                 state.isDragging = false;
                 this.ui.setGrabbing(false);
             }
         });
         
-        // 기존 버튼 이벤트
         if (this.ui.centerBtn) {
             this.ui.centerBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -319,11 +319,8 @@ export class ImageViewerFeature {
             const showConverted = (e) => {
                 if(e.cancelable) e.preventDefault();
                 e.stopPropagation();
-                if (state.latestConversionData) {
-                    this.ui.showConvertedImage();
-                } else {
-                    this.ui.showOriginalImage();
-                }
+                if (state.latestConversionData) this.ui.showConvertedImage();
+                else this.ui.showOriginalImage();
             };
 
             this.ui.compareBtn.addEventListener('mousedown', showOriginal);
@@ -361,11 +358,10 @@ export class ImageViewerFeature {
         this.isEyedropperActive = active;
         this.ui.toggleEyedropperState(active);
         
-        if (active) {
-            this.ui.showOriginalImage();
-        } else {
+        if (active) this.ui.showOriginalImage();
+        else {
             this.ui.updatePixelInfo(false);
-            eventBus.emit('OPTION_CHANGED');
+            this.ui.showConvertedImage();
         }
     }
 

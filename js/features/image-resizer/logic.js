@@ -1,3 +1,4 @@
+// js/features/image-resizer/logic.js
 import { eventBus } from '../../core/EventBus.js';
 import { state } from '../../state.js';
 import { ImageResizerUI } from './ui.js';
@@ -34,18 +35,15 @@ export class ImageResizerFeature {
         }
     }
 
-    // [New] 리셋 기능을 위한 메서드 추가
     resetSettings() {
         if (!state.originalImageData) return;
 
-        // 1. 상태값 초기화
         state.resizeWidth = state.originalImageData.width;
         state.resizeHeight = state.originalImageData.height;
         state.exportScale = 1;
-        state.scaleMode = 'pixel'; // 기본은 픽셀 단위 조절
+        state.scaleMode = 'pixel'; 
         state.currentUpscaleFactor = 1;
 
-        // 2. UI 슬라이더 및 입력창 초기화
         if (this.ui.scaleSlider) this.ui.scaleSlider.value = 1;
         if (this.ui.pixelScaleSlider) this.ui.pixelScaleSlider.value = 0;
         if (this.ui.exportScaleSlider) this.ui.exportScaleSlider.value = 1;
@@ -61,16 +59,15 @@ export class ImageResizerFeature {
             });
         }
 
-        // 3. 텍스트 업데이트
         this.ui.updateInputs(1, state.resizeWidth, state.resizeHeight);
         this.ui.updateExportScaleLabel(1);
-
-        // 4. 치수 재계산 (UI 갱신)
         this.calculateDimensions();
     }
 
     initBusListeners() {
+        // 기존: 이미지 업로드 시 (완전 초기화)
         eventBus.on('IMAGE_LOADED', (imgObject) => {
+            if (!imgObject) return;
             this.ui.toggleControls(true);
             this.ui.toggleInfoPanel(true);
             
@@ -100,6 +97,31 @@ export class ImageResizerFeature {
             this.ui.updateExportScaleLabel(1);
             this.updateControlVisibility(state.scaleMode || 'pixel');
             this.calculateDimensions(); 
+        });
+
+        // [신규] 텍스트 입력 시: 유저가 맞춰놓은 스케일 옵션을 "보존"하면서 리사이징만 조용히 갱신
+        eventBus.on('TEXT_CONVERTER_UPDATED', (imgObject) => {
+            if (!imgObject) return;
+            state.aspectRatio = imgObject.height / imgObject.width;
+            
+            if (state.scaleMode === 'ratio' && this.ui.scaleSlider) {
+                const ratio = 1 / parseInt(this.ui.scaleSlider.value, 10);
+                state.resizeWidth = Math.max(1, Math.round(imgObject.width * ratio));
+                state.resizeHeight = Math.max(1, Math.round(imgObject.height * ratio));
+                this.ui.updateInputs(this.ui.scaleSlider.value, state.resizeWidth, state.resizeHeight);
+            } else if (state.scaleMode === 'pixel' && this.ui.pixelScaleSlider) {
+                const reduction = parseInt(this.ui.pixelScaleSlider.value, 10);
+                if (this.ui.pixelScaleSlider) this.ui.pixelScaleSlider.max = Math.max(1, imgObject.width - 1);
+                state.resizeWidth = Math.max(1, imgObject.width - reduction);
+                state.resizeHeight = Math.max(1, Math.round(state.resizeWidth * state.aspectRatio));
+                this.ui.updateInputs(null, state.resizeWidth, state.resizeHeight);
+            } else {
+                state.resizeWidth = imgObject.width;
+                state.resizeHeight = imgObject.height;
+                this.ui.updateInputs(1, imgObject.width, imgObject.height);
+            }
+            
+            this.calculateDimensions();
         });
 
         eventBus.on('UPSCALE_REQUEST', (factor) => {

@@ -27,6 +27,7 @@ export class TextConverterUI {
         this.fontSelect = document.getElementById('fontSelect');
         this.uploadBtn = document.getElementById('uploadFontBtn');
         this.fontInput = document.getElementById('fontUpload');
+        this.algorithmSelect = document.getElementById('textAlgorithmSelect');
         
         this.sliders = {
             fontSize: document.getElementById('fontSizeSlider'),
@@ -44,14 +45,54 @@ export class TextConverterUI {
         
         this.boldBtn = document.querySelector('button[data-style="bold"]');
         this.italicBtn = document.querySelector('button[data-style="italic"]');
-
         this.useWplaceCheckbox = document.getElementById('useWplaceInGeoMode');
 
         this.initPaletteListener();
         this.updateColorSelects(); 
-        
-        // [수정] 화면에 처음 로드될 때 '기본값(글자 검정, 배경 흰색)'을 강제로 적용시킵니다.
         this.applyDefaultColors(); 
+        this.initSliderListeners();
+    }
+
+    initSliderListeners() {
+        Object.values(this.sliders).forEach(slider => {
+            if (slider) {
+                this.updateValueDisplay(slider);
+                slider.addEventListener('input', (e) => {
+                    this.updateValueDisplay(e.target);
+                });
+            }
+        });
+    }
+
+    updateValueDisplay(slider) {
+        const id = slider.id;
+        const val = slider.value;
+        const targetId = id.replace('Slider', 'Value');
+        let display = document.getElementById(targetId);
+
+        if (!display) {
+            const label = document.querySelector(`label[for="${id}"]`);
+            if (label) display = label.querySelector('span');
+        }
+
+        if (!display) {
+            display = document.createElement('span');
+            display.id = targetId;
+            display.style.marginLeft = '10px';
+            display.style.fontWeight = 'bold';
+            display.style.color = '#007bff';
+            
+            const label = document.querySelector(`label[for="${id}"]`);
+            if (label) {
+                label.appendChild(display);
+            } else {
+                slider.parentElement.insertBefore(display, slider);
+            }
+        }
+
+        if (display) {
+            display.textContent = id === 'textLineHeightSlider' ? (val / 10).toFixed(1) : val;
+        }
     }
 
     initPaletteListener() {
@@ -62,11 +103,8 @@ export class TextConverterUI {
                 this.applyDefaultColors();
             });
         });
-
         if (this.useWplaceCheckbox) {
-            this.useWplaceCheckbox.addEventListener('change', () => {
-                this.updateColorSelects();
-            });
+            this.useWplaceCheckbox.addEventListener('change', () => this.updateColorSelects());
         }
     }
 
@@ -99,7 +137,13 @@ export class TextConverterUI {
 
         let finalOptions = [];
 
-        // 1. GeoPixels
+        const transparentOpt = document.createElement('option');
+        transparentOpt.value = 'transparent';
+        transparentOpt.textContent = '투명 (Transparent)';
+        transparentOpt.style.backgroundColor = '#e0e0e0';
+        transparentOpt.style.color = '#000';
+        finalOptions.push({ label: '기본 기능', items: [{ type: 'opt', el: transparentOpt }] });
+
         if (mode === 'geopixels') {
             const geoOpts = (geopixelsColors || []).map(c => {
                 const hex = rgbToHex(c.rgb[0], c.rgb[1], c.rgb[2]);
@@ -116,7 +160,6 @@ export class TextConverterUI {
                 finalOptions.push({ label: 'Wplace 팔레트 (확장)', items: wplaceOpts });
             }
         } 
-        // 2. Uplace [신규 추가] Uplace 모드일 때 Uplace 팔레트 95색을 불러옵니다.
         else if (mode === 'uplace') {
             const uplaceOpts = (uplaceColors || []).map(c => {
                 const hex = rgbToHex(c.rgb[0], c.rgb[1], c.rgb[2]);
@@ -124,7 +167,6 @@ export class TextConverterUI {
             });
             finalOptions.push({ label: 'Uplace 팔레트', items: uplaceOpts });
         }
-        // 3. Wplace
         else {
             const allWplace = [...(wplaceFreeColors||[]), ...(wplacePaidColors||[])];
             const wplaceOpts = allWplace.map(c => {
@@ -134,7 +176,6 @@ export class TextConverterUI {
             finalOptions.push({ label: 'Wplace 팔레트', items: wplaceOpts });
         }
 
-        // 4. User Custom
         const userOpts = (state.addedColors || []).map(c => {
             try {
                 let hex = null;
@@ -188,9 +229,9 @@ export class TextConverterUI {
 
     applyDefaultColors() {
         const mode = this.getCurrentPaletteMode();
-        this.setSelectValue(this.colors.text, '#000000'); // 기본 텍스트 색상: 검정
-        this.setSelectValue(this.colors.bg, '#FFFFFF');   // 기본 배경 색상: 흰색
-        this.setSelectValue(this.colors.stroke, '#000000'); // 기본 테두리 색상: 검정
+        this.setSelectValue(this.colors.text, '#000000'); 
+        this.setSelectValue(this.colors.bg, '#FFFFFF'); // [수정] 다시 기본값을 흰색으로 롤백!
+        this.setSelectValue(this.colors.stroke, '#000000'); 
     }
 
     setSelectValue(select, val) {
@@ -201,12 +242,6 @@ export class TextConverterUI {
             }
             select.dispatchEvent(new Event('change')); 
         }
-    }
-
-    updateValueDisplay(id, value) {
-        const targetId = id.replace('Slider', 'Value');
-        const display = document.getElementById(targetId);
-        if (display) display.textContent = value;
     }
 
     triggerFontUpload() {

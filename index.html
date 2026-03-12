@@ -223,42 +223,84 @@
         <div id="text-controls" style="display: none;">
             <section>
                 <h2 data-lang-key="section_text_style">2. 텍스트 스타일</h2>
-                <div class="control-group font-controls">
-                    <select id="fontSelect">
-                        <option value="Malgun Gothic">맑은 고딕</option> <option value="Gulim">굴림</option> <option value="Dotum">돋움</option> <option value="Arial">Arial</option> <option value="Verdana">Verdana</option>
+
+                <div class="control-group font-controls" style="margin-bottom: 10px; display: flex; flex-direction: column; align-items: stretch;">
+                    <label for="fontSelect" style="font-size: 12px; font-weight: bold; margin-bottom: 5px;">폰트 선택</label>
+                    <div style="display: flex; gap: 5px;">
+                        <select id="fontSelect" style="flex: 1; padding: 5px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px;">
+                            <option value="Malgun Gothic">맑은 고딕</option> 
+                            <option value="Gulim">굴림</option> 
+                            <option value="Dotum">돋움</option> 
+                            <option value="Arial">Arial</option> 
+                            <option value="Verdana">Verdana</option>
+                        </select>
+                        <button id="uploadFontBtn" title="폰트 파일 업로드" data-lang-key="text_upload_font" style="padding: 5px 10px; border-radius: 4px; border: 1px solid #007bff; background: #007bff; color: white; cursor: pointer; font-size: 12px; font-weight: bold;">폰트+</button>
+                        <input type="file" id="fontUpload" accept=".ttf, .otf, .woff, .woff2" hidden>
+                    </div>
+                </div>
+
+                <div class="control-group" style="margin-bottom: 10px;">
+                    <label for="fontSizeSlider" style="font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span data-lang-key="text_font_size">글자 크기</span>
+                        <span style="color: #007bff;"><span id="fontSizeValue">15</span>px</span>
+                    </label>
+                    <input type="range" id="fontSizeSlider" min="8" max="100" value="15" style="width: 100%;">
+                </div>
+
+                <div class="control-group" style="margin-bottom: 10px;">
+                    <label for="letterSpacingSlider" style="font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span data-lang-key="text_letter_spacing">자간</span>
+                        <span style="color: #007bff;"><span id="letterSpacingValue">0</span>px</span>
+                    </label>
+                    <input type="range" id="letterSpacingSlider" min="-5" max="20" value="0" style="width: 100%;">
+                </div>
+
+                <div class="control-group" style="margin-bottom: 10px;">
+                    <label for="textLineHeightSlider" style="font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span data-lang-key="text_line_height">줄 간격</span>
+                        <span style="color: #007bff;"><span id="textLineHeightValue">1.5</span>x</span>
+                    </label>
+                    <input type="range" id="textLineHeightSlider" min="10" max="30" value="15" step="1" style="width: 100%;">
+                </div>
+
+                <div class="control-group" style="margin-bottom: 10px;">
+                    <label for="paddingSlider" style="font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span data-lang-key="text_padding">여백</span>
+                        <span style="color: #007bff;"><span id="paddingValue">10</span>px</span>
+                    </label>
+                    <input type="range" id="paddingSlider" min="0" max="50" value="10" style="width: 100%;">
+                </div>
+
+                <div class="control-group" style="margin-bottom: 10px;">
+                    <label for="strokeWidthSlider" style="font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span data-lang-key="text_stroke_width">테두리 두께</span>
+                        <span style="color: #007bff;"><span id="strokeWidthValue">0</span>px</span>
+                    </label>
+                    <input type="range" id="strokeWidthSlider" min="0" max="10" value="0" style="width: 100%;">
+                </div>
+
+                <div class="control-group color-picker-group" style="margin-bottom: 10px; display: flex; flex-direction: column; align-items: stretch;">
+                    <label for="textColorSelect" data-lang-key="text_color" style="font-size: 12px; font-weight: bold; margin-bottom: 5px;">글자색</label>
+                    <select id="textColorSelect" style="width: 100%; padding: 5px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px;"></select>
+                </div>
+
+                <div class="control-group color-picker-group" style="margin-bottom: 10px; display: flex; flex-direction: column; align-items: stretch;">
+                    <label for="strokeColorSelect" data-lang-key="text_stroke_color" style="font-size: 12px; font-weight: bold; margin-bottom: 5px;">테두리색</label>
+                    <select id="strokeColorSelect" style="width: 100%; padding: 5px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px;"></select>
+                </div>
+
+                <div class="control-group color-picker-group" style="margin-bottom: 10px; display: flex; flex-direction: column; align-items: stretch;">
+                    <label for="bgColorSelect" data-lang-key="text_bg_color" style="font-size: 12px; font-weight: bold; margin-bottom: 5px;">배경색</label>
+                    <select id="bgColorSelect" style="width: 100%; padding: 5px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px;"></select>
+                </div>
+
+                <div class="control-group" style="margin-bottom: 10px; display: flex; flex-direction: column; align-items: stretch;">
+                    <label for="textAlgorithmSelect" style="font-size: 12px; font-weight: bold; margin-bottom: 5px;">외곽선 렌더링</label>
+                    <select id="textAlgorithmSelect" style="width: 100%; padding: 5px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px;">
+                        <option value="oklab">부드럽게</option>
+                        <option value="wdot" selected>날카롭게</option>
                     </select>
-                    <button id="uploadFontBtn" title="폰트 파일 업로드" data-lang-key="text_upload_font">폰트+</button>
-                    <input type="file" id="fontUpload" accept=".ttf, .otf, .woff, .woff2" hidden>
                 </div>
-                 <div class="control-group">
-                    <label for="fontSizeSlider"><span data-lang-key="text_font_size">글자 크기</span>: <span id="fontSizeValue">15</span>px</label>
-                    <input type="range" id="fontSizeSlider" min="8" max="100" value="15">
-                </div>
-                <div class="control-group">
-                    <label for="letterSpacingSlider"><span data-lang-key="text_letter_spacing">자간</span>: <span id="letterSpacingValue">0</span>px</label>
-                    <input type="range" id="letterSpacingSlider" min="-5" max="20" value="0">
-                <div class="control-group">
-                    <label for="textLineHeightSlider"><span data-lang-key="text_line_height">줄 간격</span>: <span id="textLineHeightValue">1.5</span>x</label>
-                    <input type="range" id="textLineHeightSlider" min="10" max="30" value="15" step="1">
-                </div>
-                </div>
-                <div class="control-group">
-                    <label for="paddingSlider"><span data-lang-key="text_padding">여백</span>: <span id="paddingValue">10</span>px</label>
-                    <input type="range" id="paddingSlider" min="0" max="50" value="10">
-                </div>
-                 <div class="control-group">
-                    <label for="strokeWidthSlider"><span data-lang-key="text_stroke_width">테두리 두께</span>: <span id="strokeWidthValue">0</span>px</label>
-                    <input type="range" id="strokeWidthSlider" min="0" max="10" value="0">
-                </div>
-                <div class="control-group color-picker-group">
-                    <label for="textColorSelect" data-lang-key="text_color">글자색</label><select id="textColorSelect"></select>
-                </div>
-                 <div class="control-group color-picker-group">
-                    <label for="strokeColorSelect" data-lang-key="text_stroke_color">테두리색</label><select id="strokeColorSelect"></select>
-                </div>
-                <div class="control-group color-picker-group">
-                    <label for="bgColorSelect" data-lang-key="text_bg_color">배경색</label><select id="bgColorSelect"></select>
-                </div>         
             </section>
         </div>
 

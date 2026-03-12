@@ -1,3 +1,4 @@
+// js/features/user-palette/logic.js
 import { eventBus } from '../../core/EventBus.js';
 import { state, hexToRgb, rgbToHex, t } from '../../state.js';
 import { UserPaletteUI } from './ui.js';
@@ -21,15 +22,23 @@ export class UserPaletteFeature {
         eventBus.on('IMAGE_ANALYZED', (data) => {
             console.log("[UserPalette] 데이터 수신:", data);
             let recommendations = [];
-            let totalPixels = 0;
+            
             if (Array.isArray(data)) {
                 recommendations = data;
-                if (data.totalPixels !== undefined) totalPixels = data.totalPixels;
             } else if (data && typeof data === 'object') {
                 recommendations = data.recommendations || [];
-                totalPixels = data.totalPixels || 0;
             }
             this.lastPixelStats = data.pixelStats || {}; 
+
+            // [버그 1 핵심 해결] 통계에서 투명 픽셀이 제외된 순수 픽셀 수만 합산합니다!
+            let totalPixels = 0;
+            if (Object.keys(this.lastPixelStats).length > 0) {
+                // pixelStats 객체의 모든 값(색상별 개수)을 더함
+                totalPixels = Object.values(this.lastPixelStats).reduce((sum, count) => sum + count, 0);
+            } else if (data.totalPixels !== undefined) {
+                // 만약 통계가 없다면 기존 방식(가로x세로)으로 폴백
+                totalPixels = data.totalPixels;
+            }
 
             if (totalPixels > 0 && state.originalImageData) {
                 const fullPixels = state.originalImageData.width * state.originalImageData.height;
@@ -48,12 +57,16 @@ export class UserPaletteFeature {
                 this.addColor(rgb);
             });
             
+            // 화면에 픽셀 수를 갱신
             if (totalPixels > 0) {
                 this.ui.updateTotalPixelCount(totalPixels);
+            } else {
+                this.ui.updateTotalPixelCount(0); // 투명한 캔버스일 경우 0으로 갱신
             }
 
             this.renderUIOnly();
         });
+
         eventBus.on('LANGUAGE_CHANGED', () => {
             // 언어가 변경되면 현재 상태 그대로 UI만 다시 그려서 번역을 즉시 적용합니다.
             this.renderUIOnly();
@@ -158,13 +171,11 @@ export class UserPaletteFeature {
     }
 
     addColor(rgb) {
-        // [핵심 해결] 스포이드 등에서 넘어온 데이터가 Uint8ClampedArray거나 객체일 수 있으므로
-        // 순수 배열 [r, g, b] 형태로 강제 변환하여 저장합니다.
+        // 배열 형태나 객체 형태 모두 정상적으로 처리하도록 보완
         const safeRgb = Array.isArray(rgb) ? [rgb[0], rgb[1], rgb[2]] : 
                         (rgb && typeof rgb === 'object' && '0' in rgb) ? [rgb[0], rgb[1], rgb[2]] : rgb;
 
         if (this.algo.isDuplicate(safeRgb, state.addedColors)) {
-            // 중복이지만 스포이드로 찍은거라면 알림 없이 그냥 활성화/갱신만 수행
             this.updateStateAndUI(); 
             return;
         }
@@ -189,13 +200,11 @@ export class UserPaletteFeature {
         this.updateStateAndUI();
     }
 
-    // [중요] 색상이 추가/제거될 때 이 함수가 호출되어야 화면 갱신이 일어납니다.
     updateStateAndUI() { 
         this.renderUIOnly(); 
         eventBus.emit('PALETTE_UPDATED'); 
     }
 
-    // [New] 확장된 정렬 로직 (오름차순/내림차순 모두 지원)
     renderUIOnly() {
         let displayList = state.addedColors.map((rgb, idx) => ({ rgb: rgb, originalIndex: idx }));
         
@@ -222,12 +231,11 @@ export class UserPaletteFeature {
                 if (mode === 'b_asc') return a.rgb[2] - b.rgb[2];
                 
                 // 3. 밝기 (Euclidean distance from White)
-                // White(255,255,255)와의 거리가 작을수록 밝음
                 const distA = Math.sqrt((255-a.rgb[0])**2 + (255-a.rgb[1])**2 + (255-a.rgb[2])**2);
                 const distB = Math.sqrt((255-b.rgb[0])**2 + (255-b.rgb[1])**2 + (255-b.rgb[2])**2);
                 
-                if (mode === 'bright_desc') return distA - distB; // 밝은 순 (거리가 작은 순)
-                if (mode === 'bright_asc') return distB - distA; // 어두운 순 (거리가 큰 순)
+                if (mode === 'bright_desc') return distA - distB; 
+                if (mode === 'bright_asc') return distB - distA; 
                 
                 return 0;
             });

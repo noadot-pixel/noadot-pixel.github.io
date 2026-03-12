@@ -1,3 +1,4 @@
+// js/features/text-converter/logic.js
 import { eventBus } from '../../core/EventBus.js';
 import { state } from '../../state.js';
 import { TextConverterUI } from './ui.js';
@@ -15,6 +16,7 @@ export class TextConverterFeature {
         const inputs = [
             this.ui.textarea, 
             this.ui.fontSelect, 
+            this.ui.algorithmSelect, 
             this.ui.sliders.fontSize,
             this.ui.sliders.letterSpacing, 
             this.ui.sliders.padding, 
@@ -43,6 +45,13 @@ export class TextConverterFeature {
             }
         });
 
+        if (this.ui.uploadBtn) {
+            this.ui.uploadBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.ui.triggerFontUpload();
+            });
+        }
+
         if (this.ui.fontInput) {
             this.ui.fontInput.addEventListener('change', (e) => this.handleFontUpload(e));
         }
@@ -69,23 +78,30 @@ export class TextConverterFeature {
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (e) => {
-            const fontName = 'CustomFont_' + Date.now();
-            const font = new FontFace(fontName, e.target.result);
-            font.load().then((loadedFont) => {
+        reader.onload = async (e) => {
+            try {
+                const fontName = 'CustomFont_' + Date.now();
+                const font = new FontFace(fontName, e.target.result);
+                const loadedFont = await font.load();
                 document.fonts.add(loadedFont);
                 
                 const option = document.createElement('option');
                 option.value = fontName;
                 option.textContent = file.name;
                 option.selected = true;
-                if (this.ui.fontSelect) this.ui.fontSelect.appendChild(option);
+                
+                if (this.ui.fontSelect) {
+                    this.ui.fontSelect.appendChild(option);
+                    this.ui.fontSelect.value = fontName; 
+                }
                 
                 this.triggerTextRender();
-            }).catch(err => {
+            } catch (err) {
                 console.error('폰트 로드 실패:', err);
-                alert('유효하지 않은 폰트 파일입니다.');
-            });
+                alert('유효하지 않은 폰트 파일입니다. (TTF, OTF 등 파일 확인)');
+            } finally {
+                if (event.target) event.target.value = '';
+            }
         };
         reader.readAsArrayBuffer(file);
     }
@@ -144,34 +160,56 @@ export class TextConverterFeature {
         }
 
         const bgColor = this.ui.colors.bg ? this.ui.colors.bg.value : '#FFFFFF';
-        ctx.fillStyle = bgColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (bgColor === 'transparent') {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        } else {
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
 
-        ctx.fillStyle = this.ui.colors.text ? this.ui.colors.text.value : '#000000';
-        ctx.strokeStyle = this.ui.colors.stroke ? this.ui.colors.stroke.value : '#000000';
+        const textColor = this.ui.colors.text ? this.ui.colors.text.value : '#000000';
+        const strokeColor = this.ui.colors.stroke ? this.ui.colors.stroke.value : '#000000';
+        
         ctx.lineWidth = strokeWidth * 2; 
         ctx.lineJoin = 'round';
 
+        // [핵심 해결] 글자나 테두리를 '투명'으로 설정했을 때 캔버스를 뚫어버리는 지우개 모드 구현
         lines.forEach((line, index) => {
             const x = padding + (strokeWidth / 2);
             const y = padding + (index * lineHeight) + (strokeWidth / 2);
 
             if (strokeWidth > 0) {
-                ctx.strokeText(line, x, y);
+                if (strokeColor === 'transparent') {
+                    ctx.globalCompositeOperation = 'destination-out';
+                    ctx.strokeStyle = '#000'; // 마스크 색상 (어떤 색이든 상관없음)
+                    ctx.strokeText(line, x, y);
+                    ctx.globalCompositeOperation = 'source-over'; // 모드 원상복구
+                } else {
+                    ctx.strokeStyle = strokeColor;
+                    ctx.strokeText(line, x, y);
+                }
             }
-            ctx.fillText(line, x, y);
+            
+            if (textColor === 'transparent') {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.fillStyle = '#000'; // 마스크 색상
+                ctx.fillText(line, x, y);
+                ctx.globalCompositeOperation = 'source-over'; // 모드 원상복구
+            } else {
+                ctx.fillStyle = textColor;
+                ctx.fillText(line, x, y);
+            }
         });
+
+        if (this.ui.algorithmSelect) {
+            state.colorMethodSelect = this.ui.algorithmSelect.value; 
+            const mainColorSelect = document.getElementById('colorMethodSelect');
+            if (mainColorSelect) mainColorSelect.value = this.ui.algorithmSelect.value;
+        }
 
         state.originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         
-        state.resizeWidth = canvas.width;
-        state.resizeHeight = canvas.height;
-        const widthInput = document.getElementById('scaleWidth');
-        const heightInput = document.getElementById('scaleHeight');
-        if (widthInput) widthInput.value = canvas.width;
-        if (heightInput) heightInput.value = canvas.height;
-
-        // [에러 해결 핵심] 이미지 데이터를 페이로드로 함께 전달!
-        eventBus.emit('IMAGE_LOADED', state.originalImageData);
+        eventBus.emit('TEXT_CONVERTER_UPDATED', state.originalImageData);
+        eventBus.emit('OPTION_CHANGED');
     }
 }

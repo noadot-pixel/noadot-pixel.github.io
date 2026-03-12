@@ -1,31 +1,23 @@
+// js/features/conversion-options/ui.js
 import { t } from '../../state.js'; 
 
 export class ConversionOptionsUI {
     constructor() {
-        // 1. 슬라이더 요소 참조
         this.saturationInput = document.getElementById('saturationSlider');
         this.brightnessInput = document.getElementById('brightnessSlider');
         this.contrastInput = document.getElementById('contrastSlider');
-        
-        this.celShadingRefinementSlider = document.getElementById('celShadingRefinementSlider'); // [추가]
-
-        // 개별 리셋 버튼 참조
+        this.celShadingRefinementSlider = document.getElementById('celShadingRefinementSlider');
         this.individualResetBtns = document.querySelectorAll('.reset-btn[data-target]');
-
-        // 동적 RGB 슬라이더
         this.rgbRInput = null;
         this.rgbGInput = null;
         this.rgbBInput = null;
 
-        // 2. 디더링 및 기타 옵션 참조
         this.ditheringSelect = document.getElementById('ditheringAlgorithmSelect');
         this.ditheringIntensity = document.getElementById('ditheringSlider');
-
         this.applyPatternCheck = document.getElementById('applyPattern');
         this.patternControls = document.getElementById('patternOptions');
         this.patternTypeSelect = document.getElementById('patternTypeSelect');
         this.patternSizeSlider = document.getElementById('patternSizeSlider');
-
         this.applyGradientCheck = document.getElementById('applyGradient');
         this.gradientControls = document.getElementById('gradientOptions');
         this.gradientTypeSelect = document.getElementById('gradientTypeSelect');
@@ -35,15 +27,10 @@ export class ConversionOptionsUI {
 
         this.celShadingApply = document.getElementById('celShadingApply');
         this.celShadingControls = document.getElementById('celShadingOptions'); 
-
         this.refinementSlider = document.getElementById('refinementSlider');
         this.aspireDitherCheck = document.getElementById('aspireDitherCheck');
-
         this.celShadingAspireDither = document.getElementById('celShadingAspireDither');
-        
-        // [신규] 알고리즘 선택 드롭다운 참조
         this.celShadingAlgorithmSelect = document.getElementById('celShadingAlgorithmSelect');
-
         this.celShadingLevelsSlider = document.getElementById('celShadingLevelsSlider');
         this.celShadingColorSpaceSelect = document.getElementById('celShadingColorSpaceSelect');
         
@@ -55,15 +42,66 @@ export class ConversionOptionsUI {
         this.celShadingRetryBtn = document.getElementById('celShadingRetryBtn');
         this.colorMethodSelect = document.getElementById('colorMethodSelect');
         
-        // 전체 리셋 버튼
         this.resetAllBtn = document.getElementById('resetAllOptionsBtn'); 
-
         this.applyAspireDither = document.getElementById('applyAspireDither');
         this.applyRefinement = document.getElementById('applyRefinement');
         this.refinementOptions = document.getElementById('refinementOptions');
-        this.refinementSlider = document.getElementById('refinementSlider');
 
         this.initLang();
+        this.initUniversalSliderListeners();
+    }
+
+    initUniversalSliderListeners() {
+        const allSliders = document.querySelectorAll('#conversion-options-container input[type="range"]');
+        allSliders.forEach(slider => {
+            this.updateSliderText(slider);
+            slider.addEventListener('input', (e) => {
+                this.updateSliderText(e.target);
+            });
+        });
+    }
+
+    updateSliderText(slider) {
+        const val = slider.value;
+        const id = slider.id;
+        if (!id) return;
+
+        let display = document.getElementById(id.replace('Slider', 'Value')) || 
+                      document.getElementById(id.replace('Slider', 'Val')) || 
+                      document.getElementById(id + 'Value') || 
+                      document.getElementById(id + 'Val');
+
+        if (!display) {
+            const label = document.querySelector(`label[for="${id}"]`);
+            if (label) display = label.querySelector('span');
+        }
+        if (!display && slider.parentElement) {
+            display = slider.parentElement.querySelector('span');
+        }
+
+        // [핵심 해결] 화면에 숫자를 띄울 span이 없다면? 자바스크립트가 강제로 하나 만들어줍니다!
+        if (!display) {
+            display = document.createElement('span');
+            display.id = id + 'Value';
+            display.style.marginLeft = '10px';
+            display.style.fontWeight = 'bold';
+            display.style.color = '#007bff'; // 예쁜 파란색으로 표시
+            
+            const label = document.querySelector(`label[for="${id}"]`);
+            if (label) {
+                label.appendChild(display);
+            } else {
+                slider.parentElement.insertBefore(display, slider);
+            }
+        }
+
+        if (display) {
+            if (id.startsWith('rgbWeight') && val > 0) {
+                display.textContent = `+${val}`;
+            } else {
+                display.textContent = val;
+            }
+        }
     }
 
     initLang() {
@@ -107,6 +145,14 @@ export class ConversionOptionsUI {
 
         targetSection.appendChild(rgbContainer);
         this.updateRGBReferences();
+        
+        ['rgbWeightR', 'rgbWeightG', 'rgbWeightB'].forEach(id => {
+            const slider = document.getElementById(id);
+            if(slider) {
+                this.updateSliderText(slider);
+                slider.addEventListener('input', (e) => this.updateSliderText(e.target));
+            }
+        });
     }
 
     updateRGBReferences() {
@@ -122,26 +168,15 @@ export class ConversionOptionsUI {
     }
 
     updateDisplay(key, value) {
-        let displayId = key.replace('Slider', '') + 'Value';
-        let display = document.getElementById(displayId);
-
-        if (!display) display = document.getElementById(key + 'Value');
-        if (!display) display = document.getElementById(key + 'Val');
-        
-        if (display) {
-            if (key.startsWith('rgbWeight') && value > 0) {
-                display.textContent = `+${value}`;
-            } else {
-                display.textContent = value;
-            }
-        }
-
         const element = document.getElementById(key);
         if (element) {
             if (element.type === 'checkbox') {
                 element.checked = value;
             } else {
                 element.value = value;
+                if (element.type === 'range') {
+                    this.updateSliderText(element);
+                }
             }
         }
     }
@@ -153,7 +188,6 @@ export class ConversionOptionsUI {
         this.toggleGroup(this.celShadingOutlineSettings, false);
     }
 
-    // 드롭다운 업데이트 (기존 로직 유지)
     updateOutlineColorList(groups) {
         const select = this.celShadingOutlineColorSelect;
         if (!select) return;
