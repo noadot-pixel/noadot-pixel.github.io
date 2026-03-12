@@ -67,7 +67,7 @@ export class ImageViewerUI {
         this.resetBtn = this.createButton('resetBtn', '↻', 'tooltip_reset_all');
         this.eyedropperBtn = this.createButton('eyedropperBtn', '🖊', 'tooltip_eyedropper');
         this.compareBtn = this.createButton('compareBtn', '🖼️', 'tooltip_compare_hold');
-        this.centerBtn = this.createButton('centerBtn', '🎯', 'tooltip_center_zoom');
+        this.centerBtn = this.createButton('centerBtn', '✜', 'tooltip_center_zoom');
 
         this.toolbar.appendChild(this.resetBtn);
         this.toolbar.appendChild(this.eyedropperBtn);

@@ -20,10 +20,7 @@ function getOrCreateUUID() {
 
 function simpleHash(str) {
     // 👑 [관리자 예외 처리] 스크린샷의 UUID와 일치하면 무조건 관리자 뱃지를 출력합니다.
-    if (str === '8e2e19a5-26f1-4cd3-88c4-375d13683c69') {
-        return '👑 Noadot - Noa';
-    }
-
+    
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
         const char = str.charCodeAt(i);
