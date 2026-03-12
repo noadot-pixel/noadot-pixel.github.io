@@ -295,10 +295,10 @@
                 </div>
 
                 <div class="control-group" style="margin-bottom: 10px; display: flex; flex-direction: column; align-items: stretch;">
-                    <label for="textAlgorithmSelect" style="font-size: 12px; font-weight: bold; margin-bottom: 5px;">외곽선 렌더링</label>
+                    <label for="textAlgorithmSelect" style="font-size: 12px; font-weight: bold; margin-bottom: 5px;" data-lang-key="text_option_Rendering">외곽선 렌더링</label>
                     <select id="textAlgorithmSelect" style="width: 100%; padding: 5px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px;">
-                        <option value="oklab">부드럽게</option>
-                        <option value="wdot" selected>날카롭게</option>
+                        <option value="oklab"><span data-lang-key="text_option_algorithms_sharp"></span></option>
+                        <option value="wdot" selected><span data-lang-key="text_option_algorithms_smooth"></span></option>
                     </select>
                 </div>
             </section>
@@ -613,6 +613,14 @@
             <div id="download-options-container" style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">
                 
                 <div class="custom-checkbox-wrapper">
+                    <input type="checkbox" id="chkDownloadUplace" class="custom-checkbox-input">
+                    <label for="chkDownloadUplace" class="custom-checkbox-label">
+                        <span class="checkmark"></span>
+                        <span data-lang-key="label_download_uplace">Uplace 버전으로 다운로드 (.you)</span>
+                    </label>
+                </div>
+
+                <div class="custom-checkbox-wrapper">
                     <input type="checkbox" id="chkDownloadSeparated" class="custom-checkbox-input">
                     <label for="chkDownloadSeparated" class="custom-checkbox-label">
                         <span class="checkmark"></span>
@@ -625,14 +633,6 @@
                     <label for="chkDownloadSplit" class="custom-checkbox-label">
                         <span class="checkmark"></span>
                         <span data-lang-key="label_download_split">도안 분할 다운로드 (.zip)</span>
-                    </label>
-                </div>
-
-                <div class="custom-checkbox-wrapper">
-                    <input type="checkbox" id="chkDownloadUplace" class="custom-checkbox-input">
-                    <label for="chkDownloadUplace" class="custom-checkbox-label">
-                        <span class="checkmark"></span>
-                        <span data-lang-key="label_download_uplace">Uplace 버전으로 다운로드 (.you)</span>
                     </label>
                 </div>
 

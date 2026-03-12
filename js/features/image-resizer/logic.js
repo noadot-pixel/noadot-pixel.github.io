@@ -65,7 +65,6 @@ export class ImageResizerFeature {
     }
 
     initBusListeners() {
-        // 기존: 이미지 업로드 시 (완전 초기화)
         eventBus.on('IMAGE_LOADED', (imgObject) => {
             if (!imgObject) return;
             this.ui.toggleControls(true);
@@ -99,28 +98,16 @@ export class ImageResizerFeature {
             this.calculateDimensions(); 
         });
 
-        // [신규] 텍스트 입력 시: 유저가 맞춰놓은 스케일 옵션을 "보존"하면서 리사이징만 조용히 갱신
+        // [핵심 수정] 텍스트가 업데이트 될 때도 리사이저가 픽셀 수를 다시 계산하고 패널을 켜주도록 보강
         eventBus.on('TEXT_CONVERTER_UPDATED', (imgObject) => {
             if (!imgObject) return;
+            this.ui.toggleInfoPanel(true); // 픽셀 수 패널 표시 보장
+            
             state.aspectRatio = imgObject.height / imgObject.width;
+            state.resizeWidth = imgObject.width;
+            state.resizeHeight = imgObject.height;
             
-            if (state.scaleMode === 'ratio' && this.ui.scaleSlider) {
-                const ratio = 1 / parseInt(this.ui.scaleSlider.value, 10);
-                state.resizeWidth = Math.max(1, Math.round(imgObject.width * ratio));
-                state.resizeHeight = Math.max(1, Math.round(imgObject.height * ratio));
-                this.ui.updateInputs(this.ui.scaleSlider.value, state.resizeWidth, state.resizeHeight);
-            } else if (state.scaleMode === 'pixel' && this.ui.pixelScaleSlider) {
-                const reduction = parseInt(this.ui.pixelScaleSlider.value, 10);
-                if (this.ui.pixelScaleSlider) this.ui.pixelScaleSlider.max = Math.max(1, imgObject.width - 1);
-                state.resizeWidth = Math.max(1, imgObject.width - reduction);
-                state.resizeHeight = Math.max(1, Math.round(state.resizeWidth * state.aspectRatio));
-                this.ui.updateInputs(null, state.resizeWidth, state.resizeHeight);
-            } else {
-                state.resizeWidth = imgObject.width;
-                state.resizeHeight = imgObject.height;
-                this.ui.updateInputs(1, imgObject.width, imgObject.height);
-            }
-            
+            this.ui.updateInputs(1, imgObject.width, imgObject.height);
             this.calculateDimensions();
         });
 

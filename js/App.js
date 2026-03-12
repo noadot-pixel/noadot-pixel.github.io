@@ -1,3 +1,4 @@
+// js/App.js
 import { WorkerBridge } from './core/WorkerBridge.js';
 import { ModeSelectorFeature } from './features/mode-selector/logic.js';
 import { ConversionOptionsFeature } from './features/conversion-options/logic.js';
@@ -41,41 +42,65 @@ class App {
         eventBus.on('OPTION_CHANGED', () => this.workerBridge.triggerConversion());
         
         eventBus.on('MODE_CHANGED', (mode) => {
+             // [핵심 해결] 모드 변환 시 이전 작업물과 메모리를 완벽히 초기화합니다.
+             state.originalImageData = null;
+             state.latestConversionData = null;
+
              if (this.conversionOptions && this.conversionOptions.resetOptions) {
                  this.conversionOptions.resetOptions(); 
              }
              if (this.userPalette && this.userPalette.resetStats) {
                  this.userPalette.resetStats();
              }
-             if (this.imageResizer && this.imageResizer.resetSettings) {
-                 this.imageResizer.resetSettings();
+             if (this.imageResizer) {
+                 if (this.imageResizer.resetSettings) this.imageResizer.resetSettings();
+                 if (this.imageResizer.clearWorkspace) this.imageResizer.clearWorkspace();
              }
              
-             // 다운로드 옵션(Uplace 체크박스) 상태 업데이트 요청
              if (this.exportFeature && this.exportFeature.updateUplaceOptionVisibility) {
                  this.exportFeature.updateUplaceOptionVisibility();
              }
 
-             // --- [여기서 스포이드와 비교 버튼을 확실하게 제어합니다!] ---
              const compareBtn = document.getElementById('compareBtn');
              const eyedropperBtn = document.getElementById('eyedropperBtn');
              
-             // 텍스트 모드일 때는 'none'으로 숨기고, 이미지 모드일 때는 'flex'로 다시 보여줌
              if (compareBtn) compareBtn.style.display = (mode === 'text') ? 'none' : 'flex';
              if (eyedropperBtn) eyedropperBtn.style.display = (mode === 'text') ? 'none' : 'flex';
-             // -------------------------------------------------------
+
+             const scaleControls = document.getElementById('scaleControlsFieldset');
+             const infoPanel = document.getElementById('imageInfoPanel');
+             
+             // 1. 크기 조절 옵션 잠금/해제
+             if (scaleControls) scaleControls.disabled = (mode === 'text');
+             
+             // 2. 정보 패널 숨기기 (새 이미지가 로드되거나 텍스트를 치면 다시 켜짐)
+             if (infoPanel) infoPanel.style.display = 'none';
+
+             // 3. 캔버스 화면 초기화 (플레이스홀더 다시 노출)
+             const canvas = document.getElementById('convertedCanvas');
+             const placeholder = document.getElementById('placeholder-ui');
+             if (canvas) canvas.style.display = 'none';
+             if (placeholder) {
+                 placeholder.style.display = 'flex';
+                 placeholder.style.flexDirection = 'column';
+             }
+
+             // 4. 입력 폼 내용 비우기
+             if (mode === 'text') {
+                 const textarea = document.getElementById('editor-textarea') || document.getElementById('textInput');
+                 if (textarea) textarea.value = '';
+             } else {
+                 const fileInput = document.getElementById('imageUpload');
+                 if (fileInput) fileInput.value = '';
+             }
 
              eventBus.emit('IMAGE_ANALYZED', { pixelStats: {}, recommendations: [] });
-             
-             if(mode === 'image') this.workerBridge.triggerConversion();
         });
 
         eventBus.on('BATCH_OPTION_CHANGED', () => this.workerBridge.triggerConversion());
         
         eventBus.on('PALETTE_UPDATED', () => {
             this.workerBridge.triggerConversion();
-            
-            // 팔레트 변경 시에도 다운로드 옵션 상태 체크 (Wplace 모드 관련)
             if (this.exportFeature && this.exportFeature.updateUplaceOptionVisibility) {
                 this.exportFeature.updateUplaceOptionVisibility();
             }
@@ -89,7 +114,6 @@ class App {
             if (this.conversionOptions && this.conversionOptions.resetOptions) {
                 this.conversionOptions.resetOptions();
             }
-            // 리사이저 리셋 (이전 요청사항 반영)
             if (this.imageResizer && this.imageResizer.resetSettings) {
                 this.imageResizer.resetSettings();
             }
@@ -111,7 +135,6 @@ class App {
         const langButtons = document.querySelectorAll('#language-switcher button[data-lang]');
         if (langButtons.length > 0) {
             langButtons.forEach(btn => {
-                // state.language는 localStorage에서 불러온 값을 가짐
                 if (btn.dataset.lang === state.language) {
                     btn.classList.add('active');
                 } else {
@@ -131,8 +154,6 @@ class App {
     setLanguage(lang) {
         if (state.language === lang) return;
         state.language = lang;
-        
-        // 언어 설정 저장 (새로고침 시 유지)
         localStorage.setItem('noadot_language', lang);
         
         this.updateDOMText();
@@ -144,7 +165,6 @@ class App {
         const texts = languageData[state.language];
         if (!texts) return;
 
-        // 1. 일반 텍스트 및 입력창 Placeholder
         const elements = document.querySelectorAll('[data-lang-key]');
         elements.forEach(el => {
             const key = el.getAttribute('data-lang-key');
@@ -157,21 +177,18 @@ class App {
             }
         });
         
-        // 2. 강제 Placeholder
         const placeholderElements = document.querySelectorAll('[data-lang-placeholder]');
         placeholderElements.forEach(el => {
             const key = el.getAttribute('data-lang-placeholder');
             if (texts[key]) el.placeholder = texts[key];
         });
 
-        // 3. 드롭다운 그룹(<optgroup>) 라벨 번역
         const labelElements = document.querySelectorAll('[data-lang-label]');
         labelElements.forEach(el => {
             const key = el.getAttribute('data-lang-label');
             if (texts[key]) el.label = texts[key];
         });
 
-        // 4. 마우스 호버 툴팁 번역
         const tooltipElements = document.querySelectorAll('[data-lang-tooltip]');
         tooltipElements.forEach(el => {
             const key = el.getAttribute('data-lang-tooltip');

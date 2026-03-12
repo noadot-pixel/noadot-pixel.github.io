@@ -39,6 +39,11 @@ export const languageData = {
         dithering_atkinson: "애킨슨",
         dithering_none: "사용 안함",
         option_dithering_strength: "디더링 강도",
+
+        text_option_algorithms_sharp: "날카롭게",
+        text_option_algorithms_smooth: "부드럽게",
+
+        text_option_Rendering: "외곽선 렌더링",
         
         // 패턴 옵션
         option_apply_pattern: "패턴 적용",
@@ -240,6 +245,7 @@ export const languageData = {
         alert_first_gene: "먼저 이미지를 변환해주세요.",
         alert_error_general: "파일 읽기 오류",
 
+        label_download_uplace: "youplace 버전으로 다운로드 받기(.you)",
         label_download_separated: "색상별 이미지 별도 다운로드 (.zip)",
         
         alert_font_uploaded: "폰트 '{name}' 업로드 완료!",
@@ -536,6 +542,9 @@ export const languageData = {
         tag_light: "Light Tone",
         tag_harmony: "Harmony (Complementary)",
 
+        
+        text_option_Rendering: "rendering",
+
         COMMENT_MODAL_TITLE: "Feedback and Comments",
         COMMENT_MODAL_OPEN_BUTTON: "💬 Leave a Comment",
         COMMENT_INPUT_NICKNAME_PLACEHOLDER: "Nickname (defaults to 'ㅇㅇ')",
@@ -569,6 +578,10 @@ export const languageData = {
 
         tooltip_zoom_in: "Zoom In (+)",
         tooltip_zoom_out: "Zoom Out (-)",
+        text_option_algorithms_sharp: "sharp",
+        text_option_algorithms_smooth: "smooth",
+
+        label_download_uplace: "download youplace version(.you)",
 
         size_change_download: "Apply when download",
         preset_recommended: "preset recommended",
