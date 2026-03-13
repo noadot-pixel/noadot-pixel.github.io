@@ -51,7 +51,6 @@ export class ImageViewerFeature {
             this.ui.toggleLoading(false);
         });
 
-        // 메인 이미지 업로드 (화면 강제 초기화)
         eventBus.on('IMAGE_LOADED', (source) => {
             if (!source) return;
             const tempCanvas = document.createElement('canvas');
@@ -81,13 +80,12 @@ export class ImageViewerFeature {
             state.originalImageObject = new Image();
             state.originalImageObject.src = tempCanvas.toDataURL();
 
-            this.resetView(); // 줌과 위치 초기화
+            this.resetView(); 
             this.ui.updateCanvas(state.originalImageData);
             this.ui.showCanvas();
             this.checkEyedropperStatus();
         });
 
-        // [신규] 텍스트 변경 시 (화면 위치 및 줌 비율 유지)
         eventBus.on('TEXT_CONVERTER_UPDATED', (source) => {
             if (!source || !source.width || !source.height) return;
             const tempCanvas = document.createElement('canvas');
@@ -107,7 +105,6 @@ export class ImageViewerFeature {
             state.originalImageObject = new Image();
             state.originalImageObject.src = tempCanvas.toDataURL();
 
-            // resetView()를 호출하지 않고 캔버스만 업데이트! (줌/팬 유지)
             this.ui.updateCanvas(state.originalImageData);
             this.updateTransform(); 
             this.ui.showCanvas();
@@ -358,10 +355,17 @@ export class ImageViewerFeature {
         this.isEyedropperActive = active;
         this.ui.toggleEyedropperState(active);
         
-        if (active) this.ui.showOriginalImage();
-        else {
+        if (active) {
+            this.ui.showOriginalImage();
+        } else {
             this.ui.updatePixelInfo(false);
-            this.ui.showConvertedImage();
+            
+            // [핵심 버그 수정] 스포이드를 끄는 순간 최신 변환 데이터를 캔버스에 강제로 덮어씌웁니다!
+            if (state.latestConversionData) {
+                this.ui.updateCanvas(state.latestConversionData);
+            } else {
+                this.ui.showConvertedImage();
+            }
         }
     }
 

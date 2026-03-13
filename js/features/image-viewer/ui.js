@@ -1,3 +1,4 @@
+// js/features/image-viewer/ui.js
 import { state, t } from '../../state.js';
 
 export class ImageViewerUI {
@@ -6,14 +7,12 @@ export class ImageViewerUI {
         this.canvas = document.getElementById('convertedCanvas');
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
         
-        // [신규] 선명한 리사이징 체크박스 참조
         this.chkSharpResizing = document.getElementById('chkSharpResizing');
         
         this.placeholder = document.getElementById('placeholder-ui');
         this.zoomDisplay = document.getElementById('zoomLevelDisplay');
         this.loadingIndicator = document.getElementById('loading-indicator');
         
-        // 버튼 참조 변수
         this.toolbar = null;
         this.resetBtn = null;
         this.eyedropperBtn = null;
@@ -21,7 +20,6 @@ export class ImageViewerUI {
         this.centerBtn = null;
         this.pixelInfoBox = null;
 
-        // 줌 제어용 변수
         this.zoomTextSpan = null;
         this.zoomInBtn = null;
         this.zoomOutBtn = null;
@@ -29,29 +27,25 @@ export class ImageViewerUI {
         this.lastConvertedData = null; 
         
         this.injectCanvasStyles();
-        this.createToolbar();       // 4개 버튼 툴바 생성
+        this.createToolbar();       
         this.createPixelInfoBox();
-        this.setupZoomControls();   // 줌 버튼 생성 (텍스트/버튼 분리형)
+        this.setupZoomControls();   
     }
 
     createToolbar() {
         if (!this.container) return;
 
-        // 기존 툴바 제거 (중복 방지)
         const existingToolbar = this.container.querySelector('#viewer-toolbar');
         if (existingToolbar) existingToolbar.remove();
 
-        // 새 툴바 생성
         this.toolbar = document.createElement('div');
         this.toolbar.id = 'viewer-toolbar';
         this.container.appendChild(this.toolbar);
 
-        // 툴바 클릭 시 업로드 창 뜨는 것 방지
         ['click', 'mousedown', 'touchstart'].forEach(evt => {
             this.toolbar.addEventListener(evt, (e) => e.stopPropagation());
         });
 
-        // 툴바 스타일
         Object.assign(this.toolbar.style, {
             position: 'absolute',
             top: '15px',            
@@ -63,7 +57,6 @@ export class ImageViewerUI {
             pointerEvents: 'auto'  
         });
 
-        // 버튼 생성
         this.resetBtn = this.createButton('resetBtn', '↻', 'tooltip_reset_all');
         this.eyedropperBtn = this.createButton('eyedropperBtn', '🖊', 'tooltip_eyedropper');
         this.compareBtn = this.createButton('compareBtn', '🖼️', 'tooltip_compare_hold');
@@ -242,16 +235,11 @@ export class ImageViewerUI {
         document.body.appendChild(this.pixelInfoBox);
     }
 
-    // [신규] 이미지 선명도(Smoothing) 토글 메서드
     toggleImageSmoothing(isSharp) {
         if (!this.canvas) return;
 
-        // 1. CSS 스타일 변경 (화면에 보이는 방식)
-        // pixelated: 픽셀이 각지게 보임 (기본), auto: 부드럽게 뭉개짐
         this.canvas.style.imageRendering = isSharp ? 'pixelated' : 'auto';
 
-        // 2. 캔버스 컨텍스트 설정 변경 (내부 그리기 방식)
-        // imageSmoothingEnabled가 false여야 픽셀이 선명해집니다. (Sharp=true 일 때 Smoothing=false)
         this.ctx.imageSmoothingEnabled = !isSharp; 
         this.ctx.mozImageSmoothingEnabled = !isSharp;
         this.ctx.webkitImageSmoothingEnabled = !isSharp;
@@ -323,8 +311,6 @@ export class ImageViewerUI {
         this.canvas.width = imageData.width;
         this.canvas.height = imageData.height;
 
-        // [중요] 캔버스 크기가 바뀌면 컨텍스트 설정이 초기화되므로
-        // 체크박스 상태에 맞춰 Smoothing 설정을 다시 적용해줍니다.
         if (this.chkSharpResizing) {
             this.toggleImageSmoothing(this.chkSharpResizing.checked);
         }
@@ -339,7 +325,6 @@ export class ImageViewerUI {
             this.canvas.style.height = `${imageData.height}px`;
         }
         
-        // [수정] 강제로 'pixelated'를 박는 코드를 제거하고 상태를 따르게 함
         if (this.chkSharpResizing) {
             this.canvas.style.imageRendering = this.chkSharpResizing.checked ? 'pixelated' : 'auto';
         }
@@ -369,6 +354,12 @@ export class ImageViewerUI {
         if (state.originalImageData) {
             this.canvas.width = state.originalImageData.width;
             this.canvas.height = state.originalImageData.height;
+            
+            // [방어 코드] 원본 이미지를 보여줄 때도 Smoothing 설정을 적용하여 뭉개짐 방지
+            if (this.chkSharpResizing) {
+                this.toggleImageSmoothing(this.chkSharpResizing.checked);
+            }
+
             this.ctx.putImageData(state.originalImageData, 0, 0);
             this.canvas.style.width = `${state.originalImageData.width}px`;
             this.canvas.style.height = `${state.originalImageData.height}px`;
@@ -376,10 +367,20 @@ export class ImageViewerUI {
     }
 
     showConvertedImage() {
-        if (this.lastConvertedData) {
-            this.canvas.width = this.lastConvertedData.width;
-            this.canvas.height = this.lastConvertedData.height;
-            this.ctx.putImageData(this.lastConvertedData, 0, 0);
+        // [버그 수정] 로컬 변수보다 전역 변수(최신 렌더링 값)를 우선적으로 꺼내오도록 수정
+        const targetData = state.latestConversionData || this.lastConvertedData;
+        
+        if (targetData) {
+            this.canvas.width = targetData.width;
+            this.canvas.height = targetData.height;
+            this.lastConvertedData = targetData; // 최신화
+            
+            // [방어 코드] 캔버스 사이즈가 바뀌면 초기화되는 Smoothing 설정을 다시 잡아줌
+            if (this.chkSharpResizing) {
+                this.toggleImageSmoothing(this.chkSharpResizing.checked);
+            }
+
+            this.ctx.putImageData(targetData, 0, 0);
             if (state.originalImageData) {
                 this.canvas.style.width = `${state.originalImageData.width}px`;
                 this.canvas.style.height = `${state.originalImageData.height}px`;
