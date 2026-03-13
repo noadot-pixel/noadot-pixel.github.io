@@ -1,6 +1,4 @@
 // js/comment.js
-// [수정] import 문 삭제 (SyntaxError 해결)
-// window.t 가 state.js에서 정의되므로 바로 사용 가능합니다.
 
 // ====================================================================
 // [1] 고유 식별자(UUID) 로직 및 검증 함수
@@ -9,7 +7,9 @@
 function getOrCreateUUID() {
     let uuid = localStorage.getItem('user_uuid');
     if (!uuid) {
-        uuid = '8e2e19a5-26f1-4cd3-88c4-375d13683c69'.replace(/[xy]/g, function(c) {
+        // [버그 수정] 기존에 'x'나 'y'가 없어서 모든 유저가 동일한 UUID를 받는 문제를 해결했습니다.
+        // 이제 정상적으로 완벽한 랜덤 UUID(v4 형식)가 발급됩니다.
+        uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
             var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
         });
@@ -19,8 +19,6 @@ function getOrCreateUUID() {
 }
 
 function simpleHash(str) {
-    // 👑 [관리자 예외 처리] 스크린샷의 UUID와 일치하면 무조건 관리자 뱃지를 출력합니다.
-    
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
         const char = str.charCodeAt(i);
@@ -196,14 +194,27 @@ function renderComment(comment, container, repliesMap, depth) {
     const margin = depth * 30; 
     const replyPlaceholderId = `reply-form-${comment.id}`;
     
-    const userHash = comment.userUUID ? simpleHash(comment.userUUID) : '#0000'; 
-    
-    // [핵심 변경 사항] 관리자 뱃지 전용 CSS 스타일을 분기 처리합니다.
-    let hashStyle = `color: #007bff; font-weight: normal; margin-left: 5px;`; 
-    if (userHash === '👑 Noadot - Noa') {
-        // 관리자 뱃지는 눈에 확 띄도록 핑크빛 강조 및 텍스트 굵기 처리
-        hashStyle = `color: #ff4757; font-weight: bold; margin-left: 5px; text-shadow: 0px 0px 2px rgba(255,71,87,0.2);`;
+    // ====================================================================
+    // 👑 [핵심 수정] DB에서 userUUID를 'noadot'으로 바꿨을 때의 특별 처리
+    // ====================================================================
+    let userHash;
+    let hashStyle;
+
+    if (comment.userUUID === 'noadot') {
+        userHash = ' NoaDot';
+        // 확실한 붉은색 네온 효과 CSS (glow 효과 추가)
+        hashStyle = `
+            color: #ff4d4d; 
+            font-weight: 900; 
+            margin-left: 5px; 
+            text-shadow: 0 0 3px rgba(255, 77, 77, 0.8), 0 0 12px rgba(255, 77, 77, 0.5);
+            letter-spacing: 0.5px;
+        `;
+    } else {
+        userHash = comment.userUUID ? simpleHash(comment.userUUID) : '#0000';
+        hashStyle = `color: #007bff; font-weight: normal; margin-left: 5px;`; 
     }
+    // ====================================================================
 
     const commentHtml = `
         <div data-comment-id="${comment.id}" style="
