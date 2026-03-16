@@ -325,6 +325,7 @@
                     <option value="floyd" data-lang-key="dithering_floyd">플로이드-스타인버그</option>
                     <option value="sierra" data-lang-key="dithering_sierra">시에라-2</option>
                     <option value="atkinson" selected data-lang-key="dithering_atkinson">애킨슨</option>
+                    <option value="aspire" data-lang-key="option_apply_aspire">Aspire</option>
                     <option value="none" data-lang-key="dithering_none">사용 안함</option>
                 </select>
             </div>
@@ -398,11 +399,6 @@
                     <label for="gradientStrengthSlider"><span data-lang-key="gradient_strength">강도</span>: <span id="gradientStrengthValue">100</span>%</label>
                     <input type="range" id="gradientStrengthSlider" min="0" max="100" value="100">
                 </div>
-            </div>
-
-            <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
-                <input type="checkbox" id="applyAspireDither">
-                <label for="applyAspireDither" data-lang-key="option_apply_aspire">Aspire 스타일</label>
             </div>
 
             <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
@@ -513,7 +509,42 @@
             
             <div id="recommendation-section" class="palette-section">
                 <h2 data-lang-key="section_color_extract">색상 추출 추천</h2>
-                    
+                
+                <div id="extractControlWrapper" style="display: flex; flex-direction: column; align-items: stretch; margin-bottom: 10px;">
+                    <div style="display:flex; justify-content:flex-end;">
+                        <label style="font-size: 12px; font-weight: bold; color: #555; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="checkbox" id="toggleExtractCheckbox"> <span data-lang-key="extract_advanced">고급 색상 추출</span>
+                        </label>
+                    </div>
+                    <div id="extractControlPanel" style="display: none; flex-direction: column; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #e0e0e0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-top: 6px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                                <span style="font-size: 12px; color: #555; font-weight: bold; white-space: nowrap; width: 55px; text-align: right;">
+                                    <span id="extractPercentValue" style="color: #007bff;">0.00</span>%
+                                </span>
+                                <input type="range" id="extractNumberSlider" min="0" max="10" value="0" step="1" style="flex: 1; margin: 0; cursor: pointer;">
+                            </div>
+                            <button id="extractAllColorsBtn" data-lang-key="btn_add_extracted" style="padding: 6px 10px; border-radius: 5px; border: none; background: #2ecc71; color: white; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; white-space: nowrap;">추가하기</button>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; background: #fff; padding: 4px 8px; border-radius: 6px; border: 1px solid #ddd;">
+                            <div style="display: flex; gap: 4px;" id="extractStepGroup">
+                                <button class="step-btn active" data-step="1" data-lang-key="btn_add_1">1개</button>
+                                <button class="step-btn" data-step="10" data-lang-key="btn_add_10">10개</button>
+                                <button class="step-btn" data-step="100" data-lang-key="btn_add_100">100개</button>
+                                <button class="step-btn" data-step="1000" data-lang-key="btn_add_1000">1000개</button>
+                            </div>
+                            <div style="display: flex; gap: 4px;">
+                                <button id="extractMinusBtn" style="width: 28px; height: 24px; border: 1px solid #ccc; background: #f8f9fa; border-radius: 4px; font-weight: bold; color: #333; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1;">-</button>
+                                <button id="extractPlusBtn" style="width: 28px; height: 24px; border: 1px solid #ccc; background: #f8f9fa; border-radius: 4px; font-weight: bold; color: #333; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1;">+</button>
+                            </div>
+                        </div>
+                        <div id="extractWarningBox" style="margin-top: 8px; font-size: 11px; font-weight: bold; color: #2e7d32; display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-radius: 4px; background: #e8f5e9; border: 1px solid #c8e6c9; transition: all 0.2s;">
+                            <span data-lang-key="extract_new_colors">새로 추가될 색상:</span>
+                            <span style="font-size: 13px; font-weight: 900;"><span id="extractCountValue">0</span> <span data-lang-key="unit_items">개</span></span>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="recommendation-report-container" class="recommendation-report-area" style="display: none;"></div>
                 
                 <div id="recommendedColorsPlaceholder" class="placeholder-section" style="margin-top: 15px;" data-lang-key="placeholder_recommend">이미지를 업로드하면<br>추천 색상이 표시됩니다.</div>
@@ -521,31 +552,38 @@
 
             <div id="user-defined-palette" class="palette-section">
                 <h2 data-lang-key="palette_added_colors">추가한 색상</h2>
-                <div class="sort-control-wrapper" style="display: flex; align-items: center; gap: 5px;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                    </svg>
-                    <select id="paletteSortSelect" style="border: none; background: transparent; font-size: 12px; color: #555; cursor: pointer; outline: none; font-weight: bold;">
-                        <optgroup data-lang-label="sort_group_default" label="기본">
-                            <option value="default" data-lang-key="sort_option_default">등록 순서</option>
-                        </optgroup>
-                        <optgroup data-lang-label="sort_group_usage" label="사용량">
-                            <option value="usage_desc" data-lang-key="sort_option_usage_desc">많은 순 (▼)</option>
-                            <option value="usage_asc" data-lang-key="sort_option_usage_asc">적은 순 (▲)</option>
-                        </optgroup>
-                        <optgroup data-lang-label="sort_group_brightness" label="밝기">
-                            <option value="bright_desc" data-lang-key="sort_option_bright_desc">밝은 순 (White▼)</option>
-                            <option value="bright_asc" data-lang-key="sort_option_bright_asc">어두운 순 (Black▲)</option>
-                        </optgroup>
-                        <optgroup data-lang-label="sort_group_rgb" label="RGB 값">
-                            <option value="r_desc" data-lang-key="sort_option_r_desc">Red 높은 순</option>
-                            <option value="g_desc" data-lang-key="sort_option_g_desc">Green 높은 순</option>
-                            <option value="b_desc" data-lang-key="sort_option_b_desc">Blue 높은 순</option>
-                        </optgroup>
-                    </select>
+                
+                <div id="paletteSortWrapper" style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 10px 0;">
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                        </svg>
+                        <select id="paletteSortSelect" style="border: none; background: transparent; font-size: 12px; color: #555; cursor: pointer; outline: none; font-weight: bold; padding-right: 0;">
+                            <optgroup data-lang-label="sort_group_default" label="기본">
+                                <option value="default" data-lang-key="sort_option_default">등록 순서</option>
+                            </optgroup>
+                            <optgroup data-lang-label="sort_group_usage" label="사용량">
+                                <option value="usage_desc" data-lang-key="sort_option_usage_desc">많은 순 (▼)</option>
+                                <option value="usage_asc" data-lang-key="sort_option_usage_asc">적은 순 (▲)</option>
+                            </optgroup>
+                            <optgroup data-lang-label="sort_group_brightness" label="밝기">
+                                <option value="bright_desc" data-lang-key="sort_option_bright_desc">밝은 순 (White▼)</option>
+                                <option value="bright_asc" data-lang-key="sort_option_bright_asc">어두운 순 (Black▲)</option>
+                            </optgroup>
+                            <optgroup data-lang-label="sort_group_rgb" label="RGB 값">
+                                <option value="r_desc" data-lang-key="sort_option_r_desc">Red 높은 순</option>
+                                <option value="g_desc" data-lang-key="sort_option_g_desc">Green 높은 순</option>
+                                <option value="b_desc" data-lang-key="sort_option_b_desc">Blue 높은 순</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <button id="viewModeToggleBtn" style="background: none; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center;" data-lang-tooltip="tooltip_view_mode" title="뷰 모드 변경">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                    </button>
                 </div>
+                
                 <div class="palette-buttons" id="addedColors">
-                     <div class="placeholder-section" data-lang-key="placeholder_add_color">아래에서 직접 색상을 추가하세요.</div>
+                    <div class="placeholder-section" data-lang-key="placeholder_add_color">아래에서 직접 색상을 추가하세요.</div>
                 </div>
                 <form class="add-color-form" onsubmit="return false;">
                     <div class="add-color-input-group"><input type="text" id="addHex" data-lang-placeholder="placeholder_hex" placeholder="HEX 코드 입력 (예: #FF595E)"></div>
@@ -557,7 +595,8 @@
                 </form>
                 <button id="resetAddedColorsBtn" class="reset-all-colors-btn" data-lang-key="btn_reset_added_colors">추가한 색상 전체 초기화</button>
             </div>
-             <div class="palette-section">
+            
+            <div class="palette-section">
                 <h2 data-lang-key="section_palette_io">팔레트 가져오기/내보내기</h2>
                 <div class="color-code-section">
                     <p style="font-size:14px; color:#555; margin:0 0 10px 0;" data-lang-key="info_palette_io">현재 '추가한 색상' 목록을 파일로 저장하거나, 파일에서 불러옵니다.</p>

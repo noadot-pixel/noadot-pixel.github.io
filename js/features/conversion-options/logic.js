@@ -1,3 +1,4 @@
+// js/features/conversion-options/logic.js
 import { eventBus } from '../../core/EventBus.js';
 import { state, CONFIG, t, rgbToHex } from '../../state.js';
 import { ConversionOptionsUI } from './ui.js';
@@ -147,12 +148,7 @@ export class ConversionOptionsFeature {
         bindInput(this.ui.applyRefinement, 'applyRefinement', true, this.ui.refinementOptions);
         bindInput(this.ui.refinementSlider, 'refinementSlider');
 
-        bindInput(this.ui.refinementSlider, 'refinementSlider');
-        bindInput(this.ui.aspireDitherCheck, 'aspireDitherCheck');
-
         bindInput(this.ui.celShadingRefinementSlider, 'celShadingRefinementSlider');
-        bindInput(this.ui.refinementSlider, 'refinementSlider');
-        bindInput(this.ui.aspireDitherCheck, 'aspireDitherCheck');
 
         bindInput(this.ui.saturationInput, 'saturationSlider');
         bindInput(this.ui.brightnessInput, 'brightnessSlider');
@@ -185,7 +181,6 @@ export class ConversionOptionsFeature {
             });
         }
         
-        // [신규] 알고리즘 선택 드롭다운 연결
         bindInput(this.ui.celShadingAlgorithmSelect, 'celShadingAlgorithmSelect');
 
         bindInput(this.ui.celShadingLevelsSlider, 'celShadingLevelsSlider');
@@ -238,9 +233,10 @@ export class ConversionOptionsFeature {
             'ditheringAlgorithmSelect', 'ditheringSlider',
             'applyPattern', 'patternTypeSelect', 'patternSizeSlider',
             'applyGradient', 'gradientTypeSelect', 'gradientDitherSizeSlider', 'gradientAngleSlider', 'gradientStrengthSlider',
-            'celShadingApply', 'celShadingAlgorithmSelect', 'celShadingLevelsSlider', 'celShadingColorSpaceSelect', // [신규] algorithm 추가
+            'celShadingApply', 'celShadingAlgorithmSelect', 'celShadingLevelsSlider', 'celShadingColorSpaceSelect', 
             'celShadingOutline', 'celShadingOutlineThresholdSlider', 'celShadingOutlineColorSelect',
-            'colorMethodSelect', 'refinementSlider', 'aspireDitherCheck','refinementSlider', 'aspireDitherCheck', 'celShadingApply',
+            'colorMethodSelect', 'refinementSlider', 'celShadingApply'
+            // [수정] aspireDitherCheck 제거
         ];
 
         keys.forEach(key => {
@@ -304,7 +300,7 @@ export class ConversionOptionsFeature {
             gradientStrengthSlider: 100,
             colorMethodSelect: 'oklab',
             celShadingApply: false,
-            celShadingAlgorithmSelect: 'kmeans', // [신규] 기본값 K-Means
+            celShadingAlgorithmSelect: 'kmeans', 
             celShadingLevelsSlider: 8,
             celShadingColorSpaceSelect: 'oklab',
             celShadingOutline: false,
@@ -312,10 +308,7 @@ export class ConversionOptionsFeature {
             celShadingOutlineColorSelect: '#000000',
             celShadingRandomSeed: 0,
             refinementSlider: 0,
-            aspireDitherCheck: false,
-            refinementSlider: 0,
-            aspireDitherCheck: false,
-            celShadingApply: false,
+            // [수정] aspireDitherCheck: false 제거
         };
 
         Object.keys(defaults).forEach(key => {

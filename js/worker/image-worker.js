@@ -88,7 +88,12 @@ self.onmessage = (e) => {
                 processedData = applyCelShadingFilter(processedData, activePalette, options);
             } else {
                 // [일반 모드]
-                const useAspireDither = options.applyAspireDither === true;
+                
+                // [핵심 1] 새로운 드롭다운 구조에서 Aspire 인식 및 강도 슬라이더 값 매핑
+                const ditheringType = options.dithering || 'none';
+                const useAspireDither = ditheringType === 'aspire';
+                const ditheringIntensity = (options.ditheringIntensity || 0) / 100;
+
                 const applyRefinement = options.applyRefinement === true;
                 const refinementStrength = applyRefinement ? (options.refinementStrength || 0) : 0;
 
@@ -122,8 +127,6 @@ self.onmessage = (e) => {
                 const height = processedData.height;
                 const floatData = new Float32Array(processedData.data);
                 
-                const ditheringType = options.dithering;
-                const ditheringIntensity = (options.ditheringIntensity || 0) / 100;
                 const applyPattern = options.applyPattern;
                 const patternMap = applyPattern ? THRESHOLD_MAPS[options.patternType] : null;
                 const patternSize = options.patternSize || 4;
@@ -201,9 +204,12 @@ self.onmessage = (e) => {
                         
                         let bestColor;
 
+                        // [핵심 2] Aspire 디더링 실행 및 강도(Intensity) 연동
                         if (useAspireDither && activePalette.length > 1) {
                             let cached = colorCache.get(cacheKey);
-                            if (!cached) {
+                            
+                            // 캐시 오염 방지를 위해 구조 검사
+                            if (!cached || !cached.c1) {
                                 let d1 = Infinity, idx1 = 0;
                                 let d2 = Infinity, idx2 = 0;
                                 
@@ -218,13 +224,16 @@ self.onmessage = (e) => {
                             }
                             
                             let ratio = 0;
-                            if (cached.d1 + cached.d2 > 0) ratio = cached.d1 / (cached.d1 + cached.d2);
+                            if (cached.d1 + cached.d2 > 0) {
+                                // 디더링 강도가 0이면 ratio가 0이 되어 무조건 원본에 가까운 색(c1)만 남습니다.
+                                ratio = (cached.d1 / (cached.d1 + cached.d2)) * ditheringIntensity;
+                            }
                             const threshold = aspireBayer[y % 8][x % 8] / 64.0;
                             bestColor = ratio > threshold ? cached.c2 : cached.c1;
 
                         } else {
                             bestColor = colorCache.get(cacheKey);
-                            if (!bestColor) {
+                            if (!bestColor || bestColor.c1) {
                                 bestColor = findClosestColor(oldR, oldG, oldB, activePalette, paletteConverted, options.colorMethod).color;
                                 colorCache.set(cacheKey, bestColor);
                             }
@@ -234,7 +243,10 @@ self.onmessage = (e) => {
                         floatData[idx+1] = bestColor[1];
                         floatData[idx+2] = bestColor[2];
 
-                        if (ditheringType !== 'none' && ditheringIntensity > 0) {
+                        // [핵심 3] 오차 확산 가드
+                        // Aspire는 정렬형(Ordered) 디더링이므로 여기서 엉뚱한 에러 확산 연산을 타지 않게 막아 깨짐을 방지합니다.
+                        const isErrorDiffusion = ['floyd', 'atkinson', 'sierra'].includes(ditheringType);
+                        if (isErrorDiffusion && ditheringIntensity > 0) {
                             const errR = (oldR - bestColor[0]) * ditheringIntensity;
                             const errG = (oldG - bestColor[1]) * ditheringIntensity;
                             const errB = (oldB - bestColor[2]) * ditheringIntensity;

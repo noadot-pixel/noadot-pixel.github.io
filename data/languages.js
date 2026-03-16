@@ -3,7 +3,7 @@
 export const languageData = {
     ko: {
         app_title: "NoaDot - 이미지/텍스트 변환기",
-        app_header: "🎨 노아도트 v7.0",
+        app_header: "🎨 노아도트 v7.1",
         section_mode: "모드 선택",
         mode_image: "🖼️ 이미지",
         mode_text: "✏️ 텍스트",
@@ -65,7 +65,7 @@ export const languageData = {
         gradient_strength: "강도",
 
         // [신규] Aspire 및 면 평탄화 옵션
-        option_apply_aspire: "Aspire 스타일",
+        option_apply_aspire: "Aspire",
         option_apply_refinement: "면 평탄화",
         label_refinement_strength: "강도",
 
@@ -96,6 +96,18 @@ export const languageData = {
         cartoon_map_mode: "매핑 모드",
         map_none: "사용 안함 (추출 색상 그대로)",
         map_active: "현재 활성 팔레트에 맞춤",
+
+        extract_advanced: "고급 색상 추출",
+        unit_items: "개",
+        btn_add_extracted: "추가하기",
+        btn_add_1: "1개",
+        btn_add_10: "10개",
+        btn_add_100: "100개",
+        btn_add_1000: "1000개",
+        extract_new_colors: "새로 추가될 색상:",
+        extract_warning_danger: "🚨 렉 발생 주의 (너무 많음)!",
+        extract_warning_caution: "⚠️ 렉 발생 주의 (많음)",
+        tooltip_view_mode: "뷰 모드 변경",
         
         cartoon_section_outline: "외곽선",
         cartoon_show_outline: "외곽선 표시",
@@ -297,7 +309,7 @@ export const languageData = {
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
-        app_header: "🎨 NoaDot v7.0",
+        app_header: "🎨 NoaDot v7.1",
         section_mode: "Select Mode",
         mode_image: "🖼️ Image",
         mode_text: "✏️ Text",
@@ -354,7 +366,7 @@ export const languageData = {
         gradient_strength: "Strength",
 
         // [New] Aspire & Refinement related
-        option_apply_aspire: "Aspire Style",
+        option_apply_aspire: "Aspire",
         option_apply_refinement: "Surface Flattening",
         label_refinement_strength: "Strength",
 
@@ -365,6 +377,18 @@ export const languageData = {
         tag_user_added: "Custom",
 
         alert_image_only: "Only image files can be uploaded.",
+
+        extract_advanced: "Advanced Extract",
+        unit_items: "Colors",
+        btn_add_extracted: "Add",
+        btn_add_1: "1",
+        btn_add_10: "10",
+        btn_add_100: "100",
+        btn_add_1000: "1000",
+        extract_new_colors: "Colors to add:",
+        extract_warning_danger: "🚨 High Lag Risk!",
+        extract_warning_caution: "⚠️ Lag Risk",
+        tooltip_view_mode: "Toggle View Mode",
 
         label_download_split: "Split Draft Download (.zip)",
         label_split_count: "Split Count (Cols x Rows)",

@@ -2,6 +2,11 @@
 import { hexToRgb, rgbToHex } from '../../state.js';
 
 export class UserPaletteAlgorithms {
+    constructor() {
+        this._cachedImageData = null;
+        this._cachedSortedColors = null;
+    }
+
     validateInput(type, value) {
         if (type === 'hex') {
             return /^#?([0-9A-F]{3}){1,2}$/i.test(value);
@@ -21,36 +26,26 @@ export class UserPaletteAlgorithms {
         );
     }
 
-    // [New] 스마트 파싱 (JSON 우선 -> 텍스트 패턴 검색)
     parseImportData(textData) {
-        // 1. JSON 형식(업로드한 파일 포맷)인지 먼저 시도
         try {
             const parsed = JSON.parse(textData);
-            // 배열이고, 내부 요소도 배열([r,g,b])인지 확인
             if (Array.isArray(parsed)) {
-                // 유효한 RGB 배열만 필터링
                 const validColors = parsed.filter(item => 
                     Array.isArray(item) && 
                     item.length === 3 && 
                     item.every(n => typeof n === 'number' && n >= 0 && n <= 255)
                 );
-                
                 if (validColors.length > 0) return validColors;
             }
-        } catch (e) {
-            // JSON 파싱 실패 시 무시하고 아래 텍스트 분석으로 넘어감
-        }
+        } catch (e) {}
 
-        // 2. JSON이 아니라면 텍스트에서 Hex/RGB 추출 (기존 로직 + extractColorsFromText 활용)
         return this.extractColorsFromText(textData);
     }
 
-    // 텍스트에서 색상 추출 (Hex 제거 후 숫자 추출 방식)
     extractColorsFromText(text) {
         const foundColors = [];
         let remainingText = text;
 
-        // 1. Hex 코드 패턴 찾기
         const hexRegex = /#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})\b/g;
         let match;
         
@@ -62,9 +57,7 @@ export class UserPaletteAlgorithms {
             }
         }
 
-        // 2. 남은 텍스트에서 RGB 숫자 패턴 찾기
         const numberMatches = remainingText.match(/\d+/g);
-        
         if (numberMatches) {
             const numbers = numberMatches.map(Number);
             for (let i = 0; i < numbers.length; i += 3) {
@@ -78,7 +71,47 @@ export class UserPaletteAlgorithms {
                 }
             }
         }
-
         return foundColors;
+    }
+
+    analyzeOriginalColors(imageData) {
+        if (!imageData) return [];
+        
+        if (this._cachedImageData === imageData && this._cachedSortedColors) {
+            return this._cachedSortedColors;
+        }
+
+        const data = imageData.data;
+        const colorCounts = new Map();
+
+        for (let i = 0; i < data.length; i += 4) {
+            if (data[i+3] === 0) continue; 
+            const hex = rgbToHex(data[i], data[i+1], data[i+2]).toUpperCase();
+            colorCounts.set(hex, (colorCounts.get(hex) || 0) + 1);
+        }
+
+        const sortedColors = Array.from(colorCounts.entries()).sort((a, b) => b[1] - a[1]);
+
+        this._cachedImageData = imageData;
+        this._cachedSortedColors = sortedColors;
+
+        return sortedColors;
+    }
+
+    // [핵심 변경] 퍼센트가 아니라 'N개'로 정확히 추출합니다.
+    extractTopColorsFromImage(imageData, targetCount) {
+        if (!imageData || targetCount <= 0) return [];
+        
+        const sortedColors = this.analyzeOriginalColors(imageData);
+        const actualCount = Math.min(targetCount, sortedColors.length); // 최대치를 넘지 않도록 방어
+        const result = [];
+
+        for (let i = 0; i < actualCount; i++) {
+            const hex = sortedColors[i][0];
+            const rgb = hexToRgb(hex);
+            if (rgb) result.push(rgb);
+        }
+        
+        return result;
     }
 }

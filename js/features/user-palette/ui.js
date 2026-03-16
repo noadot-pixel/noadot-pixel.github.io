@@ -1,20 +1,19 @@
+// js/features/user-palette/ui.js
 import { rgbToHex, state, t } from '../../state.js';
 
 export class UserPaletteUI {
     constructor() {
-        this.injectStyles();
-
         this.recommendationContainer = document.getElementById('recommendation-report-container');
         this.recommendationPlaceholder = document.getElementById('recommendedColorsPlaceholder');
         this.addedColorsContainer = document.getElementById('addedColors');
         
-        // 정렬 컨트롤 초기화
-        this.createSortControl();
+        this.initExtractControl();
+        this.initSortControl();
 
         this.hexInput = document.getElementById('addHex');
         if (this.hexInput) {
             this.hexInput.setAttribute('data-lang-placeholder', 'placeholder_hex');
-            this.hexInput.placeholder = t('placeholder_hex');
+            this.hexInput.placeholder = t('placeholder_hex') || "HEX 코드 입력 (예: #FFFFFF)";
         }
 
         this.rgbInputs = {
@@ -32,104 +31,104 @@ export class UserPaletteUI {
         this.totalPixelDisplay = document.getElementById('totalPixelCount');
     }
 
-    createSortControl() {
-        // 이미 있으면 패스
-        this.sortSelect = document.getElementById('paletteSortSelect');
-        if (this.sortSelect) return;
+    initExtractControl() {
+        this.extractNumberSlider = document.getElementById('extractNumberSlider');
+        // [핵심 변경] id를 extractPercentValue로 연결합니다.
+        this.extractPercentValue = document.getElementById('extractPercentValue'); 
+        this.extractAllBtn = document.getElementById('extractAllColorsBtn');
+        this.extractWarningBox = document.getElementById('extractWarningBox');
         
-        const container = this.addedColorsContainer;
-        if (!container) return;
+        this.stepBtns = document.querySelectorAll('.step-btn');
+        this.minusBtn = document.getElementById('extractMinusBtn');
+        this.plusBtn = document.getElementById('extractPlusBtn');
 
-        const header = container.previousElementSibling;
-        
-        const wrapper = document.createElement('div');
-        wrapper.style.display = 'flex';
-        wrapper.style.alignItems = 'center';
-        wrapper.style.gap = '5px';
-        
-        const iconSvg = `
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-            </svg>
-        `;
-        const iconContainer = document.createElement('div');
-        iconContainer.innerHTML = iconSvg;
-        iconContainer.style.display = 'flex';
-        iconContainer.style.alignItems = 'center';
+        const toggleCheckbox = document.getElementById('toggleExtractCheckbox');
+        const panel = document.getElementById('extractControlPanel');
 
-        const select = document.createElement('select');
-        select.id = 'paletteSortSelect';
-        select.style.border = 'none';
-        select.style.background = 'transparent';
-        select.style.fontSize = '12px';
-        select.style.color = '#555';
-        select.style.cursor = 'pointer';
-        select.style.outline = 'none';
-        select.style.fontWeight = 'bold';
-        select.style.paddingRight = '0';
-
-        const groups = [
-            { label: t('sort_group_default'), options: [{ val: 'default', text: t('sort_option_default') }] },
-            { label: t('sort_group_usage'), options: [{ val: 'usage_desc', text: t('sort_option_usage_desc') }, { val: 'usage_asc', text: t('sort_option_usage_asc') }] },
-            { label: t('sort_group_brightness'), options: [{ val: 'bright_desc', text: t('sort_option_bright_desc') }, { val: 'bright_asc', text: t('sort_option_bright_asc') }] },
-            { label: t('sort_group_rgb'), options: [{ val: 'r_desc', text: t('sort_option_r_desc') }, { val: 'g_desc', text: t('sort_option_g_desc') }, { val: 'b_desc', text: t('sort_option_b_desc') }] }
-        ];
-
-        groups.forEach(group => {
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = group.label;
-            group.options.forEach(opt => {
-                const el = document.createElement('option');
-                el.value = opt.val;
-                el.innerText = opt.text;
-                optgroup.appendChild(el);
+        if (toggleCheckbox && panel) {
+            toggleCheckbox.addEventListener('change', (e) => {
+                panel.style.display = e.target.checked ? 'flex' : 'none';
             });
-            select.appendChild(optgroup);
-        });
+        }
 
-        wrapper.appendChild(iconContainer);
-        wrapper.appendChild(select);
-
-        if (header && /^H[1-6]$/.test(header.tagName)) {
-            header.style.display = 'flex';
-            header.style.justifyContent = 'space-between';
-            header.style.alignItems = 'center';
-            header.style.flexWrap = 'wrap'; 
-            header.appendChild(wrapper);
-        } else {
-            const fallbackWrapper = document.createElement('div');
-            fallbackWrapper.style.display = 'flex';
-            fallbackWrapper.style.justifyContent = 'flex-end';
-            fallbackWrapper.style.marginBottom = '5px';
-            fallbackWrapper.appendChild(wrapper);
-            container.parentNode.insertBefore(fallbackWrapper, container);
+        if (this.extractNumberSlider && this.extractPercentValue) {
+            this.extractNumberSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                const max = parseInt(e.target.max, 10) || 1;
+                this.updateExtractPercentDisplay(val, max);
+            });
         }
         
-        this.sortSelect = select;
+        if (this.extractAllBtn) {
+            this.extractAllBtn.onmousedown = () => this.extractAllBtn.style.transform = 'scale(0.95)';
+            this.extractAllBtn.onmouseup = () => this.extractAllBtn.style.transform = 'scale(1)';
+        }
     }
 
-    injectStyles() {
-        if (document.getElementById('user-palette-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'user-palette-styles';
-        style.textContent = `
-            .color-card { display: flex; align-items: center; background: white; border: 1px solid #eee; border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: transform 0.1s; cursor: pointer; position: relative; }
-            .color-card:hover { transform: translateY(-1px); box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
-            .color-card.disabled { opacity: 0.5; filter: grayscale(100%); background: #f9f9f9; }
-            .color-preview-box { width: 36px; height: 36px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.1); margin-right: 12px; flex-shrink: 0; }
-            .color-info { display: flex; flex-direction: column; flex-grow: 1; font-size: 13px; overflow: hidden; }
-            .color-hex { font-weight: 700; color: #333; font-family: monospace; }
-            .color-sub { font-size: 11px; color: #888; white-space: nowrap; }
-            .color-tag { background: #eee; color: #555; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; margin-right: 10px; flex-shrink: 0; }
-            .pixel-count-badge { background: #333; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; margin-left: auto; margin-right: 10px; min-width: 35px; text-align: center; box-shadow: inset 0 0 2px rgba(0,0,0,0.5); flex-shrink: 0; }
-            .action-btn { width: 28px; height: 28px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #555; transition: all 0.2s; flex-shrink: 0; }
-            .action-btn:hover { background: #f5f5f5; border-color: #bbb; color: #000; }
-            .action-btn.remove { color: #d32f2f; }
-            .add-icon { font-size: 20px; font-weight: bold; color: #888; margin-left: 10px; margin-right: 5px; }
-            .color-card:hover .add-icon { color: #000; }
-            .placeholder-section { text-align: center; color: #999; font-size: 13px; padding: 20px 0; border: 1px dashed #ddd; border-radius: 8px; margin-bottom: 10px; }
+    // [신규] 값과 최대값을 받아 %를 계산해 화면에 뿌려줍니다.
+    updateExtractPercentDisplay(val, max) {
+        if (!this.extractPercentValue) return;
+        if (max <= 0) {
+            this.extractPercentValue.textContent = "0.00";
+            return;
+        }
+        const percent = (val / max) * 100;
+        this.extractPercentValue.textContent = percent.toFixed(2);
+    }
+
+    updateExtractSliderMax(maxColors) {
+        if (this.extractNumberSlider) {
+            this.extractNumberSlider.max = maxColors;
+            let currentVal = parseInt(this.extractNumberSlider.value, 10);
+            if (currentVal > maxColors) {
+                this.extractNumberSlider.value = maxColors;
+                currentVal = maxColors;
+            }
+            this.updateExtractPercentDisplay(currentVal, maxColors);
+        }
+    }
+
+    updateExtractWarning(count) {
+        if (!this.extractWarningBox) return;
+
+        let msgKey = 'extract_new_colors';
+        let bg = '#e8f5e9', color = '#2e7d32', border = '1px solid #c8e6c9';
+        let btnBg = '#2ecc71', btnColor = '#fff';
+
+        if (count > 1000) {
+            msgKey = 'extract_warning_danger';
+            bg = '#ffebee'; color = '#d32f2f'; border = '1px solid #ffcdd2';
+            btnBg = '#d32f2f'; btnColor = '#fff';
+        } else if (count > 300) {
+            msgKey = 'extract_warning_caution';
+            bg = '#fff3cd'; color = '#856404'; border = '1px solid #ffeeba';
+            btnBg = '#ffc107'; btnColor = '#000';
+        }
+
+        this.extractWarningBox.style.background = bg;
+        this.extractWarningBox.style.color = color;
+        this.extractWarningBox.style.border = border;
+        
+        const msgStr = t(msgKey) || "새로 추가될 색상:";
+        const unitStr = t('unit_items') || "개";
+        
+        this.extractWarningBox.innerHTML = `
+            <span data-lang-key="${msgKey}">${msgStr}</span>
+            <span style="font-size: 13px; font-weight: 900;">
+                <span id="extractCountValue">${count.toLocaleString()}</span> 
+                <span data-lang-key="unit_items">${unitStr}</span>
+            </span>
         `;
-        document.head.appendChild(style);
+        
+        if (this.extractAllBtn) {
+            this.extractAllBtn.style.background = btnBg;
+            this.extractAllBtn.style.color = btnColor;
+        }
+    }
+
+    initSortControl() {
+        this.sortSelect = document.getElementById('paletteSortSelect');
+        this.viewModeToggleBtn = document.getElementById('viewModeToggleBtn');
     }
 
     renderRecommendations(recommendations, onAddClick) {
@@ -144,40 +143,90 @@ export class UserPaletteUI {
         this.recommendationContainer.style.display = 'block';
         this.recommendationContainer.innerHTML = '';
         list.forEach(item => {
-            const card = this.createCard({ rgb: item.rgb, tag: item.tag, count: null, type: 'add', onClick: () => onAddClick(item.rgb) });
+            const card = this.createCard({ rgb: item.rgb, tag: item.tag, count: null, type: 'add', onClick: () => onAddClick(item.rgb), viewMode: 'list' });
             this.recommendationContainer.appendChild(card);
         });
     }
 
-    renderAddedList(colors, onRemoveClick, onToggleClick, stats = {}) {
+    renderAddedList(colors, onRemoveClick, onToggleClick, stats = {}, viewMode = 'list') {
         if (!this.addedColorsContainer) return;
         this.addedColorsContainer.innerHTML = '';
+        
+        if (viewMode === 'tile') {
+            this.addedColorsContainer.className = 'palette-grid-view'; 
+            this.addedColorsContainer.style.cssText = 'display: grid !important; grid-template-columns: repeat(6, 1fr) !important; gap: 6px !important; padding: 10px 5px !important; width: 100% !important; box-sizing: border-box !important; background: transparent !important; border: none !important;';
+        } else {
+            this.addedColorsContainer.className = 'palette-buttons';
+            this.addedColorsContainer.style.cssText = 'display: block !important; padding: 0 !important; width: 100% !important; box-sizing: border-box !important;';
+        }
+
+        if (this.viewModeToggleBtn) {
+            const gridIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>`;
+            const listIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>`;
+            this.viewModeToggleBtn.innerHTML = viewMode === 'tile' ? listIcon : gridIcon;
+        }
+
         const list = Array.isArray(colors) ? colors : [];
         if (list.length === 0) {
-            const p = document.createElement('div'); p.className = 'placeholder-section'; p.textContent = t('placeholder_add_color');
-            this.addedColorsContainer.appendChild(p); return;
+            const p = document.createElement('div'); p.className = 'placeholder-section'; p.textContent = t('placeholder_add_color') || "아래에서 직접 색상을 추가하세요.";
+            this.addedColorsContainer.appendChild(p); 
+            if (viewMode === 'tile') this.addedColorsContainer.style.display = 'block';
+            return;
         }
+        
         list.forEach((item, index) => {
             const rgbVal = item.rgb || item;
             const originalIndex = item.originalIndex !== undefined ? item.originalIndex : index;
             const hex = rgbToHex(rgbVal[0], rgbVal[1], rgbVal[2]);
             const count = stats[hex] || 0;
             const isDisabled = state.disabledHexes.includes(hex);
-            const card = this.createCard({ 
+            
+            const element = this.createCard({ 
                 rgb: rgbVal, 
                 tag: 'tag_user_added', 
                 count: count, 
                 type: 'remove', 
                 isDisabled: isDisabled,
                 onClick: () => onToggleClick(rgbVal), 
-                onAction: () => onRemoveClick(originalIndex) 
+                onAction: () => onRemoveClick(originalIndex),
+                viewMode: viewMode 
             });
-            this.addedColorsContainer.appendChild(card);
+            this.addedColorsContainer.appendChild(element);
         });
     }
 
-    createCard({ rgb, tag, count, type, isDisabled, onClick, onAction }) {
+    createCard({ rgb, tag, count, type, isDisabled, onClick, onAction, viewMode }) {
         const hex = rgbToHex(rgb[0], rgb[1], rgb[2]);
+        
+        if (viewMode === 'tile' && type === 'remove') {
+            const tile = document.createElement('div'); 
+            tile.className = 'color-tile';
+            if (isDisabled) tile.classList.add('disabled');
+            tile.onclick = () => onClick();
+
+            let badgeHtml = '';
+            if (count && count > 0) {
+                const displayCount = count >= 1000 ? (count / 1000).toFixed(1) + 'k' : count;
+                badgeHtml = `<div class="overlay-badge">${displayCount}</div>`;
+            }
+
+            tile.innerHTML = `
+                <div class="preview" style="background-color: ${hex}">
+                    ${badgeHtml}
+                </div>
+                <div class="hex">${hex}</div>
+                <div class="rgb">(${rgb.join(', ')})</div>
+            `;
+
+            const btn = document.createElement('button'); 
+            btn.className = 'remove-btn'; 
+            btn.innerHTML = '&times;';
+            btn.onclick = (e) => { e.stopPropagation(); onAction(); }; 
+            tile.appendChild(btn);
+
+            return tile;
+        }
+
         const card = document.createElement('div'); card.className = 'color-card';
         if (isDisabled) card.classList.add('disabled');
         card.onclick = (e) => { onClick(); };
@@ -190,11 +239,11 @@ export class UserPaletteUI {
             if (count && count > 0) {
                 const badge = document.createElement('span'); badge.className = 'pixel-count-badge';
                 badge.textContent = count >= 1000 ? (count / 1000).toFixed(1) + 'k' : count;
-                badge.title = t('tooltip_pixel_count', { n: count });
+                badge.title = t('tooltip_pixel_count', { n: count }) || `${count} 픽셀`;
                 card.appendChild(badge);
             }
             const btn = document.createElement('button'); btn.className = `action-btn remove`; btn.textContent = '-';
-            btn.title = t('tooltip_delete');
+            btn.title = t('tooltip_delete') || "삭제";
             btn.onclick = (e) => { e.stopPropagation(); onAction(); }; card.appendChild(btn);
         } else {
             if (tag) {
@@ -212,7 +261,6 @@ export class UserPaletteUI {
         if (this.rgbInputs.b) this.rgbInputs.b.value = '';
     }
 
-    // [핵심 해결] 이 함수가 없어서 에러가 발생했었습니다!
     updateTotalPixelCount(count) {
         if (this.totalPixelDisplay) {
             this.totalPixelDisplay.textContent = count.toLocaleString();

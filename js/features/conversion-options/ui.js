@@ -28,7 +28,8 @@ export class ConversionOptionsUI {
         this.celShadingApply = document.getElementById('celShadingApply');
         this.celShadingControls = document.getElementById('celShadingOptions'); 
         this.refinementSlider = document.getElementById('refinementSlider');
-        this.aspireDitherCheck = document.getElementById('aspireDitherCheck');
+        
+        // [수정] 기존 단독 Aspire 체크박스 참조 제거 완료!
         this.celShadingAspireDither = document.getElementById('celShadingAspireDither');
         this.celShadingAlgorithmSelect = document.getElementById('celShadingAlgorithmSelect');
         this.celShadingLevelsSlider = document.getElementById('celShadingLevelsSlider');
@@ -79,13 +80,12 @@ export class ConversionOptionsUI {
             display = slider.parentElement.querySelector('span');
         }
 
-        // [핵심 해결] 화면에 숫자를 띄울 span이 없다면? 자바스크립트가 강제로 하나 만들어줍니다!
         if (!display) {
             display = document.createElement('span');
             display.id = id + 'Value';
             display.style.marginLeft = '10px';
             display.style.fontWeight = 'bold';
-            display.style.color = '#007bff'; // 예쁜 파란색으로 표시
+            display.style.color = '#007bff';
             
             const label = document.querySelector(`label[for="${id}"]`);
             if (label) {
