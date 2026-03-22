@@ -1250,3 +1250,51 @@ button.toggle-all { cursor: pointer; }
     box-shadow: 0 2px 4px rgba(255, 71, 87, 0.4); z-index: 15;
 }
 .color-tile:hover .remove-btn { display: flex; }
+
+/* =========================================================
+   텍스트 렌더링 모드용 세그먼트 버튼 스타일 (업스케일 스타일)
+   ========================================================= */
+.segmented-control {
+    display: flex;
+    width: 100%;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+/* 실제 라디오(동그라미) 요소는 화면에서 숨깁니다 */
+.segmented-control input[type="radio"] {
+    display: none;
+}
+
+/* 라벨을 버튼처럼 디자인합니다 */
+.segmented-control label {
+    flex: 1;
+    text-align: center;
+    padding: 8px 10px;
+    margin: 0;
+    background-color: #f8f9fa;
+    color: #495057;
+    cursor: pointer;
+    border-right: 1px solid #ced4da;
+    font-size: 13px;
+    transition: background-color 0.2s, color 0.2s;
+    font-weight: normal;
+}
+
+/* 마지막 버튼의 오른쪽 테두리는 없앱니다 */
+.segmented-control label:last-child {
+    border-right: none;
+}
+
+/* 마우스를 올렸을 때 효과 */
+.segmented-control label:hover {
+    background-color: #e9ecef;
+}
+
+/* 라디오 버튼이 체크되었을 때(활성화) 연결된 라벨의 디자인 */
+.segmented-control input[type="radio"]:checked + label {
+    background-color: #3174d8; /* 업스케일 버튼과 유사한 파란색 */
+    color: #ffffff;
+    font-weight: 600;
+}

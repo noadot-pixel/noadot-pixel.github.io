@@ -10,6 +10,7 @@ export class UserPaletteFeature {
         this.algo = new UserPaletteAlgorithms();
         this.lastPixelStats = {}; 
         this.lastAnalyzedImage = null; 
+        this.lastRecommendations = []; // [신규] 추천 목록 저장용 배열 추가
         
         if (!state.addedColors) state.addedColors = [];
         if (!state.paletteViewMode) state.paletteViewMode = 'list';
@@ -49,7 +50,10 @@ export class UserPaletteFeature {
                 });
             }
 
-            this.ui.renderRecommendations(recommendations, (rgb) => {
+            // [신규] 들어온 추천 목록을 저장해둡니다 (언어 변경 시 재사용)
+            this.lastRecommendations = recommendations;
+
+            this.ui.renderRecommendations(this.lastRecommendations, (rgb) => {
                 this.addColor(rgb);
             });
             
@@ -82,11 +86,19 @@ export class UserPaletteFeature {
 
         eventBus.on('LANGUAGE_CHANGED', () => {
             this.renderUIOnly();
+            
+            // [신규] 언어가 바뀌면 저장해둔 추천 목록도 다시 렌더링해서 텍스트를 바꿉니다.
+            if (this.lastRecommendations && this.lastRecommendations.length > 0) {
+                this.ui.renderRecommendations(this.lastRecommendations, (rgb) => {
+                    this.addColor(rgb);
+                });
+            }
         });
     }
 
     resetStats() {
         this.lastPixelStats = {};
+        this.lastRecommendations = []; // [신규] 초기화 시 배열도 비움
         this.ui.renderRecommendations([], () => {});
         this.renderUIOnly();
     }
@@ -123,7 +135,6 @@ export class UserPaletteFeature {
             });
         }
 
-        // [완벽 해결] 버튼 클릭 시 슬라이더(물리적)와 UI 텍스트(%) 모두 리프레시 시킵니다.
         let currentExtractStep = 1;
         
         if (this.ui.stepBtns) {
@@ -142,16 +153,11 @@ export class UserPaletteFeature {
             let val = parseInt(slider.value, 10);
             const max = parseInt(slider.max, 10) || 1;
             
-            // 더하거나 뺀 값을 0과 최대값 사이로 강제 고정합니다.
             val += amount;
             val = Math.max(0, Math.min(max, val));
             
-            // 슬라이더 바 자체를 이동시킴
             slider.value = val;
-            
-            // 화면 텍스트(%) 업데이트
             this.ui.updateExtractPercentDisplay(val, max);
-            // 경고창(개수) 업데이트
             this.updateExtractWarningUI(val);
         };
 
@@ -161,7 +167,7 @@ export class UserPaletteFeature {
         if (this.ui.extractAllBtn) {
             this.ui.extractAllBtn.addEventListener('click', () => {
                 if (!state.originalImageData) {
-                    alert("먼저 이미지를 업로드해주세요!");
+                    alert(t('alert_need_image') || "먼저 이미지를 업로드해주세요!");
                     return;
                 }
                 const targetCount = parseInt(this.ui.extractNumberSlider.value, 10);
@@ -180,7 +186,7 @@ export class UserPaletteFeature {
                 });
 
                 if (newColors.length === 0) {
-                    alert("지정한 개수 내에 추가할 새로운 색상이 없습니다. (이미 추가됨)");
+                    alert(t('alert_already_added') || "지정한 개수 내에 추가할 새로운 색상이 없습니다.");
                     return;
                 }
 

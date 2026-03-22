@@ -148,6 +148,12 @@ export class ConversionOptionsFeature {
         bindInput(this.ui.applyRefinement, 'applyRefinement', true, this.ui.refinementOptions);
         bindInput(this.ui.refinementSlider, 'refinementSlider');
 
+        bindInput(this.ui.applyOutlineExpansionCheck, 'applyOutlineExpansion');
+        bindInput(this.ui.applySmartSamplingCheck, 'applySmartSampling');
+        
+        // [복구 완료] 채도 보정 슬라이더 이벤트 연결!
+        bindInput(this.ui.saturationWeightInput, 'saturationWeight');
+
         bindInput(this.ui.celShadingRefinementSlider, 'celShadingRefinementSlider');
 
         bindInput(this.ui.saturationInput, 'saturationSlider');
@@ -228,6 +234,8 @@ export class ConversionOptionsFeature {
 
     loadInitialState() {
         const keys = [
+            'applyOutlineExpansion', 'applySmartSampling', 
+            'saturationWeight', // [복구] 상태 초기화 키 목록에 추가
             'saturationSlider', 'brightnessSlider', 'contrastSlider', 'celShadingRefinementSlider', 'celShadingAspireDither',
             'rgbWeightR', 'rgbWeightG', 'rgbWeightB', 
             'ditheringAlgorithmSelect', 'ditheringSlider',
@@ -235,8 +243,7 @@ export class ConversionOptionsFeature {
             'applyGradient', 'gradientTypeSelect', 'gradientDitherSizeSlider', 'gradientAngleSlider', 'gradientStrengthSlider',
             'celShadingApply', 'celShadingAlgorithmSelect', 'celShadingLevelsSlider', 'celShadingColorSpaceSelect', 
             'celShadingOutline', 'celShadingOutlineThresholdSlider', 'celShadingOutlineColorSelect',
-            'colorMethodSelect', 'refinementSlider', 'celShadingApply'
-            // [수정] aspireDitherCheck 제거
+            'colorMethodSelect', 'refinementSlider'
         ];
 
         keys.forEach(key => {
@@ -260,6 +267,9 @@ export class ConversionOptionsFeature {
         let defaultValue = 0;
         
         switch(targetId) {
+            case 'applyOutlineExpansion': defaultValue = false; break;
+            case 'applySmartSampling': defaultValue = false; break;
+            case 'saturationWeight': defaultValue = 50; break; // [복구] 기본값 50
             case 'saturationSlider': defaultValue = 100; break;
             case 'brightnessSlider': defaultValue = 0; break;
             case 'contrastSlider': defaultValue = 0; break;
@@ -283,6 +293,9 @@ export class ConversionOptionsFeature {
         state.rgbWeightB = CONFIG.DEFAULTS.rgbWeightB;
 
         const defaults = {
+            applyOutlineExpansion: false,
+            applySmartSampling: false, 
+            saturationWeight: 50, // [복구] 초기화 시 50으로 설정
             celShadingOutlineColorSelect: '#000000',
             celShadingAspireDither: false,
             saturationSlider: 100,
@@ -308,7 +321,6 @@ export class ConversionOptionsFeature {
             celShadingOutlineColorSelect: '#000000',
             celShadingRandomSeed: 0,
             refinementSlider: 0,
-            // [수정] aspireDitherCheck: false 제거
         };
 
         Object.keys(defaults).forEach(key => {

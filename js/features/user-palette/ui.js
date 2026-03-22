@@ -33,7 +33,6 @@ export class UserPaletteUI {
 
     initExtractControl() {
         this.extractNumberSlider = document.getElementById('extractNumberSlider');
-        // [핵심 변경] id를 extractPercentValue로 연결합니다.
         this.extractPercentValue = document.getElementById('extractPercentValue'); 
         this.extractAllBtn = document.getElementById('extractAllColorsBtn');
         this.extractWarningBox = document.getElementById('extractWarningBox');
@@ -65,7 +64,6 @@ export class UserPaletteUI {
         }
     }
 
-    // [신규] 값과 최대값을 받아 %를 계산해 화면에 뿌려줍니다.
     updateExtractPercentDisplay(val, max) {
         if (!this.extractPercentValue) return;
         if (max <= 0) {
@@ -168,7 +166,9 @@ export class UserPaletteUI {
 
         const list = Array.isArray(colors) ? colors : [];
         if (list.length === 0) {
-            const p = document.createElement('div'); p.className = 'placeholder-section'; p.textContent = t('placeholder_add_color') || "아래에서 직접 색상을 추가하세요.";
+            const p = document.createElement('div'); p.className = 'placeholder-section'; 
+            p.setAttribute('data-lang-key', 'placeholder_add_color'); // [추가] 
+            p.textContent = t('placeholder_add_color') || "아래에서 직접 색상을 추가하세요.";
             this.addedColorsContainer.appendChild(p); 
             if (viewMode === 'tile') this.addedColorsContainer.style.display = 'block';
             return;
@@ -247,7 +247,16 @@ export class UserPaletteUI {
             btn.onclick = (e) => { e.stopPropagation(); onAction(); }; card.appendChild(btn);
         } else {
             if (tag) {
-                const tSpan = document.createElement('span'); tSpan.className = 'color-tag'; tSpan.textContent = tag.startsWith('tag_') ? t(tag) : tag; card.appendChild(tSpan);
+                const tSpan = document.createElement('span'); 
+                tSpan.className = 'color-tag'; 
+                
+                // [핵심 해결] 번역 키가 있으면 data-lang-key 속성을 심어줍니다.
+                if (tag.startsWith('tag_')) {
+                    tSpan.setAttribute('data-lang-key', tag);
+                }
+                
+                tSpan.textContent = tag.startsWith('tag_') ? t(tag) : tag; 
+                card.appendChild(tSpan);
             }
             const plusIcon = document.createElement('span'); plusIcon.className = 'add-icon'; plusIcon.textContent = '+'; card.appendChild(plusIcon);
         }

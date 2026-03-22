@@ -10,8 +10,28 @@ import { upscaleEPX2x, upscaleEPX3x } from './upscale.js';
 import { applyCelShadingFilter } from './outlining.js';
 
 import { applySmartBlur, applyKuwaharaFilter, applyMedianFilter, applyColorSimplification, applyDespeckle } from './filters.js';
+import { applyOutlineExpansion } from './outline-expansion.js';
+import { smartResize } from './smart-resizer.js';
 
 const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+
+// [수정됨] 유저 제안 1번 방식 개선형 (임계값 적용)
+function removeTransparency(imageData) {
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+        const alpha = data[i + 3];
+        
+        // 투명도가 90% 이상 (알파값이 25 이하) -> 보이지 않는 쓰레기 픽셀이므로 완전 투명(0)으로 날림
+        if (alpha <= 25) {
+            data[i + 3] = 0;
+        } 
+        // 투명도가 89% 이하 (알파값이 26 이상) -> 유효한 색상이므로 원래 색상을 유지한 채 완전 불투명(255)으로 굳힘
+        else {
+            data[i + 3] = 255;
+        }
+    }
+    return imageData;
+}
 
 function resizeImageData(imageData, targetWidth, targetHeight) {
     if (!targetWidth || !targetHeight) return imageData;
@@ -43,9 +63,26 @@ self.onmessage = (e) => {
             if (!imageData) throw new Error("이미지 데이터가 없습니다.");
 
             let processedData = imageData;
-            
+
+            // [Step 0] 향상된 투명도 처리 전처리 가동 (배경 보존)
+            processedData = removeTransparency(processedData);
+
+            if (options.applyOutlineExpansion) {
+                let patchSize = 3; 
+                if (options.scaleWidth && options.scaleWidth < processedData.width) {
+                    let ratio = Math.round(processedData.width / options.scaleWidth);
+                    patchSize = ratio | 1; 
+                    patchSize = Math.max(3, Math.min(patchSize, 11)); 
+                }
+                processedData = applyOutlineExpansion(processedData, patchSize);
+            }
+
             if (options.scaleWidth && options.scaleHeight) {
-                processedData = resizeImageData(imageData, options.scaleWidth, options.scaleHeight);
+                if (options.applySmartSampling) {
+                    processedData = smartResize(processedData, options.scaleWidth, options.scaleHeight);
+                } else {
+                    processedData = resizeImageData(processedData, options.scaleWidth, options.scaleHeight);
+                }
             }
 
             processedData = preprocessImageData(processedData, options);
@@ -67,9 +104,7 @@ self.onmessage = (e) => {
                 }
             } else if (mode === 'wplace') {
                 activePalette = [...wplaceFreeColors, ...wplacePaidColors].map(c => c.rgb);
-            }
-
-            else if (mode === 'uplace') {
+            } else if (mode === 'uplace') {
                 activePalette = uplaceColors.map(c => c.rgb);
             }
 
@@ -83,13 +118,9 @@ self.onmessage = (e) => {
 
             if (activePalette.length === 0) activePalette = [[0, 0, 0]]; 
 
-            // ==========================================
             if (options.celShading && options.celShading.apply) {
                 processedData = applyCelShadingFilter(processedData, activePalette, options);
             } else {
-                // [일반 모드]
-                
-                // [핵심 1] 새로운 드롭다운 구조에서 Aspire 인식 및 강도 슬라이더 값 매핑
                 const ditheringType = options.dithering || 'none';
                 const useAspireDither = ditheringType === 'aspire';
                 const ditheringIntensity = (options.ditheringIntensity || 0) / 100;
@@ -99,14 +130,11 @@ self.onmessage = (e) => {
 
                 if (refinementStrength > 0) {
                     if (refinementStrength <= 40) {
-                        const radius = refinementStrength > 20 ? 2 : 1;
-                        processedData = applySmartBlur(processedData, radius, 10 + refinementStrength);
+                        processedData = applySmartBlur(processedData, refinementStrength > 20 ? 2 : 1, 10 + refinementStrength);
                     } else if (refinementStrength <= 80) {
-                        const radius = refinementStrength > 60 ? 3 : 2;
-                        processedData = applyKuwaharaFilter(processedData, radius);
+                        processedData = applyKuwaharaFilter(processedData, refinementStrength > 60 ? 3 : 2);
                     } else {
-                        const radius = refinementStrength > 90 ? 2 : 1;
-                        processedData = applyMedianFilter(processedData, radius);
+                        processedData = applyMedianFilter(processedData, refinementStrength > 90 ? 2 : 1);
                     }
                     if (refinementStrength > 50) {
                         const step = Math.floor((refinementStrength - 50) * 0.4);
@@ -115,11 +143,13 @@ self.onmessage = (e) => {
                 }
 
                 let paletteConverted = null;
-                if (options.colorMethod === 'oklab') {
+                const baseMethodForConv = (options.colorMethod === 'wdot-plus') ? 'ciede2000' : options.colorMethod;
+                
+                if (baseMethodForConv === 'oklab') {
                     paletteConverted = activePalette.map(rgb => ColorConverter.rgbToOklab(rgb));
-                } else if (options.colorMethod === 'ciede2000-d65') {
+                } else if (baseMethodForConv === 'ciede2000-d65') {
                     paletteConverted = activePalette.map(rgb => ColorConverter.rgbToLabD65(rgb));
-                } else if (options.colorMethod === 'ciede2000') {
+                } else if (baseMethodForConv === 'ciede2000') {
                     paletteConverted = activePalette.map(rgb => ColorConverter.rgbToLab(rgb));
                 }
 
@@ -156,11 +186,12 @@ self.onmessage = (e) => {
                 ];
 
                 const colorCache = new Map();
+                const satWeight = (options.saturationWeight !== undefined) ? options.saturationWeight / 100 : 0.5;
 
                 for (let y = 0; y < height; y++) {
                     for (let x = 0; x < width; x++) {
                         const idx = (y * width + x) * 4;
-                        if (floatData[idx + 3] === 0) continue;
+                        if (floatData[idx + 3] === 0) continue; // 완전 투명 픽셀은 스킵하여 배경 보존!
 
                         let currentAlpha = floatData[idx + 3] / 255;
 
@@ -204,11 +235,9 @@ self.onmessage = (e) => {
                         
                         let bestColor;
 
-                        // [핵심 2] Aspire 디더링 실행 및 강도(Intensity) 연동
                         if (useAspireDither && activePalette.length > 1) {
                             let cached = colorCache.get(cacheKey);
                             
-                            // 캐시 오염 방지를 위해 구조 검사
                             if (!cached || !cached.c1) {
                                 let d1 = Infinity, idx1 = 0;
                                 let d2 = Infinity, idx2 = 0;
@@ -225,7 +254,6 @@ self.onmessage = (e) => {
                             
                             let ratio = 0;
                             if (cached.d1 + cached.d2 > 0) {
-                                // 디더링 강도가 0이면 ratio가 0이 되어 무조건 원본에 가까운 색(c1)만 남습니다.
                                 ratio = (cached.d1 / (cached.d1 + cached.d2)) * ditheringIntensity;
                             }
                             const threshold = aspireBayer[y % 8][x % 8] / 64.0;
@@ -234,7 +262,7 @@ self.onmessage = (e) => {
                         } else {
                             bestColor = colorCache.get(cacheKey);
                             if (!bestColor || bestColor.c1) {
-                                bestColor = findClosestColor(oldR, oldG, oldB, activePalette, paletteConverted, options.colorMethod).color;
+                                bestColor = findClosestColor(oldR, oldG, oldB, activePalette, paletteConverted, options.colorMethod, satWeight).color;
                                 colorCache.set(cacheKey, bestColor);
                             }
                         }
@@ -243,8 +271,6 @@ self.onmessage = (e) => {
                         floatData[idx+1] = bestColor[1];
                         floatData[idx+2] = bestColor[2];
 
-                        // [핵심 3] 오차 확산 가드
-                        // Aspire는 정렬형(Ordered) 디더링이므로 여기서 엉뚱한 에러 확산 연산을 타지 않게 막아 깨짐을 방지합니다.
                         const isErrorDiffusion = ['floyd', 'atkinson', 'sierra'].includes(ditheringType);
                         if (isErrorDiffusion && ditheringIntensity > 0) {
                             const errR = (oldR - bestColor[0]) * ditheringIntensity;

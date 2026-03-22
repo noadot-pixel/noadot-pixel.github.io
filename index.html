@@ -156,6 +156,14 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="control-group" style="border-top: 1px dashed #ccc; margin-top: 15px; padding-top: 15px;">
+                        <label class="checkbox-label" data-lang-tooltip="tooltip_outline_expansion" style="font-weight: normal;">
+                            <input type="checkbox" id="applyOutlineExpansion">
+                            <span data-lang-key="option_outline_expansion">외곽선 보강 (PixelOE)</span>
+                        </label>
+                    </div>
+
                     <div class="control-group" style="border-top: 1px dashed #ccc; padding-top: 15px; margin-top: 15px;">
                         <label for="exportScaleSlider" data-tooltip-key="tooltip_export_scale">
                             <span data-lang-key="resize_output_scale">출력 배율</span>: 
@@ -294,12 +302,15 @@
                     <select id="bgColorSelect" style="width: 100%; padding: 5px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px;"></select>
                 </div>
 
-                <div class="control-group" style="margin-bottom: 10px; display: flex; flex-direction: column; align-items: stretch;">
-                    <label for="textAlgorithmSelect" style="font-size: 12px; font-weight: bold; margin-bottom: 5px;" data-lang-key="text_option_Rendering">외곽선 렌더링</label>
-                    <select id="textAlgorithmSelect" style="width: 100%; padding: 5px; border-radius: 4px; border: 1px solid #ccc; font-size: 13px;">
-                        <option value="oklab"><span data-lang-key="text_option_algorithms_sharp"></span></option>
-                        <option value="wdot" selected><span data-lang-key="text_option_algorithms_smooth"></span></option>
-                    </select>
+                <div class="control-group">
+                    <label data-lang-key="option_text_render_mode">텍스트 외곽선 렌더링</label>
+                    <div class="segmented-control" style="margin-top: 8px;">
+                        <input type="radio" id="renderModeSoft" name="textRenderMode" value="soft" checked>
+                        <label for="renderModeSoft" data-lang-key="mode_soft">부드럽게 (Soft)</label>
+
+                        <input type="radio" id="renderModeSharp" name="textRenderMode" value="sharp">
+                        <label for="renderModeSharp" data-lang-key="mode_sharp">날카롭게 (Sharp)</label>
+                    </div>
                 </div>
             </section>
         </div>
@@ -339,15 +350,22 @@
                 <select id="colorMethodSelect" data-tooltip-key="tooltip_color_method">
                     <option value="rgb" data-lang-key="option_color_method_rgb">RGB - 단순 변환</option>
                     <option value="oklab" selected data-lang-key="option_color_method_oklab">OKlab - 색상 보정 변환</option>
-                    <!-- [New] Wdot 옵션 추가 -->
                     <option value="ciede2000" data-lang-key="option_color_method_ciede2000">Wdot - 고품질 변환(웜톤)</option>
                     <option value="ciede2000-d65" data-lang-key="option_color_method_D65">D65 - 고품질 변환(쿨톤)</option>
+                    <option value="wdot-plus" data-lang-key="option_color_method_Kochanexe">Kochanexe - 픽셀 재배열 변환</option>
                 </select>
             </div>
 
             <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
                 <input type="checkbox" id="chkSharpResizing" checked>
                 <label for="chkSharpResizing" data-lang-key="label_sharp_resizing">선명한 리사이징 (픽셀 보정)</label>
+            </div>
+
+            <div class="control-group" style="border-top: 1px dashed #ccc; margin-top: 15px; padding-top: 15px;">
+                <label class="checkbox-label" data-lang-tooltip="tooltip_smart_sampling" style="font-weight: normal;">
+                    <input type="checkbox" id="applySmartSampling">
+                    <span data-lang-key="option_smart_sampling">지능형 샘플링 (픽셀 정렬)</span>
+                </label>
             </div>
 
             <div class="control-group checkbox-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">

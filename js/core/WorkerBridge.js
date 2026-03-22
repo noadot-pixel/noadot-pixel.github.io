@@ -150,6 +150,12 @@ export class WorkerBridge {
                 
                 dithering: state.ditheringAlgorithmSelect ?? 'none', 
                 ditheringIntensity: state.ditheringSlider ?? 0,
+
+                // [수정] 기본값 할당 및 중복 제거
+                applyOutlineExpansion: state.applyOutlineExpansion ?? false,
+                saturationWeight: state.saturationWeight ?? 50, 
+
+                applySmartSampling: state.applySmartSampling ?? false,
                 
                 applyPattern: state.applyPattern ?? false,
                 patternType: state.patternTypeSelect ?? 'bayer8x8',
@@ -164,7 +170,6 @@ export class WorkerBridge {
                 colorMethod: state.colorMethodSelect ?? 'oklab',
                 pixelatedScaling: false,
                 
-                // [신규] 체크박스 상태 추가 (만화 필터 밖으로 독립됨)
                 applyAspireDither: state.applyAspireDither ?? false,
                 applyRefinement: state.applyRefinement ?? false,
                 refinementStrength: state.refinementSlider ?? 50,

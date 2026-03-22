@@ -9,7 +9,7 @@ export class TextRenderer {
         const { 
             content, fontFamily, fontSize, isBold, isItalic, 
             letterSpacing, padding, textColor, bgColor, 
-            strokeColor, strokeWidth, textLineHeight 
+            strokeColor, strokeWidth, textLineHeight, renderMode 
         } = textState;
 
         if (!content) return null;
@@ -25,7 +25,6 @@ export class TextRenderer {
         const lines = content.split('\n');
         let maxWidth = 0;
         
-        // 줄 높이 (기본 1.2배)
         const lineHeightPx = renderFontSize * (textLineHeight || 1.2);
         
         const lineMetrics = lines.map(line => {
@@ -35,7 +34,6 @@ export class TextRenderer {
             return { width: w };
         });
 
-        // 캔버스 전체 크기
         const contentHeight = lines.length * lineHeightPx;
         const canvasWidth = Math.ceil(maxWidth + (padding * 2));
         const canvasHeight = Math.ceil(contentHeight + (padding * 2));
@@ -46,9 +44,13 @@ export class TextRenderer {
         canvas.height = canvasHeight;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-        // 배경
-        ctx.fillStyle = this.toCssColor(bgColor);
-        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        // 배경 처리
+        if (bgColor === 'transparent') {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        } else {
+            ctx.fillStyle = this.toCssColor(bgColor);
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        }
 
         // 텍스트 속성
         ctx.font = this.measureCtx.font;
@@ -60,8 +62,6 @@ export class TextRenderer {
         }
 
         let currentY = padding;
-        
-        // 폰트 수직 중앙 정렬 보정
         const verticalAdjustment = (lineHeightPx - renderFontSize) / 2;
 
         lines.forEach((line, i) => {
@@ -69,22 +69,52 @@ export class TextRenderer {
 
             // 외곽선
             if (strokeWidth > 0) {
-                ctx.strokeStyle = this.toCssColor(strokeColor);
+                ctx.strokeStyle = this.toCssColor(strokeColor === 'transparent' ? '#000000' : strokeColor);
                 ctx.lineWidth = strokeWidth;
                 ctx.lineJoin = 'round';
+                if (strokeColor === 'transparent') ctx.globalCompositeOperation = 'destination-out';
                 ctx.strokeText(line, padding, drawY);
+                ctx.globalCompositeOperation = 'source-over';
             }
+            
             // 채우기
-            ctx.fillStyle = this.toCssColor(textColor);
+            ctx.fillStyle = this.toCssColor(textColor === 'transparent' ? '#000000' : textColor);
+            if (textColor === 'transparent') ctx.globalCompositeOperation = 'destination-out';
             ctx.fillText(line, padding, drawY);
+            ctx.globalCompositeOperation = 'source-over';
 
-            // [수정] 다음 줄 위치 계산
             currentY += lineHeightPx;
         });
 
+        // 4. [수정됨] 텍스트 렌더링 모드 후처리 (임계값 분리 적용)
+        const imgData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+        const data = imgData.data;
+
+        for (let i = 0; i < data.length; i += 4) {
+            const a = data[i + 3];
+            
+            if (renderMode === 'sharp') {
+                // 날카롭게: 투명도가 50%(알파 128) 미만이면 제거, 이상이면 불투명화 (가장 픽셀아트 다운 거친 외곽선)
+                if (a < 128) {
+                    data[i + 3] = 0;
+                } else {
+                    data[i + 3] = 255;
+                }
+            } else {
+                // 부드럽게 (유저 제안 1번 방식): 투명도가 90% 이상(알파 25 이하)인 잉여 픽셀만 날리고 나머지는 색을 채워 부드러운 형태 보존
+                if (a <= 25) {
+                    data[i + 3] = 0;
+                } else {
+                    data[i + 3] = 255;
+                }
+            }
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+
         return {
             canvas: canvas,
-            imageData: ctx.getImageData(0, 0, canvasWidth, canvasHeight),
+            imageData: imgData,
             width: canvasWidth,
             height: canvasHeight
         };

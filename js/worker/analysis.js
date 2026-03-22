@@ -32,37 +32,33 @@ export const calculateRecommendations = (imageData, currentPalette, options) => 
     const skip = (totalRawPixels > 1000000) ? 4 : 1; 
     
     const colorStats = new Map();
-    let validPixelCount = 0; // [New] 직접 카운팅할 변수
+    let validPixelCount = 0; 
 
     // 전체 픽셀 스캔
     for (let i = 0; i < data.length; i += 4 * skip) {
         const r = data[i];
         const g = data[i+1];
         const b = data[i+2];
-        const a = data[i+3]; // 불투명도 (Alpha)
+        const a = data[i+3]; 
 
-        // [핵심 변경] "불투명도 100 이상인 픽셀만 카운트"
         if (a >= 100) {
             validPixelCount++;
-
-            // 색상 통계 수집
             const key = rgbToHex(r, g, b);
             if (!colorStats.has(key)) {
                 colorStats.set(key, { count: 0, rgb: [r, g, b] });
             }
             colorStats.get(key).count++;
         }
-        // 100 미만인 픽셀은 아무것도 하지 않고 그냥 넘어감 (카운트 X)
     }
 
-    // [결과 계산] 샘플링 보정 (전체 픽셀 수 추산)
     const totalValidPixels = validPixelCount * skip || 1;
 
-    // --- 이하 추천 로직은 기존과 동일 ---
+    // --- 추천 로직 시작 ---
     const sortedColors = Array.from(colorStats.values()).sort((a, b) => b.count - a.count);
     const recommendations = [];
     const exclusionHexSet = new Set();
 
+    // 현재 팔레트에 있는 색상은 추천에서 제외 (이미 있으니까)
     currentPalette.forEach(p => {
         exclusionHexSet.add(rgbToHex(p[0], p[1], p[2]));
     });
@@ -76,8 +72,11 @@ export const calculateRecommendations = (imageData, currentPalette, options) => 
     const addRec = (item, tag, forced = false) => {
         const hex = rgbToHex(item.rgb[0], item.rgb[1], item.rgb[2]);
         if (!forced && exclusionHexSet.has(hex)) return;
+        
+        // 이미 추천 목록에 있는 색상이면 패스
         if (recommendations.some(r => rgbToHex(r.rgb[0], r.rgb[1], r.rgb[2]) === hex)) return;
         
+        // 추천 목록에 있는 다른 색상과 너무 비슷하면 패스
         const isTooClose = recommendations.some(r => colorDistSq(r.rgb, item.rgb) < 1000); 
         if (!forced && isTooClose) return;
 
@@ -89,8 +88,42 @@ export const calculateRecommendations = (imageData, currentPalette, options) => 
         });
     };
 
-    sortedColors.slice(0, 10).forEach(c => addRec(c, "tag_dominant"));
+    // 1. [기존] 비중이 가장 높은 우세 색상 추천
+    sortedColors.slice(0, 5).forEach(c => addRec(c, "tag_dominant"));
 
+    // 2. [🔥신규] 팔레트 공백 탐지 (Gap Detection)
+    // 원본 이미지의 주요 색상(최대 100개)을 현재 팔레트와 비교하여 부족한 색상을 찾습니다.
+    const gapCandidates = [];
+    const searchPool = sortedColors.slice(0, 100);
+
+    for (const c of searchPool) {
+        let minDist = Infinity;
+        
+        // 이 픽셀이 현재 팔레트에서 제일 가까운 색상과 얼마나 차이나는지 계산
+        for (const p of currentPalette) {
+            const dist = colorDistSq(c.rgb, p);
+            if (dist < minDist) minDist = dist;
+        }
+
+        // 거리가 1500 이상 차이난다면 현재 팔레트로 표현이 불가능한 '공백' 색상으로 간주
+        if (minDist > 1500) {
+            gapCandidates.push({
+                item: c,
+                // 스코어 = 칠해져야 할 픽셀 수 × 팔레트와의 거리 (이 색이 없어서 발생하는 시각적 손실량)
+                score: c.count * minDist 
+            });
+        }
+    }
+
+    // 시각적 손실이 가장 큰(가장 시급하게 필요한) 색상순으로 정렬
+    gapCandidates.sort((a, b) => b.score - a.score);
+
+    // 가장 시급한 상위 3개의 색상을 '공백(Gap)' 태그로 추천
+    gapCandidates.slice(0, 3).forEach(gap => {
+        addRec(gap.item, "tag_gap"); 
+    });
+
+    // 3. [기존] 밝기/채도 기반 포인트 색상 추천
     let foundShadow = false, foundMid = false, foundHighlight = false;
     for (const c of sortedColors) {
         const [h, s, l] = rgbToHsl(c.rgb[0], c.rgb[1], c.rgb[2]);
@@ -106,9 +139,8 @@ export const calculateRecommendations = (imageData, currentPalette, options) => 
     });
     pointColors.slice(0, 2).forEach(c => addRec(c, "tag_point")); 
 
-    // [전송 데이터 구성] 배열에 속성 추가 (호환성 유지)
+    // 데이터 전송 준비
     recommendations.totalPixels = totalValidPixels;
-    
     const pixelStatsObj = {};
     colorStats.forEach((val, key) => {
         pixelStatsObj[key] = val.count * skip;

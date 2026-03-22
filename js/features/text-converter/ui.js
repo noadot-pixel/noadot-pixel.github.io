@@ -13,15 +13,6 @@ export class TextConverterUI {
             this.textarea.style.resize = 'none';
             this.textarea.style.boxSizing = 'border-box';
             this.textarea.style.margin = '0';
-            
-            const parent = this.textarea.parentElement;
-            if (parent) {
-                parent.style.flex = '1';
-                parent.style.display = 'flex';
-                parent.style.flexDirection = 'column';
-                parent.style.height = '100%';
-                parent.style.padding = '0';
-            }
         }
 
         this.fontSelect = document.getElementById('fontSelect');
@@ -47,6 +38,9 @@ export class TextConverterUI {
         this.italicBtn = document.querySelector('button[data-style="italic"]');
         this.useWplaceCheckbox = document.getElementById('useWplaceInGeoMode');
 
+        // [신규] 렌더링 모드 라디오 버튼 매핑
+        this.renderModeRadios = document.getElementsByName('textRenderMode');
+
         this.initPaletteListener();
         this.updateColorSelects(); 
         this.applyDefaultColors(); 
@@ -69,27 +63,6 @@ export class TextConverterUI {
         const val = slider.value;
         const targetId = id.replace('Slider', 'Value');
         let display = document.getElementById(targetId);
-
-        if (!display) {
-            const label = document.querySelector(`label[for="${id}"]`);
-            if (label) display = label.querySelector('span');
-        }
-
-        if (!display) {
-            display = document.createElement('span');
-            display.id = targetId;
-            display.style.marginLeft = '10px';
-            display.style.fontWeight = 'bold';
-            display.style.color = '#007bff';
-            
-            const label = document.querySelector(`label[for="${id}"]`);
-            if (label) {
-                label.appendChild(display);
-            } else {
-                slider.parentElement.insertBefore(display, slider);
-            }
-        }
-
         if (display) {
             display.textContent = id === 'textLineHeightSlider' ? (val / 10).toFixed(1) : val;
         }
@@ -122,92 +95,31 @@ export class TextConverterUI {
             option.value = hexCode;
             option.textContent = displayName ? `${displayName} (${hexCode})` : hexCode;
             option.style.backgroundColor = bgColor;
-            
-            if (bgColor && bgColor.startsWith('#') && bgColor.length === 7) {
-                const r = parseInt(bgColor.slice(1, 3), 16);
-                const g = parseInt(bgColor.slice(3, 5), 16);
-                const b = parseInt(bgColor.slice(5, 7), 16);
-                const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-                option.style.color = luma > 128 ? '#000' : '#fff';
-            } else {
-                option.style.color = '#000';
+            if (bgColor && bgColor.startsWith('#')) {
+                const r = parseInt(bgColor.slice(1, 3), 16), g = parseInt(bgColor.slice(3, 5), 16), b = parseInt(bgColor.slice(5, 7), 16);
+                option.style.color = (0.2126 * r + 0.7152 * g + 0.0722 * b) > 128 ? '#000' : '#fff';
             }
             return option;
         };
 
         let finalOptions = [];
-
         const transparentOpt = document.createElement('option');
         transparentOpt.value = 'transparent';
         transparentOpt.textContent = '투명 (Transparent)';
-        transparentOpt.style.backgroundColor = '#e0e0e0';
-        transparentOpt.style.color = '#000';
         finalOptions.push({ label: '기본 기능', items: [{ type: 'opt', el: transparentOpt }] });
 
-        if (mode === 'geopixels') {
-            const geoOpts = (geopixelsColors || []).map(c => {
-                const hex = rgbToHex(c.rgb[0], c.rgb[1], c.rgb[2]);
-                return { type: 'opt', el: createOption(hex, c.name || 'GeoPixels', hex) };
-            });
-            finalOptions.push({ label: 'GeoPixels 팔레트', items: geoOpts });
-
-            if (useWplaceInGeo) {
-                const allWplace = [...(wplaceFreeColors||[]), ...(wplacePaidColors||[])];
-                const wplaceOpts = allWplace.map(c => {
-                    const hex = rgbToHex(c.rgb[0], c.rgb[1], c.rgb[2]);
-                    return { type: 'opt', el: createOption(hex, c.name, hex) };
-                });
-                finalOptions.push({ label: 'Wplace 팔레트 (확장)', items: wplaceOpts });
-            }
-        } 
-        else if (mode === 'uplace') {
-            const uplaceOpts = (uplaceColors || []).map(c => {
-                const hex = rgbToHex(c.rgb[0], c.rgb[1], c.rgb[2]);
-                return { type: 'opt', el: createOption(hex, c.name || 'Uplace', hex) };
-            });
-            finalOptions.push({ label: 'Uplace 팔레트', items: uplaceOpts });
-        }
-        else {
-            const allWplace = [...(wplaceFreeColors||[]), ...(wplacePaidColors||[])];
-            const wplaceOpts = allWplace.map(c => {
-                const hex = rgbToHex(c.rgb[0], c.rgb[1], c.rgb[2]);
-                return { type: 'opt', el: createOption(hex, c.name, hex) };
-            });
-            finalOptions.push({ label: 'Wplace 팔레트', items: wplaceOpts });
+        const palettes = { 'geopixels': geopixelsColors, 'uplace': uplaceColors };
+        if (palettes[mode]) {
+            const opts = palettes[mode].map(c => ({ type: 'opt', el: createOption(rgbToHex(c.rgb[0], c.rgb[1], c.rgb[2]), c.name, rgbToHex(c.rgb[0], c.rgb[1], c.rgb[2])) }));
+            finalOptions.push({ label: `${mode.toUpperCase()} 팔레트`, items: opts });
         }
 
-        const userOpts = (state.addedColors || []).map(c => {
-            try {
-                let hex = null;
-                if (typeof c === 'string') hex = c.startsWith('#') ? c : '#' + c;
-                else if (c && c.hex) hex = c.hex;
-                else if (c && Array.isArray(c.rgb) && c.rgb.length >= 3) {
-                    const r = parseInt(c.rgb[0], 10);
-                    const g = parseInt(c.rgb[1], 10);
-                    const b = parseInt(c.rgb[2], 10);
-                    if (!isNaN(r)) hex = rgbToHex(r, g, b);
-                }
-                else if (Array.isArray(c) && c.length >= 3) {
-                    const r = parseInt(c[0], 10);
-                    const g = parseInt(c[1], 10);
-                    const b = parseInt(c[2], 10);
-                    if (!isNaN(r)) hex = rgbToHex(r, g, b);
-                }
-                else if (c && c.r !== undefined) {
-                    const r = parseInt(c.r, 10);
-                    const g = parseInt(c.g, 10);
-                    const b = parseInt(c.b, 10);
-                    if (!isNaN(r)) hex = rgbToHex(r, g, b);
-                }
-
-                if (!hex || !/^#[0-9A-F]{6}$/i.test(hex)) return null;
-
+        if (state.addedColors) {
+            const userOpts = state.addedColors.map(c => {
+                const hex = Array.isArray(c) ? rgbToHex(c[0], c[1], c[2]) : (c.hex || '#000000');
                 return { type: 'opt', el: createOption(hex, t('label_user_color'), hex) };
-            } catch (err) { return null; }
-        }).filter(item => item !== null);
-
-        if (userOpts.length > 0) {
-            finalOptions.push({ label: '사용자 추가', items: userOpts });
+            });
+            if (userOpts.length > 0) finalOptions.push({ label: '사용자 추가', items: userOpts });
         }
 
         Object.values(this.colors).forEach(select => {
@@ -220,31 +132,22 @@ export class TextConverterUI {
                 group.items.forEach(item => optgroup.appendChild(item.el.cloneNode(true)));
                 select.appendChild(optgroup);
             });
-            if (currentVal) {
-                const exists = Array.from(select.options).some(o => o.value === currentVal);
-                if(exists) select.value = currentVal;
-            }
+            if (currentVal) select.value = currentVal;
         });
     }
 
     applyDefaultColors() {
-        const mode = this.getCurrentPaletteMode();
         this.setSelectValue(this.colors.text, '#000000'); 
-        this.setSelectValue(this.colors.bg, '#FFFFFF'); // [수정] 다시 기본값을 흰색으로 롤백!
+        this.setSelectValue(this.colors.bg, '#FFFFFF'); 
         this.setSelectValue(this.colors.stroke, '#000000'); 
     }
 
     setSelectValue(select, val) {
         if(select) {
             select.value = val;
-            if (select.selectedIndex === -1 && select.options.length > 0) {
-                select.selectedIndex = 0;
-            }
             select.dispatchEvent(new Event('change')); 
         }
     }
 
-    triggerFontUpload() {
-        if(this.fontInput) this.fontInput.click();
-    }
+    triggerFontUpload() { if(this.fontInput) this.fontInput.click(); }
 }

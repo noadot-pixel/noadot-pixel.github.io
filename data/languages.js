@@ -180,8 +180,13 @@ export const languageData = {
         option_color_method_oklab: "OKlab - 색상 보정 변환",
         option_color_method_ciede2000: "Wdot - 고품질 변환(웜톤)",
         option_color_method_D65: "D65 - 고품질 변환(쿨톤)",
+        option_color_method_Kochanexe: "Kochanexe - 채도 우선 변환",
+
+        option_smart_sampling: "도트 샘플링",
+        tooltip_smart_sampling: "크기를 줄일 때 단순 픽셀 평균을 내지 않고, 대비를 분석하여 디테일이 살아있는 핵심 픽셀을 추출합니다.",
 
         tag_point: "포인트 색상",
+        tag_gap: "팔레트 공백 (추천)",
         alert_no_data_to_download: "다운로드할 데이터가 없습니다. 먼저 변환을 진행해주세요.",
         alert_jszip_missing: "압축 라이브러리(JSZip)를 불러오지 못했습니다. 페이지를 새로고침 해주세요.",
 
@@ -306,6 +311,9 @@ export const languageData = {
         preset_storage : "프리셋\n보관함",
         btn_analyze_colors: "색상 분석",
         popup_preset_title: "✨ 추천 스타일 프리셋",
+
+        option_outline_expansion: "외곽선 보강 (PixelOE)",
+        tooltip_outline_expansion: "이미지를 축소할 때 얇은 선이나 디테일이 사라지지 않도록 외곽선을 미리 두껍게 보강합니다.",
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
@@ -501,6 +509,10 @@ export const languageData = {
         option_color_method_oklab: "OKlab - Color Calibration Conversion",
         option_color_method_ciede2000: "Wdot - High Quality Conversion (Warmtone)",
         option_color_method_D65: "D65 - High Quality Conversion (Cool Tone)",
+        option_color_method_Kochanexe: "Kochanexe - Chromatic priority conversion",
+
+        option_smart_sampling: "Smart Sampling (Contrast AF)",
+        tooltip_smart_sampling: "Extracts key pixels by analyzing contrast instead of simple averaging when downscaling.",
 
         label_cartoon_refinement: "Strong Color Refinement (Blur/Cleanup)",
 
@@ -536,8 +548,9 @@ export const languageData = {
         placeholder_preset_name: "Ex: My Custom Style",
         btn_confirm_save: "Save",
         btn_cancel: "Cancel",
+
         tag_point: "Point Color",
-        
+        tag_gap: "Palette Gap",
         tag_dominant: "Dominant Color",
         tag_shadow: "Shadow Tone",
         tag_highlight: "Highlight Tone",
@@ -614,5 +627,9 @@ export const languageData = {
         preset_storage : "preset\nstorage",
         btn_analyze_colors: "color amalysis",
         popup_preset_title: "✨ recommended style preset",
+
+        option_outline_expansion: "Outline Expansion (PixelOE)",
+        tooltip_outline_expansion: "Expands outlines before downscaling to prevent loss of thin lines and fine details.",
+        
     }
 };

@@ -48,7 +48,6 @@ function rgbToLabD65(rgb) {
     let Z = r * 0.0193339 + g * 0.1191920 + b * 0.9503041;
     
     // D65 Reference White (2° Observer)
-    // Xn: 95.047, Yn: 100.000, Zn: 108.883
     let x = X / 0.95047; 
     let y = Y / 1.00000; 
     let z = Z / 1.08883; 
@@ -150,9 +149,8 @@ export const ColorConverter = {
         ];
     },
     
-    // 모드별 변환 함수 노출
-    rgbToLab: rgbToLab,       // D50 (기존)
-    rgbToLabD65: rgbToLabD65, // D65 (신규)
+    rgbToLab: rgbToLab,       
+    rgbToLabD65: rgbToLabD65, 
     ciede2000: ciede2000,
     deltaE2000: ciede2000, 
     
@@ -164,32 +162,39 @@ export const ColorConverter = {
 // ==============================================================
 // 가장 가까운 색 찾기
 // ==============================================================
-export const findClosestColor = (r1, g1, b1, palette, paletteConverted, colorMethod) => {
+export const findClosestColor = (r1, g1, b1, palette, paletteConverted, colorMethod, satWeight = 0.5) => {
     let minDistance = Infinity;
     let closestIndex = 0;
 
-    if (colorMethod === 'ciede2000-d65') {
-        // [New Mode] CIEDE2000 (D65) - 웹 표준
-        const targetLab = ColorConverter.rgbToLabD65([r1, g1, b1]);
+    // [신규 통합 연산 방식] wdot-plus (NoaDot-X) 로직 추가
+    const isWdotBased = (colorMethod === 'wdot-plus' || colorMethod === 'ciede2000');
+
+    if (isWdotBased || colorMethod === 'ciede2000-d65') {
+        const isD65 = (colorMethod === 'ciede2000-d65');
+        const targetLab = isD65 ? ColorConverter.rgbToLabD65([r1, g1, b1]) : ColorConverter.rgbToLab([r1, g1, b1]);
+        const origChroma = Math.sqrt(targetLab[1] ** 2 + targetLab[2] ** 2);
+
         for (let i = 0; i < paletteConverted.length; i++) {
-            const dist = ColorConverter.ciede2000(targetLab, paletteConverted[i]);
-            if (dist < minDistance) { 
-                minDistance = dist; 
-                closestIndex = i; 
+            const palLab = paletteConverted[i];
+            let dist = ColorConverter.ciede2000(targetLab, palLab);
+
+            // 'wdot-plus' 모드일 때만 채도 보정 가중치를 활성화하여 적용
+            if (colorMethod === 'wdot-plus' && satWeight > 0 && origChroma > 2.0) { 
+                const palChroma = Math.sqrt(palLab[1] ** 2 + palLab[2] ** 2);
+                const lumDiff = Math.abs(targetLab[0] - palLab[0]);
+                
+                // 명도 차이가 크지 않을 때만 채도 우선 계산
+                if (lumDiff < 15.0 && origChroma > palChroma) {
+                    dist += (origChroma - palChroma) * (satWeight * 2.5);
+                }
             }
-        }
-    } else if (colorMethod === 'ciede2000') {
-        // [Old Mode] CIEDE2000 (D50) - 기존 Wdot 로직
-        const targetLab = ColorConverter.rgbToLab([r1, g1, b1]);
-        for (let i = 0; i < paletteConverted.length; i++) {
-            const dist = ColorConverter.ciede2000(targetLab, paletteConverted[i]);
+
             if (dist < minDistance) { 
                 minDistance = dist; 
                 closestIndex = i; 
             }
         }
     } else if (colorMethod === 'oklab') {
-        // [Mode 2] Oklab
         const targetOklab = ColorConverter.rgbToOklab([r1, g1, b1]);
         for (let i = 0; i < paletteConverted.length; i++) {
             const dist = ColorConverter.deltaOklab(targetOklab, paletteConverted[i]);
@@ -199,7 +204,6 @@ export const findClosestColor = (r1, g1, b1, palette, paletteConverted, colorMet
             }
         }
     } else {
-        // [Mode 1] RGB
         for (let i = 0; i < palette.length; i++) {
             const [r2, g2, b2] = palette[i];
             const rMean = (r1 + r2) * 0.5;

@@ -29,7 +29,6 @@ export class ConversionOptionsUI {
         this.celShadingControls = document.getElementById('celShadingOptions'); 
         this.refinementSlider = document.getElementById('refinementSlider');
         
-        // [수정] 기존 단독 Aspire 체크박스 참조 제거 완료!
         this.celShadingAspireDither = document.getElementById('celShadingAspireDither');
         this.celShadingAlgorithmSelect = document.getElementById('celShadingAlgorithmSelect');
         this.celShadingLevelsSlider = document.getElementById('celShadingLevelsSlider');
@@ -47,6 +46,12 @@ export class ConversionOptionsUI {
         this.applyAspireDither = document.getElementById('applyAspireDither');
         this.applyRefinement = document.getElementById('applyRefinement');
         this.refinementOptions = document.getElementById('refinementOptions');
+
+        this.applyOutlineExpansionCheck = document.getElementById('applyOutlineExpansion');
+        this.applySmartSamplingCheck = document.getElementById('applySmartSampling');
+        
+        // [복구 완료] 채도 보정 슬라이더 연결!
+        this.saturationWeightInput = document.getElementById('saturationWeight');
 
         this.initLang();
         this.initUniversalSliderListeners();
@@ -98,6 +103,8 @@ export class ConversionOptionsUI {
         if (display) {
             if (id.startsWith('rgbWeight') && val > 0) {
                 display.textContent = `+${val}`;
+            } else if (id === 'saturationWeight') {
+                display.textContent = `${val}%`; // 퍼센트 기호 추가
             } else {
                 display.textContent = val;
             }
