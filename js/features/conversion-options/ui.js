@@ -12,6 +12,8 @@ export class ConversionOptionsUI {
         this.rgbGInput = null;
         this.rgbBInput = null;
 
+        
+
         this.ditheringSelect = document.getElementById('ditheringAlgorithmSelect');
         this.ditheringIntensity = document.getElementById('ditheringSlider');
         this.applyPatternCheck = document.getElementById('applyPattern');
