@@ -100,7 +100,7 @@ h3 { display: inline-block; padding: 0; margin: 0; }
 
 #placeholder-ui { display: flex; flex-direction: column; justify-content: center; align-items: center; color: #888; text-align: center; pointer-events: auto; }
 .upload-icon { width: 64px; height: 64px; fill: #aaa; margin-bottom: 10px; }
-#convertedCanvasContainer.has-image #placeholder-ui { display: none; }
+#convertedCanvasContainer.has-image #placeholder-ui { display: none !important; }
 
 #convertedCanvas { image-rendering: pixelated; transform-origin: center; box-shadow: 0 0 10px rgba(0,0,0,0.2); max-width: 100%; max-height: 100%; display: none; }
 #convertedCanvasContainer.has-image #convertedCanvas { display: block; }
@@ -1436,4 +1436,239 @@ fieldset.sub-fieldset {
     text-overflow: ellipsis; /* 넘치는 글자는 ... 으로 처리 */
     overflow: hidden;        /* 박스 밖으로 튀어나간 글자 숨김 */
     white-space: nowrap;     /* 글자가 밑으로 줄바꿈되지 않게 한 줄 고정 */
+}
+
+/* =========================================================
+   📱 모바일 전용 반응형 UI (Ibis Paint 컨셉 - v7.3)
+   ========================================================= */
+
+/* 데스크톱 기본 상태: 모바일 전용 요소 숨김 */
+.mobile-only {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .app-container.text-mode .left-panel-content {
+        flex-direction: column !important; /* 위(캔버스) 아래(에디터) 분할 */
+        height: 100%;
+        gap: 15px;
+    }
+    
+    .app-container.text-mode #result-area {
+        order: -1 !important;
+        flex: 1.2; /* 위쪽 미리보기 영역을 조금 더 넓게 */
+        min-height: 0;
+    }
+    
+    .app-container.text-mode #text-editor-panel {
+        order: 2 !important;
+        flex: 0.8; /* 아래쪽 텍스트 에디터 영역 */
+        display: flex !important;
+        margin-bottom: 10px; /* 하단 탭바에 겹치지 않게 여백 */
+    }
+
+    /* 텍스트 모드일 때 안 쓰는 탭 2개(크기 조절, 프리셋) 완전 숨김 -> 3개만 남음 */
+    .app-container.text-mode .nav-tab[data-target="resize-section-group"],
+    .app-container.text-mode .nav-tab[data-target="ai-preset-section"] {
+        display: none !important;
+    }
+
+    /* --- 7. 거슬리는 업로드 문구 버그 픽스 --- */
+    #convertedCanvasContainer.has-image #placeholder-ui {
+        display: none !important;
+    }
+    /* --- 1. 모바일 노출 / 데스크톱 숨김 스위치 --- */
+    .mobile-only {
+        display: flex !important;
+    }
+    .desktop-only {
+        display: none !important;
+    }
+
+    /* --- 2. 전체 레이아웃 튜닝 --- */
+    .app-container {
+        padding: 0;
+        height: 100vh;
+        height: 100dvh; /* 아이폰 하단 홈바 대응 */
+        overflow: hidden;
+    }
+
+    .main-header {
+        border-radius: 0;
+        margin-bottom: 0;
+        padding: 10px 15px;
+        border-bottom: 1px solid #ddd;
+        z-index: 100;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .main-header h1 {
+        font-size: 1.2em;
+    }
+
+    /* 상단 모바일 전용 버튼 (T, 햄버거) */
+    .top-action-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        background: #f0f0f0;
+        border: 1px solid #ccc;
+        font-weight: bold;
+        color: #555;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 16px;
+    }
+
+    
+    .top-action-btn:hover {
+        background: #e0e0e0;
+    }
+
+    .left-panel {
+        padding: 0;
+        height: calc(100vh - 55px - 60px); /* 100vh - 헤더높이 - 하단탭바높이 */
+        position: relative;
+    }
+
+    #convertedCanvasContainer {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
+    }
+
+    /* --- 3. 캔버스 위 플로팅 툴바 (스케치 참고) --- */
+    .mobile-floating-tools {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        flex-direction: row;
+        gap: 15px;
+        z-index: 50;
+    }
+
+    .float-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.85);
+        border: 2px solid #555;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 18px;
+        color: #333;
+        position: relative;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        backdrop-filter: blur(2px);
+    }
+
+    .float-btn:active {
+        background-color: #ddd;
+        transform: scale(0.95);
+    }
+
+    /* 플로팅 버튼 아래 붉은색 글씨 (스케치 디테일) */
+    .float-btn span {
+        position: absolute;
+        top: 48px;
+        font-size: 10px;
+        color: #d32f2f; /* 이비스 페인트 스타일의 붉은색 폰트 */
+        font-weight: 800;
+        white-space: nowrap;
+        text-shadow: 0 1px 1px rgba(255,255,255,0.8);
+    }
+
+    /* --- 4. 하단 탭 바 (Bottom Navigation) --- */
+    .mobile-bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 60px;
+        background-color: rgba(245, 245, 247, 0.95);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid #ddd;
+        flex-direction: row;
+        justify-content: space-around;
+        align-items: center;
+        z-index: 110;
+        padding-bottom: env(safe-area-inset-bottom);
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    }
+
+    .nav-tab {
+        flex: 1;
+        background: none;
+        border: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: #666;
+        cursor: pointer;
+        height: 100%;
+        gap: 4px;
+        transition: color 0.2s;
+    }
+
+    .nav-tab span {
+        font-size: 10px;
+        font-weight: bold;
+        /* 스케치 반영: 탭 이름도 붉은색 톤 사용 */
+        color: #333 !important;
+    }
+
+    .nav-tab.active, 
+    .nav-tab.active span {
+        color: #333 !important; /* 선택된 탭은 파란색 강조 */
+    }
+
+    /* --- 5. 바텀 시트 팝업 (오른쪽 패널의 변신) --- */
+    .right-panel {
+        position: fixed;
+        bottom: 60px; /* 하단 탭 바 바로 위에서 팝업 */
+        left: 0;
+        width: 100%;
+        height: 35vh; /* 화면의 65% 차지 */
+        background-color: rgba(244, 247, 249, 0.85); /* 반투명 배경색 적용 */
+        backdrop-filter: blur(4px);
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
+        z-index: 100;
+        padding: 20px 15px;
+        box-sizing: border-box;
+        
+        /* 숨김 처리 및 애니메이션 */
+        transform: translateY(120%); 
+        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        overflow-y: auto;
+    }
+
+    /* 팝업 열림 상태 클래스 (JS에서 제어) */
+    .right-panel.sheet-open {
+        transform: translateY(0);
+    }
+
+    /* 바텀 시트 상단 손잡이 (UI 디테일) */
+    .sheet-handle {
+        width: 40px;
+        height: 5px;
+        background-color: #ccc;
+        border-radius: 5px;
+        margin: 0 auto 15px auto;
+    }
+
+    /* 모바일 환경에서는 섹션 테두리 최소화 */
+    .option-section, .mode-switcher, .palette-category {
+        margin-bottom: 0;
+        padding: 0;
+        background: transparent;
+        box-shadow: none;
+    }
 }

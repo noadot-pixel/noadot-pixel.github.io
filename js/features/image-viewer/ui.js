@@ -390,8 +390,15 @@ export class ImageViewerUI {
 
     showCanvas() {
         this.canvas.style.display = 'block';
-        if (this.placeholder) this.placeholder.style.display = 'none';
-        if (this.container) this.container.style.cursor = 'grab';
+        
+        // [핵심 해결] 안내 문구를 !important로 강제 삭제하고 상태 클래스 부여
+        if (this.placeholder) {
+            this.placeholder.style.setProperty('display', 'none', 'important');
+        }
+        if (this.container) {
+            this.container.style.cursor = 'grab';
+            this.container.classList.add('has-image'); 
+        }
         
         if (this.toolbar) this.toolbar.style.display = 'flex';
         if (this.zoomDisplay) this.zoomDisplay.style.display = 'flex';
@@ -399,13 +406,18 @@ export class ImageViewerUI {
 
     showPlaceholder() {
         this.canvas.style.display = 'none';
+        
+        // [핵심 해결] 이미지가 지워지면 안내 문구를 강제로 다시 노출
         if (this.placeholder) {
-            this.placeholder.style.display = 'flex'; 
+            this.placeholder.style.setProperty('display', 'flex', 'important'); 
             this.placeholder.style.flexDirection = 'column';
             this.placeholder.style.alignItems = 'center';
             this.placeholder.style.justifyContent = 'center';
         }
-        if (this.container) this.container.style.cursor = 'default';
+        if (this.container) {
+            this.container.style.cursor = 'default';
+            this.container.classList.remove('has-image');
+        }
         
         if (this.toolbar) this.toolbar.style.display = 'none';
         if (this.zoomDisplay) this.zoomDisplay.style.display = 'none';

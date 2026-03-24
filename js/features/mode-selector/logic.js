@@ -1,6 +1,6 @@
 // js/features/mode-selector/logic.js
 import { eventBus } from '../../core/EventBus.js';
-import { state, t } from '../../state.js'; // [수정] t 함수 임포트
+import { state, t } from '../../state.js'; 
 import { ModeSelectorUI } from './ui.js';
 
 export class ModeSelectorFeature {
@@ -22,26 +22,28 @@ export class ModeSelectorFeature {
             if (state.appMode === targetMode) return;
 
             let confirmMsg = null;
+            // 1. 이미지 -> 텍스트 전환 시 경고
             if (state.appMode === 'image' && state.originalImageData) {
-                // [수정] 언어 파일 키 사용
-                confirmMsg = t('confirm_mode_switch_to_text');
+                confirmMsg = t('confirm_mode_switch_to_text') || "모드를 변경하면 현재 작업 내역과 설정이 초기화됩니다. 계속하시겠습니까?";
             } 
+            // 2. 텍스트 -> 이미지 전환 시 경고
             else if (state.appMode === 'text') {
-                if (state.textState.content && state.textState.content.trim() !== "") {
-                    // [수정] 언어 파일 키 사용
-                    confirmMsg = t('confirm_mode_switch_to_image');
+                const textarea = document.getElementById('editor-textarea') || document.getElementById('textInput');
+                if (textarea && textarea.value.trim() !== "") {
+                    // 🌟 없는 번역 키 대신, 이미 잘 작동하는 키 하나로 통일!
+                    confirmMsg = t('confirm_mode_switch_to_text') || "모드를 변경하면 현재 작업 내역과 설정이 초기화됩니다. 계속하시겠습니까?";
                 }
             }
 
-            if (confirmMsg) {
-                const isConfirmed = confirm(confirmMsg);
-                if (!isConfirmed) {
-                    e.preventDefault(); 
-                    this.ui.updateDisplay(state.appMode); 
-                    return;
-                }
+            // 경고창 띄우기 및 취소 시 방어
+            if (confirmMsg && !confirm(confirmMsg)) {
+                e.preventDefault();
+                if (targetMode === 'text') this.ui.imageRadio.checked = true;
+                else this.ui.textRadio.checked = true;
+                return;
             }
 
+            // 승인 시 모드 변경 진행
             this.setMode(targetMode);
         };
 
@@ -53,37 +55,21 @@ export class ModeSelectorFeature {
         }
     }
 
-    setMode(mode, force = false) {
-        if (!force && state.appMode === mode) return;
-
-        console.log(`[ModeSelector] 모드 전환: ${mode} (Force: ${force})`);
+    setMode(mode, isInitial = false) {
         state.appMode = mode;
-        
-        this.ui.updateDisplay(mode);
+        this.ui.updateUI(mode);
 
-        if (mode === 'text') {
-            if (this.conversionOptionSection) this.conversionOptionSection.style.display = 'none';
-            this.presetSections.forEach(el => el.style.display = 'none');
-
-            state.colorMethodSelect = 'ciede2000';
-            const methodSelect = document.getElementById('colorMethodSelect');
-            if(methodSelect) methodSelect.value = 'ciede2000';
-
-            this.resetImageState();
-            eventBus.emit('TEXT_CONFIG_UPDATED');
-
-        } else {
-            if (this.conversionOptionSection) this.conversionOptionSection.style.display = 'block';
-            this.presetSections.forEach(el => el.style.display = 'block');
-
-            state.colorMethodSelect = 'oklab';
-            const methodSelect = document.getElementById('colorMethodSelect');
-            if(methodSelect) methodSelect.value = 'oklab';
-
-            this.resetTextState();
-            eventBus.emit('OPTION_CHANGED');
+        if (!isInitial) {
+            if (mode === 'image') {
+                this.resetTextState();
+                this.resetImageState(); 
+            } else if (mode === 'text') {
+                this.resetImageState();
+                this.resetTextState(); 
+            }
+            eventBus.emit('MODE_CHANGED', mode);
+            eventBus.emit('CONVERSION_COMPLETE', { imageData: null }); 
         }
-        eventBus.emit('MODE_CHANGED', mode);
     }
 
     clearCanvas() {
@@ -95,7 +81,10 @@ export class ModeSelectorFeature {
         }
         
         const placeholder = document.getElementById('placeholder-ui');
-        if(placeholder) placeholder.style.display = 'flex';
+        if(placeholder) {
+            placeholder.style.setProperty('display', 'flex', 'important');
+            placeholder.style.flexDirection = 'column';
+        }
         
         const container = document.getElementById('convertedCanvasContainer');
         if(container) container.classList.remove('has-image');
@@ -117,20 +106,17 @@ export class ModeSelectorFeature {
     }
 
     resetTextState() {
-        if (state.textState) {
-            state.textState.content = ""; 
-            state.textState.fontFamily = "Malgun Gothic"; 
-        }
+        if (!state.textState) state.textState = {};
+        state.textState.content = ""; 
+        state.textState.fontFamily = "Malgun Gothic"; 
         
         const textarea = document.getElementById('editor-textarea') || document.getElementById('textInput');
         if (textarea) textarea.value = "";
 
         state.originalImageData = null;
-        
         state.resizeWidth = null;
         state.resizeHeight = null;
-        state.aspectRatio = null;
 
-        this.clearCanvas(); 
+        this.clearCanvas();
     }
 }

@@ -47,6 +47,11 @@ export class ImageViewerFeature {
                     this.ui.updateCanvas(data.imageData);
                     this.updateTransform();
                 }
+            } else if (data && data.imageData === null) {
+                // 🚨 [핵심 버그 수정] index.html이 보낸 null(초기화) 신호를 받아들여 캔버스를 완벽히 비웁니다!
+                this.ui.lastConvertedData = null;
+                this.ui.showPlaceholder(); // 업로드 안내 문구/아이콘 강제 복구
+                this.resetView();          // 화면 줌/위치 초기화
             }
             this.ui.toggleLoading(false);
         });
