@@ -438,7 +438,7 @@
                         
                         <div class="control-group checkbox-group" style="margin-top: 15px;">
                             <input type="checkbox" id="applyRefinement">
-                            <label for="applyRefinement" data-lang-key="option_apply_refinement">면 평탄화 (노이즈 제거)</label>
+                            <label for="applyRefinement" data-lang-key="option_apply_refinement" style="font-weight: bold;">면 평탄화 (노이즈 제거)</label>
                         </div>
                         
                         <div id="refinementOptions" class="sub-options" style="display: none; padding-left: 5px;">
@@ -450,7 +450,7 @@
 
                         <div class="control-group checkbox-group" style="margin-top: 15px;">
                             <input type="checkbox" id="applyGradient">
-                            <label for="applyGradient" data-lang-key="option_apply_gradient">투명도 그라데이션 적용</label>
+                            <label for="applyGradient" data-lang-key="option_apply_gradient" style="font-weight: bold;">투명도 그라데이션 적용</label>
                         </div>
                         <div id="gradientOptions" class="sub-options" style="display: none; padding-left: 5px; padding-bottom: 10px;">
                             <div class="control-group">
@@ -478,7 +478,7 @@
 
                         <div class="control-group checkbox-group" style="margin-top: 15px;">
                             <input type="checkbox" id="applyOutlineExpansion">
-                            <label for="applyOutlineExpansion" data-lang-key="option_outline_expansion">외곽선 보강 (PixelOE)</label>
+                            <label for="applyOutlineExpansion" data-lang-key="option_outline_expansion" style="font-weight: bold;">외곽선 보강 (PixelOE)</label>
                         </div>
 
                         <div id="outlineExpansionOptions" class="sub-options" style="display: none; padding-left: 5px; padding-bottom: 10px;">
@@ -494,7 +494,7 @@
 
                         <div class="control-group checkbox-group" style="margin-top: 15px;">
                             <input type="checkbox" id="applySmartSampling">
-                            <label for="applySmartSampling" data-lang-key="option_smart_sampling">지능형 샘플링 (Contrast AF)</label>
+                            <label for="applySmartSampling" data-lang-key="option_smart_sampling" style="font-weight: bold;">지능형 샘플링 (Contrast AF)</label>
                         </div>
                     </div>
                 </div>
@@ -506,20 +506,9 @@
                     
                     <div class="control-group checkbox-group">
                         <input type="checkbox" id="chkSharpResizing" checked>
-                        <label for="chkSharpResizing" data-lang-key="label_sharp_resizing">선명한 리사이징 (픽셀 보정)</label>
+                        <label for="chkSharpResizing" data-lang-key="label_sharp_resizing" style="font-weight: bold;">선명한 리사이징 (픽셀 보정)</label>
                     </div>
 
-                    <div id="celShadingAdvancedOptions" style="display: none; border-top: 1px solid #eee; margin-top:10px; padding-top:10px;">
-                        <label style="font-size: 12px; font-weight: bold; color: #555;">만화 필터 상세 설정</label>
-                        <div class="control-group mt-5">
-                            <label for="celShadingLevelsSlider"><span data-lang-key="cartoon_color_level">색상 레벨</span>: <span id="celShadingLevelsValue">8</span></label>
-                            <input type="range" id="celShadingLevelsSlider" min="2" max="32" value="8">
-                        </div>
-                        <div class="control-group">
-                            <label for="celShadingOutlineThresholdSlider"><span data-lang-key="cartoon_outline_threshold">외곽선 민감도</span>: <span id="celShadingOutlineThresholdValue">50</span></label>
-                            <input type="range" id="celShadingOutlineThresholdSlider" min="10" max="150" value="50">
-                        </div>
-                    </div>
                 </div>
             </details>
         </section>

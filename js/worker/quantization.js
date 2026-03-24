@@ -5,7 +5,6 @@ import { clamp, colorDistanceSq, ColorConverter, findClosestColor } from './colo
 // 1. 공통 유틸리티
 // ==============================================================
 
-// 전처리 함수 (밝기/대비/채도 조절)
 export function preprocessImageData(sourceImageData, options) {
     const { saturation, brightness, contrast } = options;
     const sat = saturation / 100.0, bri = brightness, con = contrast;
@@ -22,9 +21,6 @@ export function preprocessImageData(sourceImageData, options) {
     return new ImageData(data, sourceImageData.width, sourceImageData.height);
 }
 
-/**
- * [공통 함수] 생성된 팔레트를 사용하여 이미지를 매핑(Mapping)합니다.
- */
 function applyPaletteToImage(imageData, palette, options) {
     const { width, height, data } = imageData;
     const posterizedData = new ImageData(width, height);
@@ -64,7 +60,6 @@ function applyPaletteToImage(imageData, palette, options) {
     return { centroids: palette, posterizedData };
 }
 
-// [Helper] 이미지 샘플링
 function samplePixels(imageData, maxSamples = 4096) {
     const { data, width, height } = imageData;
     const totalPixels = width * height;
@@ -80,7 +75,7 @@ function samplePixels(imageData, maxSamples = 4096) {
 }
 
 // ==============================================================
-// 2. 알고리즘: Popularity (빈도수 기반)
+// 2. 알고리즘: Popularity
 // ==============================================================
 export function quantizePopularity(imageData, options) {
     const k = (options && options.levels) ? clamp(options.levels, 2, 256) : 16;
@@ -109,7 +104,7 @@ export function quantizePopularity(imageData, options) {
 }
 
 // ==============================================================
-// 3. 알고리즘: Median Cut (중간 절단)
+// 3. 알고리즘: Median Cut
 // ==============================================================
 export function quantizeMedianCut(imageData, options) {
     const k = (options && options.levels) ? clamp(options.levels, 2, 256) : 16;
@@ -167,132 +162,114 @@ export function quantizeMedianCut(imageData, options) {
 }
 
 // ==============================================================
-// 4. 알고리즘: Octree (옥트리) - [신규]
+// 4. 알고리즘: Octree (옥트리) - [무한루프 완벽 해결본]
 // ==============================================================
-class OctreeNode {
-    constructor(level = 0, parent = null) {
-        this.redSum = 0;
-        this.greenSum = 0;
-        this.blueSum = 0;
-        this.pixelCount = 0;
-        this.children = new Array(8).fill(null);
-        this.level = level;
-        this.parent = parent;
-        this.isLeaf = false;
-    }
-
-    addColor(r, g, b) {
-        this.redSum += r;
-        this.greenSum += g;
-        this.blueSum += b;
-        this.pixelCount++;
-    }
-
-    get color() {
-        if (this.pixelCount === 0) return [0, 0, 0];
-        return [
-            Math.round(this.redSum / this.pixelCount),
-            Math.round(this.greenSum / this.pixelCount),
-            Math.round(this.blueSum / this.pixelCount)
-        ];
-    }
-}
-
 export function quantizeOctree(imageData, options) {
     const k = (options && options.levels) ? clamp(options.levels, 2, 256) : 16;
     const { data } = imageData;
-    
-    // 트리 구축 (최대 깊이 8)
-    const root = new OctreeNode(0);
-    // 성능을 위해 전체 픽셀을 순회하되, 너무 크면 스텝을 둠
-    const step = 4;
 
-    for (let i = 0; i < data.length; i += step * 4) {
-        if (data[i + 3] < 128) continue;
-        
-        const r = data[i], g = data[i+1], b = data[i+2];
-        let node = root;
-        
-        for (let level = 0; level < 8; level++) {
-            const index = ((r >> (7 - level) & 1) << 2) | 
-                          ((g >> (7 - level) & 1) << 1) | 
-                          ((b >> (7 - level) & 1));
-            
-            if (!node.children[index]) {
-                node.children[index] = new OctreeNode(level + 1, node);
-            }
-            node = node.children[index];
+    let leafCount = 0;
+    const reducibleNodes = Array.from({ length: 8 }, () => []);
+
+    class OctreeNode {
+        constructor(level) {
+            this.r = 0; this.g = 0; this.b = 0;
+            this.count = 0;
+            this.level = level;
+            this.children = new Array(8).fill(null);
+            this.isLeaf = false;
         }
-        node.isLeaf = true;
-        node.addColor(r, g, b);
     }
 
-    // 잎 노드 수집
-    let leaves = [];
-    function collectLeaves(node) {
+    const root = new OctreeNode(0);
+
+    function addColor(node, r, g, b, level) {
         if (node.isLeaf) {
-            leaves.push(node);
+            node.r += r; node.g += g; node.b += b; node.count++;
             return;
         }
-        for (const child of node.children) {
-            if (child) collectLeaves(child);
+        const index = ((r >> (7 - level) & 1) << 2) | ((g >> (7 - level) & 1) << 1) | (b >> (7 - level) & 1);
+        
+        if (!node.children[index]) {
+            const child = new OctreeNode(level + 1);
+            node.children[index] = child;
+            if (level + 1 === 8) {
+                child.isLeaf = true;
+                leafCount++;
+            } else {
+                reducibleNodes[level + 1].push(child);
+            }
+        }
+        addColor(node.children[index], r, g, b, level + 1);
+    }
+
+    function reduceTree() {
+        let lvl = 7;
+        while (lvl >= 0 && reducibleNodes[lvl].length === 0) lvl--;
+        if (lvl < 0) return false; // 더 이상 병합할 노드가 없음
+
+        const node = reducibleNodes[lvl].pop();
+        let childrenCount = 0;
+        for (let i = 0; i < 8; i++) {
+            const child = node.children[i];
+            if (child) {
+                node.r += child.r;
+                node.g += child.g;
+                node.b += child.b;
+                node.count += child.count;
+                node.children[i] = null;
+                childrenCount++;
+            }
+        }
+        node.isLeaf = true;
+        leafCount -= (childrenCount - 1);
+        return true;
+    }
+
+    // 트리 구축 및 실시간 병합 (On-the-fly Reduction)
+    const step = 4;
+    for (let i = 0; i < data.length; i += step * 4) {
+        if (data[i + 3] < 128) continue;
+        addColor(root, data[i], data[i+1], data[i+2], 0);
+
+        // 메모리 절약과 무한루프 방지를 위해 목표치(k)에 도달하면 즉시 가지치기
+        while (leafCount > k) {
+            if (!reduceTree()) break;
         }
     }
+
+    // 남은 잎 노드(Leaves) 수집하여 팔레트 생성
+    const palette = [];
+    function collectLeaves(node) {
+        if (node.isLeaf) {
+            if (node.count > 0) {
+                palette.push([
+                    Math.round(node.r / node.count),
+                    Math.round(node.g / node.count),
+                    Math.round(node.b / node.count)
+                ]);
+            }
+            return;
+        }
+        for (let i = 0; i < 8; i++) {
+            if (node.children[i]) collectLeaves(node.children[i]);
+        }
+    }
+    
     collectLeaves(root);
 
-    // 노드 병합 (Reduction)
-    // 잎 노드가 k개보다 많으면, 가장 적은 픽셀을 가진 노드부터 병합
-    while (leaves.length > k) {
-        let minPixelCount = Infinity;
-        let targetIndex = -1;
+    if (palette.length === 0) palette.push([0, 0, 0]);
 
-        // 병합 대상 찾기 (최소 픽셀 수)
-        for (let i = 0; i < leaves.length; i++) {
-            if (leaves[i].pixelCount < minPixelCount && leaves[i].parent) {
-                minPixelCount = leaves[i].pixelCount;
-                targetIndex = i;
-            }
-        }
-
-        if (targetIndex === -1) break;
-
-        const targetNode = leaves[targetIndex];
-        const parent = targetNode.parent;
-        
-        // 부모를 잎으로 변환하며 자식들의 통계를 합침
-        parent.isLeaf = true;
-        parent.redSum = 0; parent.greenSum = 0; parent.blueSum = 0; parent.pixelCount = 0;
-
-        for (let i = 0; i < 8; i++) {
-            const child = parent.children[i];
-            if (child) {
-                parent.redSum += child.redSum;
-                parent.greenSum += child.greenSum;
-                parent.blueSum += child.blueSum;
-                parent.pixelCount += child.pixelCount;
-                
-                // 리스트에서 자식 제거
-                const idx = leaves.indexOf(child);
-                if (idx > -1) leaves.splice(idx, 1);
-                
-                parent.children[i] = null;
-            }
-        }
-        leaves.push(parent);
-    }
-
-    const palette = leaves.map(node => node.color);
     return applyPaletteToImage(imageData, palette, options);
 }
 
 // ==============================================================
-// 5. 알고리즘: Wu's Algorithm (Wu 양자화) - [신규]
+// 5. 알고리즘: Wu's Algorithm
 // ==============================================================
 export function quantizeWu(imageData, options) {
     const maxColors = (options && options.levels) ? clamp(options.levels, 2, 256) : 16;
     const { data } = imageData;
 
-    // Wu 알고리즘용 33x33x33 모멘트 히스토그램 (JS 성능 최적화)
     const size = 33;
     const size3 = size * size * size;
     const vwt = new Float64Array(size3);
@@ -301,10 +278,9 @@ export function quantizeWu(imageData, options) {
     const vmb = new Float64Array(size3);
     const m2 = new Float64Array(size3);
 
-    // 1. 히스토그램 구축
     for (let i = 0; i < data.length; i += 4) {
         if (data[i + 3] < 128) continue;
-        const r = (data[i] >> 3) + 1; // 5비트 축소 (0~31) + 1
+        const r = (data[i] >> 3) + 1; 
         const g = (data[i+1] >> 3) + 1;
         const b = (data[i+2] >> 3) + 1;
         const index = (r * size * size) + (g * size) + b;
@@ -316,7 +292,6 @@ export function quantizeWu(imageData, options) {
         m2[index] += (data[i]*data[i] + data[i+1]*data[i+1] + data[i+2]*data[i+2]);
     }
 
-    // 2. 누적 합(Moments) 계산
     for (let r = 1; r < size; r++) {
         const area = [0,0,0,0,0];
         const area_r = r * size * size;
@@ -325,7 +300,7 @@ export function quantizeWu(imageData, options) {
             const area_g = area_r + g * size;
             for (let b = 1; b < size; b++) {
                 const idx = area_g + b;
-                const prev = idx - 1; // b-1
+                const prev = idx - 1; 
                 
                 line[0] += vwt[idx]; line[1] += vmr[idx];
                 line[2] += vmg[idx]; line[3] += vmb[idx];
@@ -343,7 +318,6 @@ export function quantizeWu(imageData, options) {
         }
     }
 
-    // 3차원 볼륨 계산 헬퍼
     function vol(cube, moment) {
         return moment[((cube.r1)*size*size) + (cube.g1)*size + cube.b1]
              - moment[((cube.r1)*size*size) + (cube.g1)*size + cube.b0]
@@ -355,7 +329,6 @@ export function quantizeWu(imageData, options) {
              - moment[((cube.r0)*size*size) + (cube.g0)*size + cube.b0];
     }
 
-    // 박스 구조체
     class Box {
         constructor(r0, r1, g0, g1, b0, b1) {
             this.r0 = r0; this.r1 = r1;
@@ -364,7 +337,6 @@ export function quantizeWu(imageData, options) {
         }
     }
 
-    // 분산 계산
     function variance(cube) {
         const w = vol(cube, vwt);
         if (w === 0) return 0;
@@ -375,22 +347,12 @@ export function quantizeWu(imageData, options) {
         return xx - (r*r + g*g + b*b) / w;
     }
 
-    // 큐브 자르기 (Maximize Variance)
     function cut(cube) {
-        let maxVar = -1;
-        let bestDim = -1;
-        let bestCut = -1;
-        
-        // RGB 축 각각에 대해 최적 절단면 탐색
-        // (간소화를 위해 각 축의 중간 지점을 기준으로 평가)
         const ranges = [cube.r1 - cube.r0, cube.g1 - cube.g0, cube.b1 - cube.b0];
-        // 가장 긴 축을 찾아서 그 축을 기준으로 절단
         let dim = 0;
         if (ranges[1] >= ranges[0] && ranges[1] >= ranges[2]) dim = 1;
         if (ranges[2] >= ranges[0] && ranges[2] >= ranges[1]) dim = 2;
 
-        // 단순 중앙 분할 대신, 실제로는 각 분할점의 Variance를 계산해야 Wu 알고리즘의 진가 발휘
-        // 하지만 JS 성능상 여기서는 가중치(pixel count)가 절반이 되는 지점을 찾거나 중앙을 사용
         let split = 0;
         if (dim === 0) split = Math.floor((cube.r0 + cube.r1) / 2);
         else if (dim === 1) split = Math.floor((cube.g0 + cube.g1) / 2);
@@ -412,7 +374,6 @@ export function quantizeWu(imageData, options) {
         let bestIndex = -1;
         let maxV = -1;
         
-        // 분산이 가장 큰 큐브 선택
         for (let i = 0; i < cubes.length; i++) {
             const v = variance(cubes[i]);
             if (v > maxV) { maxV = v; bestIndex = i; }
@@ -424,7 +385,6 @@ export function quantizeWu(imageData, options) {
         cubes.splice(bestIndex, 1, res[0], res[1]);
     }
 
-    // 팔레트 추출
     const palette = cubes.map(c => {
         const w = vol(c, vwt);
         if (w === 0) return [0,0,0];
@@ -439,7 +399,7 @@ export function quantizeWu(imageData, options) {
 }
 
 // ==============================================================
-// 6. 알고리즘: K-Means (기존 유지)
+// 6. 알고리즘: K-Means
 // ==============================================================
 export function posterizeWithKMeans(imageData, options) {
     const k = (options && options.levels) ? clamp(options.levels, 2, 64) : 8;
@@ -447,7 +407,6 @@ export function posterizeWithKMeans(imageData, options) {
     const colorSpace = (options && options.colorSpace) || 'rgb';
     const useOklab = colorSpace === 'oklab';
     
-    // 샘플링
     const samples = samplePixels(imageData, 4096);
     if (samples.length === 0) return { centroids: [[0,0,0]], posterizedData: imageData };
 
@@ -458,7 +417,6 @@ export function posterizeWithKMeans(imageData, options) {
     } else {
         const centroids = [];
         const centroidIndices = new Set();
-        // 초기화 (K-Means++)
         const distances = new Array(samples.length).fill(Infinity);
         let firstIndex = (quantMethod === 'deterministic') ? 0 : Math.floor(Math.random() * samples.length);
         centroids.push(samples[firstIndex]);
@@ -486,7 +444,6 @@ export function posterizeWithKMeans(imageData, options) {
             }
         }
         
-        // 반복
         let iterations = 0;
         let moved = true;
         let centroidColors = useOklab ? centroids.map(c => ColorConverter.rgbToOklab(c)) : centroids;
