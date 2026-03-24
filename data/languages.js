@@ -3,7 +3,7 @@
 export const languageData = {
     ko: {
         app_title: "NoaDot - 이미지/텍스트 변환기",
-        app_header: "🎨 노아도트 v7.2",
+        app_header: "🎨 노아도트 v7.3",
         section_mode: "모드 선택",
         mode_image: "🖼️ 이미지",
         mode_text: "✏️ 텍스트",
@@ -174,6 +174,9 @@ export const languageData = {
         cartoon_outline_color: "외곽선 색상",
         confirm_reset_colors: "추가한 색상을 모두 삭제하시겠습니까?",
         resize_output_scale: "출력 배율",
+
+        dithering_pattern_ex: "패턴",
+        dithering_noise_ex: "기본 디더링",
         
         option_color_method : "색상 계산 방식",
         option_color_method_rgb: "RGB - 단순 변환",
@@ -182,8 +185,20 @@ export const languageData = {
         option_color_method_D65: "D65 - 고품질 변환(쿨톤)",
         option_color_method_Kochanexe: "Kochanexe - 채도 우선 변환",
 
+        text_disabled_reason: "기능 활성으로 인해 사용하실 수 없습니다.",
+        reason_cartoon_filte: "만화 스타일 필터",
+        reason_refinement: "면 평탄화",
+        reason_pattern: "패턴 적용",
+        reason_dithering_active: "디더링 사용 중 (강도 > 0)",
+        reason_refinement_off: "면 평탄화 (꺼짐)",
+        reason_dithering_none: "디더링 (사용 안함)",
+        reason_pattern_off: "패턴 (꺼짐)",
+        palette_user_color: "사용자 추가 색상",
+
         option_smart_sampling: "도트 샘플링",
         tooltip_smart_sampling: "크기를 줄일 때 단순 픽셀 평균을 내지 않고, 대비를 분석하여 디테일이 살아있는 핵심 픽셀을 추출합니다.",
+
+        category_advanced_options: "⚙️ 고급/기타 설정",
 
         tag_point: "포인트 색상",
         tag_gap: "팔레트 공백 (추천)",
@@ -209,8 +224,13 @@ export const languageData = {
         upscale_1x: "1x (기본)",
         upscale_2x: "2x (EPX)",
         upscale_3x: "3x (EPX)",
+        option_upscale_multiplier: "확대 비율",
 
         label_cartoon_refinement: "색상 보정 강하게 잡기 (뭉개기/정리)",
+        
+        category_color_and_tone: "🎨 색상 및 톤",
+
+        category_shape_and_texture: "🖌️ 형태 및 질감",
 
         tooltip_upload_image: "클릭해서 이미지를 업로드하거나, 이곳으로 드래그하세요.",
         tooltip_resize_mode: "이미지 크기를 줄이는 방식을 선택합니다.\n- 픽셀: 지정한 픽셀만큼 줄임\n- 비율: % 단위로 줄임",
@@ -317,7 +337,7 @@ export const languageData = {
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
-        app_header: "🎨 NoaDot v7.2",
+        app_header: "🎨 NoaDot v7.3",
         section_mode: "Select Mode",
         mode_image: "🖼️ Image",
         mode_text: "✏️ Text",
@@ -446,6 +466,16 @@ export const languageData = {
         cartoon_show_outline: "Show Outline",
         cartoon_outline_threshold: "Outline Sensitivity",
 
+        text_disabled_reason: "is active. This feature is currently disabled.",
+        reason_cartoon_filter: "Cartoon Style Filter",
+        reason_refinement: "Refinement",
+        reason_pattern: "Pattern",
+        reason_dithering_active: "Dithering (Strength > 0)",
+        reason_refinement_off: "Refinement (Off)",
+        reason_dithering_none: "Dithering (None)",
+        reason_pattern_off: "Pattern (Off)",
+        palette_user_color: "User Color",
+
         section_palette: "Select Palette",
         palette_geopixels_default: "GeoPixels Default Palette",
         palette_use_wplace: "Use Wplace Palette",
@@ -504,6 +534,9 @@ export const languageData = {
         cartoon_outline_color: "Outline Color",
         confirm_reset_colors: "Are you sure you want to remove all added colors?",
         resize_output_scale: "Output Scale",
+
+        category_advanced_options: "⚙️ advanced/etc options",
+
         option_color_method : "Algorithm option",
         option_color_method_rgb: "RGB - Simple Conversion",
         option_color_method_oklab: "OKlab - Color Calibration Conversion",
@@ -516,10 +549,15 @@ export const languageData = {
 
         label_cartoon_refinement: "Strong Color Refinement (Blur/Cleanup)",
 
+        category_shape_and_texture: "🖌️ Shape & Texture",
+
+        category_color_and_tone: "🎨 color and tone",
+
         section_upscale: "Upscale",
         upscale_1x: "1x (Default)",
         upscale_2x: "2x (EPX)",
         upscale_3x: "3x (EPX)",
+        option_upscale_multiplier: "Upscale Ratio",
 
         tooltip_upload_image: "Click to upload or drag & drop an image here.",
         
@@ -619,6 +657,9 @@ export const languageData = {
         text_option_algorithms_smooth: "smooth",
 
         label_download_uplace: "download youplace version(.you)",
+
+        dithering_pattern_ex: "Patterns",
+        dithering_noise_ex: "Noise",
 
         size_change_download: "Apply when download",
         preset_recommended: "preset recommended",

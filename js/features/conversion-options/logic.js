@@ -7,17 +7,9 @@ import { geopixelsColors, wplaceFreeColors, wplacePaidColors } from '../../../da
 export class ConversionOptionsFeature {
     constructor() {
         this.ui = new ConversionOptionsUI();
-        
-        const brightnessSlider = document.getElementById('brightnessSlider');
-        if (brightnessSlider) {
-            const section = brightnessSlider.closest('.option-section') || brightnessSlider.parentElement.parentElement;
-            if (section) {
-                this.ui.injectRGBSliders(section.id);
-            }
-        }
 
         if (!state.ditheringAlgorithmSelect || state.ditheringAlgorithmSelect === 'none') {
-            state.ditheringAlgorithmSelect = 'Atkinson';
+            state.ditheringAlgorithmSelect = 'atkinson';
         }
 
         this.initEvents();
@@ -25,17 +17,19 @@ export class ConversionOptionsFeature {
         this.loadInitialState();
         
         this.updateOutlineDropdown();
+        this.updateTextureUI();
+        this.updateUIConflictLocks();
     }
 
     initBusListeners() {
         eventBus.on('UPDATE_UI_ONLY', ({ key, value }) => {
             this.ui.updateDisplay(key, value);
             
-            if (key === 'applyPattern') this.ui.toggleGroup(this.ui.patternControls, value);
-            if (key === 'applyGradient') this.ui.toggleGroup(this.ui.gradientControls, value);
-            if (key === 'celShadingApply') this.ui.toggleGroup(this.ui.celShadingControls, value);
-            if (key === 'celShadingOutline') this.ui.toggleGroup(this.ui.celShadingOutlineSettings, value);
-            if (key === 'applyRefinement') this.ui.toggleGroup(this.ui.refinementOptions, value);
+            if (key === 'applyGradient') this.ui.toggleGroup(document.getElementById('gradientOptions'), value);
+            if (key === 'celShadingApply') this.ui.toggleGroup(document.getElementById('celShadingOptions'), value);
+            if (key === 'celShadingOutline') this.ui.toggleGroup(document.getElementById('celShadingOutlineOptions'), value);
+            if (key === 'applyRefinement') this.ui.toggleGroup(document.getElementById('refinementOptions'), value);
+            if (key === 'applyUpscale') this.ui.toggleGroup(document.getElementById('upscaleDropdownGroup'), value);
         });
 
         eventBus.on('MODE_CHANGED', () => this.updateOutlineDropdown());
@@ -43,7 +37,107 @@ export class ConversionOptionsFeature {
         
         eventBus.on('OPTION_CHANGED', () => {
             this.updateOutlineDropdown();
+            this.updateTextureUI();
+            this.updateUIConflictLocks();
         });
+    }
+
+    updateTextureUI() {
+        const val = document.getElementById('ditheringAlgorithmSelect')?.value || state.ditheringAlgorithmSelect;
+        const patternValues = ['bayer8x8', 'crosshatch', 'vertical', 'checkerboard', 'diagonal_right', 'diagonal_left', 'brick'];
+        const isPattern = patternValues.includes(val);
+        const isNone = (val === 'none');
+        
+        const ditherStrengthGroup = document.getElementById('dithering-strength-group');
+        const patternSizeGroup = document.getElementById('pattern-size-group');
+        
+        if (isNone) {
+            if (ditherStrengthGroup) ditherStrengthGroup.style.display = 'none';
+            if (patternSizeGroup) patternSizeGroup.style.display = 'none';
+        } else if (isPattern) {
+            if (ditherStrengthGroup) ditherStrengthGroup.style.display = 'none';
+            if (patternSizeGroup) patternSizeGroup.style.display = 'block'; 
+        } else {
+            if (ditherStrengthGroup) ditherStrengthGroup.style.display = 'block';
+            if (patternSizeGroup) patternSizeGroup.style.display = 'none';
+        }
+    }
+
+    updateUIConflictLocks() {
+        const isCelShading = document.getElementById('celShadingApply')?.checked;
+        const isRefinement = document.getElementById('applyRefinement')?.checked;
+        const ditherStrength = parseInt(document.getElementById('ditheringSlider')?.value || '0', 10);
+        
+        const val = document.getElementById('ditheringAlgorithmSelect')?.value || state.ditheringAlgorithmSelect;
+        const patternValues = ['bayer8x8', 'crosshatch', 'vertical', 'checkerboard', 'diagonal_right', 'diagonal_left', 'brick'];
+        const isPattern = patternValues.includes(val);
+
+        const setLock = (elementId, isLocked, reasonMsg) => {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            const container = el.closest('.control-group');
+            if (!container) return;
+
+            if (isLocked) {
+                container.classList.add('locked-container');
+                // 다국어 툴팁 적용
+                const disabledSuffix = t('text_disabled_reason') || '기능 활성으로 인해 사용하실 수 없습니다.';
+                if (reasonMsg) container.setAttribute('title', `${reasonMsg} ${disabledSuffix}`);
+                el.disabled = true;
+            } else {
+                container.classList.remove('locked-container');
+                container.removeAttribute('title');
+                el.disabled = false;
+            }
+        };
+
+        // 다국어 메시지 변수 매핑
+        const msgCelShading = t('reason_cartoon_filter') || '만화 스타일 필터';
+        const msgRefinement = t('reason_refinement') || '면 평탄화';
+        const msgPattern = t('reason_pattern') || '패턴 적용';
+        const msgDitherActive = t('reason_dithering_active') || '디더링 사용 중 (강도 > 0)';
+        const msgRefinementOff = t('reason_refinement_off') || '면 평탄화 (꺼짐)';
+        const msgDitherNone = t('reason_dithering_none') || '디더링 (사용 안함)';
+        const msgPatternOff = t('reason_pattern_off') || '패턴 (꺼짐)';
+
+        if (isCelShading) {
+            setLock('colorMethodSelect', true, msgCelShading);
+            setLock('ditheringAlgorithmSelect', true, msgCelShading);
+            setLock('ditheringSlider', true, msgCelShading);
+            setLock('patternSizeSlider', true, msgCelShading);
+            setLock('applyRefinement', true, msgCelShading);
+            setLock('refinementSlider', true, msgCelShading);
+            return;
+        } 
+        
+        setLock('colorMethodSelect', false);
+
+        if (isRefinement) {
+            setLock('ditheringAlgorithmSelect', true, msgRefinement);
+            setLock('ditheringSlider', true, msgRefinement);
+            setLock('patternSizeSlider', true, msgRefinement);
+            setLock('applyRefinement', false);
+            setLock('refinementSlider', false);
+        } 
+        else if (isPattern) {
+            setLock('applyRefinement', true, msgPattern);
+            setLock('refinementSlider', true, msgPattern);
+            setLock('ditheringAlgorithmSelect', false); 
+            setLock('patternSizeSlider', false);
+        }
+        else if (ditherStrength > 0) {
+            setLock('applyRefinement', true, msgDitherActive);
+            setLock('refinementSlider', true, msgDitherActive);
+            setLock('ditheringAlgorithmSelect', false);
+            setLock('ditheringSlider', false);
+        }
+        else {
+            setLock('applyRefinement', false);
+            setLock('refinementSlider', !isRefinement, msgRefinementOff);
+            setLock('ditheringAlgorithmSelect', false);
+            setLock('ditheringSlider', false);
+            setLock('patternSizeSlider', true, msgPatternOff);
+        }
     }
 
     updateOutlineDropdown() {
@@ -53,7 +147,7 @@ export class ConversionOptionsFeature {
         const formatList = (list) => {
             if (!Array.isArray(list)) return [];
             return list.map(c => ({
-                name: c.name || 'Unknown',
+                name: c.name || t('color_unknown') || 'Unknown',
                 hex: c.hex || (c.rgb ? rgbToHex(c.rgb[0], c.rgb[1], c.rgb[2]) : '#000000')
             }));
         };
@@ -72,41 +166,21 @@ export class ConversionOptionsFeature {
                     } else {
                         r = 0; g = 0; b = 0;
                     }
-                    
-                    return {
-                        hex: rgbToHex(r, g, b),
-                        name: 'User Color'
-                    };
+                    return { hex: rgbToHex(r, g, b), name: t('palette_user_color') || 'User Color' };
                 })
             };
             groups.push(customGroup);
         }
 
         if (currentMode === 'geopixels') {
-            groups.push({
-                label: 'GeoPixels Default',
-                colors: formatList(geopixelsColors)
-            });
-
+            groups.push({ label: t('palette_geopixels_default') || 'GeoPixels Default', colors: formatList(geopixelsColors) });
             if (state.useWplaceInGeoMode) {
-                groups.push({
-                    label: 'Wplace Free',
-                    colors: formatList(wplaceFreeColors)
-                });
-                groups.push({
-                    label: 'Wplace Paid',
-                    colors: formatList(wplacePaidColors)
-                });
+                groups.push({ label: t('palette_wplace_free') || 'Wplace Free', colors: formatList(wplaceFreeColors) });
+                groups.push({ label: t('palette_wplace_paid') || 'Wplace Paid', colors: formatList(wplacePaidColors) });
             }
         } else if (currentMode === 'wplace') {
-            groups.push({
-                label: 'Wplace Free',
-                colors: formatList(wplaceFreeColors)
-            });
-            groups.push({
-                label: 'Wplace Paid',
-                colors: formatList(wplacePaidColors)
-            });
+            groups.push({ label: t('palette_wplace_free') || 'Wplace Free', colors: formatList(wplaceFreeColors) });
+            groups.push({ label: t('palette_wplace_paid') || 'Wplace Paid', colors: formatList(wplacePaidColors) });
         }
 
         this.ui.updateOutlineColorList(groups);
@@ -124,6 +198,11 @@ export class ConversionOptionsFeature {
                 element.addEventListener('change', (e) => {
                     const val = parseInt(e.target.value, 10);
                     state[stateKey] = val;
+                    
+                    if (stateKey === 'ditheringSlider') state.ditheringIntensity = val;
+                    if (stateKey === 'patternSizeSlider') state.patternSize = val;
+                    if (stateKey === 'refinementSlider') state.refinementStrength = val;
+
                     if (isGroupToggle && groupElement) this.ui.toggleGroup(groupElement, val);
                     this.triggerDebouncedUpdate();
                 });
@@ -133,76 +212,124 @@ export class ConversionOptionsFeature {
                     state[stateKey] = val;
                     this.ui.updateDisplay(stateKey, val);
                     if (isGroupToggle && groupElement) this.ui.toggleGroup(groupElement, val);
+                    this.updateUIConflictLocks();
                     eventBus.emit('OPTION_CHANGED');
                 });
             } else if (element.tagName === 'SELECT') {
                 element.addEventListener('change', (e) => {
                     const val = e.target.value;
                     state[stateKey] = val;
+                    this.updateUIConflictLocks();
                     eventBus.emit('OPTION_CHANGED');
                 });
             }
         };
 
-        bindInput(this.ui.applyAspireDither, 'applyAspireDither');
-        bindInput(this.ui.applyRefinement, 'applyRefinement', true, this.ui.refinementOptions);
-        bindInput(this.ui.refinementSlider, 'refinementSlider');
-
-        bindInput(this.ui.applyOutlineExpansionCheck, 'applyOutlineExpansion');
-        bindInput(this.ui.applySmartSamplingCheck, 'applySmartSampling');
-        
-        // [복구 완료] 채도 보정 슬라이더 이벤트 연결!
-        bindInput(this.ui.saturationWeightInput, 'saturationWeight');
-
-        bindInput(this.ui.celShadingRefinementSlider, 'celShadingRefinementSlider');
-
-        bindInput(this.ui.saturationInput, 'saturationSlider');
-        bindInput(this.ui.brightnessInput, 'brightnessSlider');
-        bindInput(this.ui.contrastInput, 'contrastSlider');
-        
-        bindInput(this.ui.rgbRInput, 'rgbWeightR');
-        bindInput(this.ui.rgbGInput, 'rgbWeightG');
-        bindInput(this.ui.rgbBInput, 'rgbWeightB');
-
-        bindInput(this.ui.celShadingAspireDither, 'celShadingAspireDither');
-
-        bindInput(this.ui.ditheringSelect, 'ditheringAlgorithmSelect'); 
-        bindInput(this.ui.ditheringIntensity, 'ditheringSlider');
-
-        bindInput(this.ui.applyPatternCheck, 'applyPattern', true, this.ui.patternControls);
-        bindInput(this.ui.patternTypeSelect, 'patternTypeSelect');
-        bindInput(this.ui.patternSizeSlider, 'patternSizeSlider');
-
-        bindInput(this.ui.applyGradientCheck, 'applyGradient', true, this.ui.gradientControls);
-        bindInput(this.ui.gradientTypeSelect, 'gradientTypeSelect');
-        bindInput(this.ui.gradientDitherSizeSlider, 'gradientDitherSizeSlider');
-        bindInput(this.ui.gradientAngleSlider, 'gradientAngleSlider');
-        bindInput(this.ui.gradientStrengthSlider, 'gradientStrengthSlider');
-
-        if (this.ui.celShadingApply) {
-            this.ui.celShadingApply.addEventListener('change', (e) => {
-                state.celShadingApply = e.target.checked;
-                this.ui.toggleGroup(this.ui.celShadingControls, e.target.checked);
-                eventBus.emit('OPTION_CHANGED');
+        document.querySelectorAll('input[name="paletteMode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                state.addedColors = [];
+                const addedColorsContainer = document.getElementById('addedColors');
+                if (addedColorsContainer) {
+                    const placeholderText = t('placeholder_add_color') || '아래에서 직접 색상을 추가하세요.';
+                    addedColorsContainer.innerHTML = `<div class="placeholder-section" data-lang-key="placeholder_add_color">${placeholderText}</div>`;
+                }
+                this.updateOutlineDropdown();
+                eventBus.emit('PALETTE_UPDATED');
+                eventBus.emit('OPTION_CHANGED'); 
             });
-        }
-        
-        bindInput(this.ui.celShadingAlgorithmSelect, 'celShadingAlgorithmSelect');
+        });
 
-        bindInput(this.ui.celShadingLevelsSlider, 'celShadingLevelsSlider');
-        bindInput(this.ui.celShadingColorSpaceSelect, 'celShadingColorSpaceSelect');
-        bindInput(this.ui.celShadingOutline, 'celShadingOutline', true, this.ui.celShadingOutlineSettings);
-        bindInput(this.ui.celShadingOutlineThresholdSlider, 'celShadingOutlineThresholdSlider');
-        bindInput(this.ui.celShadingOutlineColorSelect, 'celShadingOutlineColorSelect');
+        const syncUpscaleRadios = () => {
+            const applyUpscale = document.getElementById('applyUpscale');
+            const upscaleSelect = document.getElementById('upscaleSelect');
+            
+            let targetValue = '1';
+            if (applyUpscale && applyUpscale.checked && upscaleSelect) {
+                targetValue = upscaleSelect.value;
+            }
+            
+            state.upscaleMode = parseInt(targetValue, 10);
+            
+            const hiddenRadio = document.querySelector(`input[name="upscaleMode"][value="${targetValue}"]`);
+            if (hiddenRadio && !hiddenRadio.checked) {
+                hiddenRadio.checked = true;
+                hiddenRadio.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        };
 
-        if (this.ui.celShadingRetryBtn) {
-            this.ui.celShadingRetryBtn.addEventListener('click', () => {
-                state.celShadingRandomSeed = Math.floor(Math.random() * 9999);
-                eventBus.emit('OPTION_CHANGED');
+        const applyUpscale = document.getElementById('applyUpscale');
+        const upscaleSelect = document.getElementById('upscaleSelect');
+        const upscaleDropdownGroup = document.getElementById('upscaleDropdownGroup');
+
+        if (applyUpscale) {
+            applyUpscale.addEventListener('change', (e) => {
+                state.applyUpscale = e.target.checked;
+                if (upscaleDropdownGroup) {
+                    upscaleDropdownGroup.style.display = e.target.checked ? 'block' : 'none';
+                }
+                this.updateUIConflictLocks();
+                syncUpscaleRadios(); 
             });
         }
 
-        bindInput(this.ui.colorMethodSelect, 'colorMethodSelect');
+        if (upscaleSelect) {
+            upscaleSelect.addEventListener('change', (e) => {
+                this.updateUIConflictLocks();
+                syncUpscaleRadios();
+            });
+        }
+
+        const ditherSelect = document.getElementById('ditheringAlgorithmSelect');
+        if (ditherSelect) {
+            ditherSelect.addEventListener('change', (e) => {
+                const val = e.target.value;
+                state.ditheringAlgorithmSelect = val;
+                state.dithering = val; 
+                
+                const patternValues = ['bayer8x8', 'crosshatch', 'vertical', 'checkerboard', 'diagonal_right', 'diagonal_left', 'brick'];
+                
+                if (patternValues.includes(val)) {
+                    state.applyPattern = true;
+                    state.patternTypeSelect = val;
+                    state.patternType = val; 
+                } else {
+                    state.applyPattern = false;
+                }
+                
+                this.updateTextureUI(); 
+                this.updateUIConflictLocks(); 
+                this.triggerDebouncedUpdate(); 
+            });
+        }
+
+        bindInput(document.getElementById('patternSizeSlider'), 'patternSizeSlider');
+        bindInput(document.getElementById('ditheringSlider'), 'ditheringSlider');
+
+        bindInput(document.getElementById('applyRefinement'), 'applyRefinement', true, document.getElementById('refinementOptions'));
+        bindInput(document.getElementById('refinementSlider'), 'refinementSlider');
+
+        bindInput(document.getElementById('applyOutlineExpansion'), 'applyOutlineExpansion');
+        bindInput(document.getElementById('applySmartSampling'), 'applySmartSampling');
+        
+        bindInput(document.getElementById('saturationSlider'), 'saturationSlider');
+        bindInput(document.getElementById('brightnessSlider'), 'brightnessSlider');
+        bindInput(document.getElementById('contrastSlider'), 'contrastSlider');
+
+        bindInput(document.getElementById('applyGradient'), 'applyGradient', true, document.getElementById('gradientOptions'));
+        bindInput(document.getElementById('gradientTypeSelect'), 'gradientTypeSelect');
+        bindInput(document.getElementById('gradientDitherSizeSlider'), 'gradientDitherSizeSlider');
+        bindInput(document.getElementById('gradientAngleSlider'), 'gradientAngleSlider');
+        bindInput(document.getElementById('gradientStrengthSlider'), 'gradientStrengthSlider');
+
+        bindInput(document.getElementById('celShadingApply'), 'celShadingApply', true, document.getElementById('celShadingOptions'));
+        bindInput(document.getElementById('celShadingAlgorithmSelect'), 'celShadingAlgorithmSelect');
+        bindInput(document.getElementById('celShadingLevelsSlider'), 'celShadingLevelsSlider');
+        bindInput(document.getElementById('celShadingColorSpaceSelect'), 'celShadingColorSpaceSelect');
+        bindInput(document.getElementById('celShadingOutline'), 'celShadingOutline', true, document.getElementById('celShadingOutlineOptions'));
+        bindInput(document.getElementById('celShadingOutlineThresholdSlider'), 'celShadingOutlineThresholdSlider');
+        bindInput(document.getElementById('celShadingOutlineColorSelect'), 'celShadingOutlineColorSelect');
+
+        bindInput(document.getElementById('colorMethodSelect'), 'colorMethodSelect');
 
         if (this.ui.resetAllBtn) {
             this.ui.resetAllBtn.addEventListener('click', () => {
@@ -223,6 +350,10 @@ export class ConversionOptionsFeature {
                 });
             });
         }
+
+        document.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('change', () => this.updateUIConflictLocks());
+        });
     }
 
     triggerDebouncedUpdate() {
@@ -235,15 +366,14 @@ export class ConversionOptionsFeature {
     loadInitialState() {
         const keys = [
             'applyOutlineExpansion', 'applySmartSampling', 
-            'saturationWeight', // [복구] 상태 초기화 키 목록에 추가
-            'saturationSlider', 'brightnessSlider', 'contrastSlider', 'celShadingRefinementSlider', 'celShadingAspireDither',
-            'rgbWeightR', 'rgbWeightG', 'rgbWeightB', 
+            'saturationSlider', 'brightnessSlider', 'contrastSlider', 
             'ditheringAlgorithmSelect', 'ditheringSlider',
-            'applyPattern', 'patternTypeSelect', 'patternSizeSlider',
+            'patternSizeSlider',
             'applyGradient', 'gradientTypeSelect', 'gradientDitherSizeSlider', 'gradientAngleSlider', 'gradientStrengthSlider',
             'celShadingApply', 'celShadingAlgorithmSelect', 'celShadingLevelsSlider', 'celShadingColorSpaceSelect', 
             'celShadingOutline', 'celShadingOutlineThresholdSlider', 'celShadingOutlineColorSelect',
-            'colorMethodSelect', 'refinementSlider'
+            'colorMethodSelect', 'refinementSlider', 'applyRefinement',
+            'applyUpscale', 'upscaleMode'
         ];
 
         keys.forEach(key => {
@@ -252,24 +382,41 @@ export class ConversionOptionsFeature {
             }
         });
 
-        this.ui.toggleGroup(this.ui.patternControls, state.applyPattern);
-        this.ui.toggleGroup(this.ui.gradientControls, state.applyGradient);
-        this.ui.toggleGroup(this.ui.celShadingControls, state.celShadingApply);
-        this.ui.toggleGroup(this.ui.celShadingOutlineSettings, state.celShadingOutline);
+        const val = state.ditheringAlgorithmSelect;
+        state.dithering = val;
         
-        this.updateOutlineDropdown();
-        if (state.celShadingOutlineColorSelect) {
-            this.ui.celShadingOutlineColorSelect.value = state.celShadingOutlineColorSelect;
+        const patternValues = ['bayer8x8', 'crosshatch', 'vertical', 'checkerboard', 'diagonal_right', 'diagonal_left', 'brick'];
+        if (patternValues.includes(val)) {
+            state.applyPattern = true;
+            state.patternTypeSelect = val;
+            state.patternType = val;
+        } else {
+            state.applyPattern = false;
         }
+
+        const applyUpscale = document.getElementById('applyUpscale');
+        const upscaleSelect = document.getElementById('upscaleSelect');
+        const upscaleDropdownGroup = document.getElementById('upscaleDropdownGroup');
+        
+        if (applyUpscale && state.applyUpscale) {
+            applyUpscale.checked = true;
+            if (upscaleDropdownGroup) upscaleDropdownGroup.style.display = 'block';
+            if (upscaleSelect && state.upscaleMode) upscaleSelect.value = state.upscaleMode.toString();
+        } else if (applyUpscale) {
+            applyUpscale.checked = false;
+            if (upscaleDropdownGroup) upscaleDropdownGroup.style.display = 'none';
+        }
+
+        this.updateOutlineDropdown();
+        this.updateTextureUI();
+        this.updateUIConflictLocks();
     }
 
     resetIndividualOption(targetId) {
         let defaultValue = 0;
-        
         switch(targetId) {
             case 'applyOutlineExpansion': defaultValue = false; break;
             case 'applySmartSampling': defaultValue = false; break;
-            case 'saturationWeight': defaultValue = 50; break; // [복구] 기본값 50
             case 'saturationSlider': defaultValue = 100; break;
             case 'brightnessSlider': defaultValue = 0; break;
             case 'contrastSlider': defaultValue = 0; break;
@@ -278,26 +425,35 @@ export class ConversionOptionsFeature {
             case 'gradientStrengthSlider': defaultValue = 100; break;
             case 'celShadingLevelsSlider': defaultValue = 8; break;
             case 'celShadingOutlineThresholdSlider': defaultValue = 50; break;
-            case 'rgbWeightR': case 'rgbWeightG': case 'rgbWeightB': defaultValue = 0; break;
+            case 'refinementSlider': defaultValue = 50; break;
+            case 'applyUpscale': defaultValue = false; break;
+            case 'upscaleSelect': defaultValue = 1; break;
             default: defaultValue = 0;
         }
 
         state[targetId] = defaultValue;
         this.ui.updateDisplay(targetId, defaultValue);
+        
+        if (targetId === 'applyUpscale') {
+            state.upscaleMode = 1;
+            const hiddenRadio = document.querySelector(`input[name="upscaleMode"][value="1"]`);
+            if (hiddenRadio) {
+                hiddenRadio.checked = true;
+                hiddenRadio.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            const grp = document.getElementById('upscaleDropdownGroup');
+            if(grp) grp.style.display = 'none';
+        }
+
+        this.updateUIConflictLocks();
         this.triggerDebouncedUpdate();
     }
 
     resetOptions() {
-        state.rgbWeightR = CONFIG.DEFAULTS.rgbWeightR;
-        state.rgbWeightG = CONFIG.DEFAULTS.rgbWeightG;
-        state.rgbWeightB = CONFIG.DEFAULTS.rgbWeightB;
-
         const defaults = {
             applyOutlineExpansion: false,
             applySmartSampling: false, 
-            saturationWeight: 50, // [복구] 초기화 시 50으로 설정
             celShadingOutlineColorSelect: '#000000',
-            celShadingAspireDither: false,
             saturationSlider: 100,
             brightnessSlider: 0,
             contrastSlider: 0,
@@ -319,8 +475,10 @@ export class ConversionOptionsFeature {
             celShadingOutline: false,
             celShadingOutlineThresholdSlider: 50,
             celShadingOutlineColorSelect: '#000000',
-            celShadingRandomSeed: 0,
-            refinementSlider: 0,
+            refinementSlider: 50,
+            applyRefinement: false,
+            applyUpscale: false,
+            upscaleMode: 1
         };
 
         Object.keys(defaults).forEach(key => {
@@ -328,12 +486,19 @@ export class ConversionOptionsFeature {
             this.ui.updateDisplay(key, defaults[key]);
         });
         
-        this.ui.updateDisplay('rgbWeightR', 0);
-        this.ui.updateDisplay('rgbWeightG', 0);
-        this.ui.updateDisplay('rgbWeightB', 0);
+        const upscaleDropdownGroup = document.getElementById('upscaleDropdownGroup');
+        if (upscaleDropdownGroup) upscaleDropdownGroup.style.display = 'none';
+
+        const hiddenRadio = document.querySelector(`input[name="upscaleMode"][value="1"]`);
+        if (hiddenRadio) {
+            hiddenRadio.checked = true;
+            hiddenRadio.dispatchEvent(new Event('change', { bubbles: true }));
+        }
 
         this.ui.resetUI();
         this.updateOutlineDropdown(); 
+        this.updateTextureUI();
+        this.updateUIConflictLocks();
         eventBus.emit('OPTION_CHANGED');
     }
 }

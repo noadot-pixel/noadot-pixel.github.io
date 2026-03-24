@@ -15,18 +15,13 @@ import { smartResize } from './smart-resizer.js';
 
 const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
 
-// [수정됨] 유저 제안 1번 방식 개선형 (임계값 적용)
 function removeTransparency(imageData) {
     const data = imageData.data;
     for (let i = 0; i < data.length; i += 4) {
         const alpha = data[i + 3];
-        
-        // 투명도가 90% 이상 (알파값이 25 이하) -> 보이지 않는 쓰레기 픽셀이므로 완전 투명(0)으로 날림
         if (alpha <= 25) {
             data[i + 3] = 0;
-        } 
-        // 투명도가 89% 이하 (알파값이 26 이상) -> 유효한 색상이므로 원래 색상을 유지한 채 완전 불투명(255)으로 굳힘
-        else {
+        } else {
             data[i + 3] = 255;
         }
     }
@@ -63,10 +58,9 @@ self.onmessage = (e) => {
             if (!imageData) throw new Error("이미지 데이터가 없습니다.");
 
             let processedData = imageData;
-
-            // [Step 0] 향상된 투명도 처리 전처리 가동 (배경 보존)
             processedData = removeTransparency(processedData);
 
+            // [롤백 1] 외곽선 보강 옵션 원래대로 복구
             if (options.applyOutlineExpansion) {
                 let patchSize = 3; 
                 if (options.scaleWidth && options.scaleWidth < processedData.width) {
@@ -191,10 +185,11 @@ self.onmessage = (e) => {
                 for (let y = 0; y < height; y++) {
                     for (let x = 0; x < width; x++) {
                         const idx = (y * width + x) * 4;
-                        if (floatData[idx + 3] === 0) continue; // 완전 투명 픽셀은 스킵하여 배경 보존!
+                        if (floatData[idx + 3] === 0) continue; 
 
                         let currentAlpha = floatData[idx + 3] / 255;
 
+                        // [수정] 그라데이션 투명도 디더링 알고리즘 하드코딩 버그 해결!
                         if (applyGradient && gradStrength > 0) {
                             const projection = x * gradCos + y * gradSin;
                             let t = clamp((projection - gradMin) / gradLen, 0, 1);
@@ -210,10 +205,19 @@ self.onmessage = (e) => {
                                 const error = idealAlpha - (finalAlphaBinary / 255);
                                 const distributeAlpha = (dx, dy, f) => {
                                     const nx = x + dx, ny = y + dy;
-                                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) floatData[(ny * width + nx) * 4 + 3] += error * f * 255;
+                                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                                        floatData[(ny * width + nx) * 4 + 3] += error * f * 255;
+                                    }
                                 };
-                                distributeAlpha(1, 0, 7/16); distributeAlpha(-1, 1, 3/16); 
-                                distributeAlpha(0, 1, 5/16); distributeAlpha(1, 1, 1/16);
+                                
+                                // 유저가 선택한 알고리즘에 따라 투명도 에러 확산
+                                if (gradientType === 'floyd') {
+                                    distributeAlpha(1, 0, 7/16); distributeAlpha(-1, 1, 3/16); distributeAlpha(0, 1, 5/16); distributeAlpha(1, 1, 1/16);
+                                } else if (gradientType === 'atkinson') {
+                                    distributeAlpha(1, 0, 1/8); distributeAlpha(2, 0, 1/8); distributeAlpha(-1, 1, 1/8); distributeAlpha(0, 1, 1/8); distributeAlpha(1, 1, 1/8); distributeAlpha(0, 2, 1/8);
+                                } else if (gradientType === 'sierra') {
+                                    distributeAlpha(1, 0, 2/4); distributeAlpha(-1, 1, 1/4); distributeAlpha(0, 1, 1/4);
+                                }
                             }
                             floatData[idx + 3] = clamp(finalAlphaBinary, 0, 255);
                             if (floatData[idx + 3] === 0) continue;

@@ -25,7 +25,6 @@ function crc32(buffer, offset, length) {
 }
 
 function createSecureStamp() {
-    // [핵심 연동] PresetManager가 수집한 모든 현재 레시피(상태)를 긁어옵니다.
     const recipeData = typeof state.getCurrentPresetConfig === 'function' 
                        ? state.getCurrentPresetConfig("NoaDot Auto Export Preset") 
                        : {};
@@ -35,7 +34,7 @@ function createSecureStamp() {
         version: "6.2",
         exportedAt: new Date().toISOString(),
         verified: true,
-        recipe: recipeData // 캡슐화된 모든 설정값이 여기에 통째로 탑재됩니다!
+        recipe: recipeData 
     };
     
     const jsonStr = JSON.stringify(info);
@@ -44,7 +43,6 @@ function createSecureStamp() {
 }
 // ==========================================
 
-// [Uplace Base64 암호 해독 배열]
 const uplacePaletteOrder = [
     [0, 0, 0], [44, 12, 14], [39, 32, 19], [36, 36, 36], [26, 28, 44],
     [29, 20, 39], [51, 0, 51], [75, 0, 75], [102, 0, 102], [128, 0, 128],
@@ -90,6 +88,7 @@ export class ExportFeature {
 
         this.initEvents();
         this.initBusListeners();
+        this.updateDownloadConflictLocks(); // 초기 로딩 시 락 검사
     }
 
     initBusListeners() {
@@ -110,6 +109,37 @@ export class ExportFeature {
         });
     }
 
+    // [신규] 다운로드 체크박스 양방향 잠금(Gray-out) 로직
+    updateDownloadConflictLocks() {
+        const isSeparatedChecked = this.ui.chkSeparated?.checked;
+        const isSplitChecked = this.ui.chkSplit?.checked;
+
+        const setLock = (element, isLocked, reasonMsg) => {
+            if (!element) return;
+            const container = element.closest('.custom-checkbox-wrapper') || element.parentElement;
+            if (!container) return;
+
+            if (isLocked) {
+                container.classList.add('locked-container');
+                if (reasonMsg) container.setAttribute('title', `${reasonMsg} 기능이 활성화되어 사용할 수 없습니다.`);
+                element.disabled = true;
+            } else {
+                container.classList.remove('locked-container');
+                container.removeAttribute('title');
+                element.disabled = false;
+            }
+        };
+
+        if (isSeparatedChecked) {
+            setLock(this.ui.chkSplit, true, t('label_download_separated') || '색상별 다운로드');
+        } else if (isSplitChecked) {
+            setLock(this.ui.chkSeparated, true, t('label_download_split') || '도안 분할 다운로드');
+        } else {
+            setLock(this.ui.chkSplit, false);
+            setLock(this.ui.chkSeparated, false);
+        }
+    }
+
     updateUplaceOptionVisibility() {
         if (this.ui.uplaceWrapper) {
             if (state.currentMode === 'uplace') {
@@ -128,11 +158,19 @@ export class ExportFeature {
             });
         }
 
+        // [이벤트 연결] 체크박스 선택 시 서로 잠금/해제 트리거
+        if (this.ui.chkSeparated) {
+            this.ui.chkSeparated.addEventListener('change', () => {
+                this.updateDownloadConflictLocks();
+            });
+        }
+
         if (this.ui.chkSplit) {
             this.ui.chkSplit.addEventListener('change', (e) => {
                 if (this.ui.splitOptions) {
                     this.ui.splitOptions.style.display = e.target.checked ? 'block' : 'none';
                 }
+                this.updateDownloadConflictLocks();
             });
         }
 
