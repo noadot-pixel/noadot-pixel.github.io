@@ -1424,3 +1424,16 @@ button.toggle-all { cursor: pointer; }
 .locked-container > * {
     pointer-events: none !important;
 }
+
+fieldset.sub-fieldset {
+    min-width: 0; /* 내용물이 커도 박스 자체는 강제로 늘어나지 않게 함 */
+}
+
+/* 2. Select 박스 안의 긴 영어가 박스를 밀어내지 못하게 제어 */
+.control-group select {
+    width: 100%;
+    max-width: 100%;
+    text-overflow: ellipsis; /* 넘치는 글자는 ... 으로 처리 */
+    overflow: hidden;        /* 박스 밖으로 튀어나간 글자 숨김 */
+    white-space: nowrap;     /* 글자가 밑으로 줄바꿈되지 않게 한 줄 고정 */
+}
