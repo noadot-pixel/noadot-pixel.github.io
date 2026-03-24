@@ -461,7 +461,7 @@ export class ConversionOptionsFeature {
             ditheringSlider: 0,
             applyPattern: false,
             patternTypeSelect: 'bayer8x8',
-            patternSizeSlider: 4,
+            patternSizeSlider: 1,
             applyGradient: false,
             gradientTypeSelect: 'bayer',
             gradientDitherSizeSlider: 1, 
