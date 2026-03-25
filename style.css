@@ -1448,6 +1448,55 @@ fieldset.sub-fieldset {
 }
 
 @media (max-width: 768px) {
+    .main-header {
+        flex-direction: column !important; /* 세로 2단 배치 */
+        align-items: center !important;
+        padding: 10px 15px !important;
+        height: auto !important;
+        gap: 10px !important;
+    }
+
+    .main-header h1 {
+        font-size: 1.1rem !important; /* 로고 크기 축소 */
+        margin: 0 !important;
+    }
+
+    .header-controls {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: flex-start !important; /* 기본적으로 모두 왼쪽 정렬 */
+        align-items: center !important;
+        gap: 12px !important;
+    }
+
+    .link-separator {
+        display: none !important;
+    }
+
+    .language-switcher {
+        margin-left: auto !important; 
+    }
+
+    /* --- 2. 모드 변환 섹션: 화면 비율 최적화 --- */
+    .main-mode-switcher {
+        display: flex !important;
+        width: 100% !important;
+        padding: 10px !important;
+        box-sizing: border-box !important;
+    }
+
+    .radio-toggle.main-toggle {
+        width: 100% !important;
+        display: flex !important;
+    }
+
+    .radio-toggle.main-toggle label {
+        flex: 1 !important; /* 화면 비율에 맞춰 정확히 반반 배치 */
+        padding: 10px 5px !important;
+        font-size: 14px !important;
+        white-space: nowrap !important; /* 글자 잘림 방지 */
+    }
+
     .app-container.text-mode .left-panel-content {
         flex-direction: column !important; /* 위(캔버스) 아래(에디터) 분할 */
         height: 100%;
