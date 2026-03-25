@@ -72,14 +72,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 손잡이 스와이프 다운 닫기
     const sheetHandle = document.querySelector('.sheet-handle');
-    let startY = 0;
     if (sheetHandle) {
-        sheetHandle.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; }, { passive: true });
-        sheetHandle.addEventListener('touchmove', (e) => {
-            if (e.touches[0].clientY - startY > 50) { 
-                if (rightPanel) rightPanel.classList.remove('sheet-open');
-                navTabs.forEach(t => t.classList.remove('active'));
-            }
-        }, { passive: true });
+        sheetHandle.addEventListener('click', () => {
+            const rightPanel = document.getElementById('mainRightPanel') || document.querySelector('.right-panel');
+            
+            if (rightPanel) rightPanel.classList.remove('sheet-open');
+            navTabs.forEach(t => t.classList.remove('active'));
+        });
     }
 });
