@@ -80,4 +80,41 @@ document.addEventListener('DOMContentLoaded', () => {
             navTabs.forEach(t => t.classList.remove('active'));
         });
     }
+
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 768) {
+            // 1. 모바일 팝업(바텀시트) 상태 해제
+            const rightPanel = document.getElementById('mainRightPanel') || document.querySelector('.right-panel');
+            if (rightPanel) rightPanel.classList.remove('sheet-open');
+            navTabs.forEach(t => t.classList.remove('active'));
+
+            // 2. 공통으로 항상 보여야 하는 섹션들 숨김 해제 (인라인 스타일 제거)
+            ['palette-section-group', 'ai-preset-section', 'comment-entry-section'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = ''; 
+            });
+            
+            const downloadSec = document.querySelector('.download-section');
+            if (downloadSec) downloadSec.style.display = '';
+            
+            const mainSwitcher = document.querySelector('.main-mode-switcher');
+            if (mainSwitcher) mainSwitcher.style.display = '';
+
+            // 3. 현재 켜져 있는 모드(이미지 or 텍스트)에 맞춰 설정창 올바르게 복구
+            const isTextMode = document.getElementById('textMode')?.checked;
+            const resizeSec = document.getElementById('resize-section-group');
+            const imgOptions = document.getElementById('main-options-section');
+            const textControls = document.getElementById('text-controls');
+
+            if (isTextMode) {
+                if (resizeSec) resizeSec.style.display = 'none';
+                if (imgOptions) imgOptions.style.display = 'none';
+                if (textControls) textControls.style.display = '';
+            } else {
+                if (resizeSec) resizeSec.style.display = '';
+                if (imgOptions) imgOptions.style.display = '';
+                if (textControls) textControls.style.display = 'none';
+            }
+        }
+    });
 });
