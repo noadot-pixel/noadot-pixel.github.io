@@ -3,6 +3,7 @@ import { eventBus } from '../../core/EventBus.js';
 import { state, CONFIG, t, rgbToHex } from '../../state.js';
 import { ConversionOptionsUI } from './ui.js';
 import { geopixelsColors, wplaceFreeColors, wplacePaidColors } from '../../../data/palettes.js';
+import { extractExactKMeansPalette } from '../../worker/analysis.js';
 
 export class ConversionOptionsFeature {
     constructor() {
@@ -80,7 +81,6 @@ export class ConversionOptionsFeature {
 
             if (isLocked) {
                 container.classList.add('locked-container');
-                // 다국어 툴팁 적용
                 const disabledSuffix = t('text_disabled_reason') || '기능 활성으로 인해 사용하실 수 없습니다.';
                 if (reasonMsg) container.setAttribute('title', `${reasonMsg} ${disabledSuffix}`);
                 el.disabled = true;
@@ -91,7 +91,6 @@ export class ConversionOptionsFeature {
             }
         };
 
-        // 다국어 메시지 변수 매핑
         const msgCelShading = t('reason_cartoon_filter') || '만화 스타일 필터';
         const msgRefinement = t('reason_refinement') || '면 평탄화';
         const msgPattern = t('reason_pattern') || '패턴 적용';
@@ -105,10 +104,10 @@ export class ConversionOptionsFeature {
             setLock('ditheringAlgorithmSelect', true, msgCelShading);
             setLock('ditheringSlider', true, msgCelShading);
             setLock('patternSizeSlider', true, msgCelShading);
-            setLock('applyRefinement', true, msgCelShading);
-            setLock('refinementSlider', true, msgCelShading);
+            setLock('applyRefinement', false);
+            setLock('refinementSlider', false);
             return;
-        } 
+        }
         
         setLock('colorMethodSelect', false);
 
@@ -184,6 +183,12 @@ export class ConversionOptionsFeature {
         }
 
         this.ui.updateOutlineColorList(groups);
+
+        const geoSmartSection = document.getElementById('geoSmartRecommendSection');
+        if (geoSmartSection) {
+            const isGeoMode = document.getElementById('mode-geopixels')?.checked || state.currentMode === 'geopixels';
+            geoSmartSection.style.display = isGeoMode ? 'block' : 'none';
+        }
     }
 
     initEvents() {
@@ -354,6 +359,96 @@ export class ConversionOptionsFeature {
         document.querySelectorAll('input, select').forEach(el => {
             el.addEventListener('change', () => this.updateUIConflictLocks());
         });
+
+        // ==========================================
+        // 🌟 [핵심 변경] K-Means 팔레트 추출 (등록 및 재시도 통합)
+        // ==========================================
+        const extractAndApplyPalette = (e) => {
+            e.preventDefault();
+            if (!state.originalImageData) {
+                alert(t('alert_need_image') || "먼저 이미지를 업로드해주세요!");
+                return;
+            }
+
+            const targetK = state.celShadingLevelsSlider || 8;
+            const newPalette = extractExactKMeansPalette(state.originalImageData, targetK); // 렉 없이 즉시 추출됨
+            
+            if (newPalette.length === 0) return;
+
+            // 1. 꺼져있는(Off) 색상을 포함한 "모든 베이스 색상"을 검사 풀(Pool)로 모으기
+            const allBaseColors = [];
+            const collectBase = (list) => {
+                if(!list) return;
+                list.forEach(c => {
+                    let rgb = c.rgb || c;
+                    if (Array.isArray(rgb)) {
+                        allBaseColors.push({ rgb, hex: rgbToHex(rgb[0], rgb[1], rgb[2]).toUpperCase() });
+                    }
+                });
+            };
+            
+            collectBase(geopixelsColors);
+            if (state.useWplaceInGeoMode) {
+                collectBase(wplaceFreeColors);
+                collectBase(wplacePaidColors);
+            }
+
+            // 2. 추출된 K개의 색상을 하나씩 검사
+            const finalActiveHexes = new Set();
+            const newlyAddedColors = [];
+            const distSq = (c1, c2) => (c1[0]-c2[0])**2 + (c1[1]-c2[1])**2 + (c1[2]-c2[2])**2;
+
+            newPalette.forEach(extractedRgb => {
+                let closestHex = null;
+                let minDist = Infinity;
+
+                // 모든 베이스 색상(Off된 것 포함) 중 가장 비슷한 녀석을 찾음
+                allBaseColors.forEach(base => {
+                    const d = distSq(extractedRgb, base.rgb);
+                    if (d < minDist) { minDist = d; closestHex = base.hex; }
+                });
+
+                // 오차가 적으면(비슷하면) 쌩판 새 색상을 만들지 않고, 찾은 기존 색상을 "부활(활성화)" 예약
+                const STRICT_THRESHOLD = 300; // 숫자가 작을수록 깐깐하게 검사합니다.
+
+                if (minDist < STRICT_THRESHOLD && closestHex) {
+                    finalActiveHexes.add(closestHex);
+                } else {
+                    // 조금이라도 연관성(톤)이 다르면 기존 색을 무시하고 무조건 새 색상으로 독립
+                    const newHex = rgbToHex(extractedRgb[0], extractedRgb[1], extractedRgb[2]).toUpperCase();
+                    finalActiveHexes.add(newHex);
+                    newlyAddedColors.push(extractedRgb);
+                }
+            });
+
+            // 3. disabledHexes(끄기 목록) 갱신: 방금 찾은(부활할) 녀석들 빼고 전부 끈다
+            state.disabledHexes = [];
+            allBaseColors.forEach(base => {
+                if (!finalActiveHexes.has(base.hex)) {
+                    state.disabledHexes.push(base.hex);
+                }
+            });
+
+            // 4. 유저 팔레트에는 "완전히 새로운" 색상만 추가
+            state.addedColors = newlyAddedColors;
+
+            // 5. 화면 및 캔버스 갱신
+            eventBus.emit('PALETTE_UPDATED');
+            this.triggerDebouncedUpdate(); 
+            
+            // "K-Means 가져오기" 버튼을 누른 경우에만 상세 정보 알림창
+            if (e.target.id === 'geoSmartRegisterBtn') {
+                alert(`✨ 성공! K-Means 추출 및 팔레트 최적화 완료.\n(기존 팔레트에서 ${targetK - newlyAddedColors.length}개 재활용 부활, 완전히 새로운 색상 ${newlyAddedColors.length}개 추가됨)`);
+            }
+        };
+
+        // K-Means 가져오기 버튼과 '다른 색상 조합 시도' 버튼 양쪽 모두에 위 로직 연결
+        const geoSmartRegisterBtn = document.getElementById('geoSmartRegisterBtn');
+        if (geoSmartRegisterBtn) geoSmartRegisterBtn.addEventListener('click', extractAndApplyPalette);
+
+        const celShadingRetryBtn = document.getElementById('celShadingRetryBtn');
+        if (celShadingRetryBtn) celShadingRetryBtn.addEventListener('click', extractAndApplyPalette);
+
     }
 
     triggerDebouncedUpdate() {

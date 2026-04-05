@@ -27,7 +27,7 @@ export const CONFIG = {
         pixelatedScaling: false,
 
         celShadingApply: false,
-        celShadingLevelsSlider: 8,
+        celShadingLevelsSlider: 24,
         celShadingColorSpaceSelect: 'oklab',
         celShadingOutline: false,
         celShadingOutlineThresholdSlider: 50,

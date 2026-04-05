@@ -152,3 +152,91 @@ export const calculateRecommendations = (imageData, currentPalette, options) => 
 
 export const analyzeImageFeatures = (img) => ({ validRegions: [] });
 export const getStyleRecipesByTags = () => ({});
+
+export const extractExactKMeansPalette = (imageData, k) => {
+    const data = imageData.data;
+    const pixels = [];
+
+    // 🌟 [핵심 최적화] 렉을 없애기 위해 수백만 개의 픽셀 중 최대 5000개만 균일하게 뽑아서 검사합니다. (결과물은 동일)
+    const maxSamples = 5000; 
+    const totalPixels = data.length / 4;
+    const step = Math.max(1, Math.floor(totalPixels / maxSamples));
+
+    for (let i = 0; i < data.length; i += 4 * step) {
+        if (data[i + 3] >= 100) {
+            pixels.push([data[i], data[i+1], data[i+2]]);
+        }
+    }
+
+    if (pixels.length === 0) return [];
+    if (k >= pixels.length) return pixels;
+
+    const centroids = [pixels[Math.floor(Math.random() * pixels.length)]];
+    for (let i = 1; i < k; i++) {
+        let maxDistSq = -1;
+        let nextCentroid = pixels[0];
+        const sampleSize = Math.min(pixels.length, 500); // 연산량 대폭 감소
+        
+        for (let j = 0; j < sampleSize; j++) {
+            const p = pixels[Math.floor(Math.random() * pixels.length)];
+            let minDistSq = Infinity;
+            for (const c of centroids) {
+                const dist = colorDistSq(p, c);
+                if (dist < minDistSq) minDistSq = dist;
+            }
+            if (minDistSq > maxDistSq) {
+                maxDistSq = minDistSq;
+                nextCentroid = p;
+            }
+        }
+        centroids.push(nextCentroid);
+    }
+
+    for (let iter = 0; iter < 10; iter++) {
+        const sums = Array.from({length: k}, () => [0, 0, 0]);
+        const counts = new Array(k).fill(0);
+
+        for (let i = 0; i < pixels.length; i++) {
+            const p = pixels[i];
+            let minDist = Infinity;
+            let bestK = 0;
+            for (let j = 0; j < k; j++) {
+                const dist = colorDistSq(p, centroids[j]);
+                if (dist < minDist) {
+                    minDist = dist;
+                    bestK = j;
+                }
+            }
+            sums[bestK][0] += p[0];
+            sums[bestK][1] += p[1];
+            sums[bestK][2] += p[2];
+            counts[bestK]++;
+        }
+
+        let changed = false;
+        for (let j = 0; j < k; j++) {
+            if (counts[j] > 0) {
+                const newR = Math.round(sums[j][0] / counts[j]);
+                const newG = Math.round(sums[j][1] / counts[j]);
+                const newB = Math.round(sums[j][2] / counts[j]);
+                if (centroids[j][0] !== newR || centroids[j][1] !== newG || centroids[j][2] !== newB) {
+                    centroids[j] = [newR, newG, newB];
+                    changed = true;
+                }
+            }
+        }
+        if (!changed) break;
+    }
+
+    const uniqueHexes = new Set();
+    const finalPalette = [];
+    centroids.forEach(rgb => {
+        const hex = rgbToHex(rgb[0], rgb[1], rgb[2]);
+        if (!uniqueHexes.has(hex)) {
+            uniqueHexes.add(hex);
+            finalPalette.push(rgb);
+        }
+    });
+
+    return finalPalette;
+};

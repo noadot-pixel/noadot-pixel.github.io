@@ -320,7 +320,7 @@
                             </div>
                             <div class="control-group">
                                 <label for="celShadingLevelsSlider"><span data-lang-key="cartoon_color_level">색상 레벨</span>: <span id="celShadingLevelsValue">8</span></label>
-                                <input type="range" id="celShadingLevelsSlider" min="2" max="32" value="8">
+                                <input type="range" id="celShadingLevelsSlider" min="2" max="256" value="24">
                             </div>
                             <div class="control-group">
                                 <label for="celShadingColorSpaceSelect" data-lang-key="cartoon_quant_space">색 공간</label>
@@ -353,6 +353,18 @@
                                 </div>
                             </div>
                         </fieldset>
+
+                        <fieldset class="sub-fieldset" id="geoSmartRecommendSection" style="display: none; margin-bottom: 8px; border-color: #4A90E2;">
+                            <legend style="color: #4A90E2; font-weight: bold;" data-lang-key="cartoon_section_smart_recommend">✨ 스마트 추천 (GeoPixels 전용)</legend>
+                            <div style="margin-bottom: 8px; font-size: 11px; color: #555;" data-lang-key="cartoon_smart_recommend_desc">
+                                원본 이미지에 맞춰 기존 팔레트에 없는 최적의 색상을 자동 추출 및 등록합니다.
+                            </div>
+                            <button id="geoSmartRegisterBtn" class="analyze-button" style="width: 100%; background-color: #4A90E2; color: white; border: none; font-weight: bold; padding: 8px 0;" data-lang-key="smart_Extraction_button">
+                                🎨 K-Means 스마트 팔레트 가져오기
+                            </button>
+                        </fieldset>
+                        <fieldset class="sub-fieldset">
+                            <legend data-lang-key="cartoon_section_outline">외곽선 (Outline)</legend>
                     </div>
 
                     <div id="texture-group">

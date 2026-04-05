@@ -97,6 +97,10 @@ export const languageData = {
         map_none: "사용 안함 (추출 색상 그대로)",
         map_active: "현재 활성 팔레트에 맞춤",
 
+        cartoon_section_smart_recommend: "✨ 스마트 추천 (GeoPixels 전용)",
+        cartoon_smart_recommend_desc: "원본 이미지에 맞춰 기존 팔레트에 없는 최적의 색상을 자동 추출 및 등록합니다.",
+        smart_Extraction_button: "🎨 K-Means 스마트 팔레트 가져오기",
+
         extract_advanced: "고급 색상 추출",
         unit_items: "개",
         btn_add_extracted: "추가하기",
@@ -593,6 +597,10 @@ export const languageData = {
         tag_shadow: "Shadow Tone",
         tag_highlight: "Highlight Tone",
         tag_kmean: "Major Cluster (K-Means)",
+
+        cartoon_section_smart_recommend: "✨ Smart Extraction (Only GeoPixels)",
+        cartoon_smart_recommend_desc: "Automatically extract and register optimal colors that are not in the existing palette to match the original image.",
+        smart_Extraction_button: "🎨 K-Means smart palette apply",
 
         info_total_pixels: "Total Pixels",
 
