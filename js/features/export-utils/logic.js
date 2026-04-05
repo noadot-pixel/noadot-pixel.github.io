@@ -238,6 +238,43 @@ export class ExportFeature {
             });
         }
 
+        const wplaceInputs = [
+            this.ui.wplaceTileX,
+            this.ui.wplaceTileY,
+            this.ui.wplaceLocalX,
+            this.ui.wplaceLocalY
+        ];
+
+        wplaceInputs.forEach(input => {
+            if (!input) return;
+            
+            input.addEventListener('paste', (e) => {
+                // 붙여넣기 된 텍스트를 가로챕니다.
+                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                
+                // 정규식을 이용해 "Tl X: 숫자, Tl Y: 숫자, Px X: 숫자, Px Y: 숫자" 패턴을 찾습니다.
+                // (괄호 유무나 띄어쓰기가 조금 달라도 유연하게 숫자를 찾아냅니다)
+                const regex = /Tl\s*X:\s*(\d+).*?Tl\s*Y:\s*(\d+).*?Px\s*X:\s*(\d+).*?Px\s*Y:\s*(\d+)/i;
+                const match = pastedText.match(regex);
+
+                // 만약 복사한 텍스트가 해당 좌표 형식과 일치한다면?
+                if (match) {
+                    e.preventDefault(); // 입력란에 긴 텍스트가 그대로 복사되는 것을 막습니다.
+                    
+                    // 추출해낸 4개의 숫자를 각각의 제자리에 꽂아 넣습니다.
+                    if (this.ui.wplaceTileX) this.ui.wplaceTileX.value = parseInt(match[1], 10);
+                    if (this.ui.wplaceTileY) this.ui.wplaceTileY.value = parseInt(match[2], 10);
+                    if (this.ui.wplaceLocalX) this.ui.wplaceLocalX.value = parseInt(match[3], 10);
+                    if (this.ui.wplaceLocalY) this.ui.wplaceLocalY.value = parseInt(match[4], 10);
+                    
+                    // (선택) 시각적 피드백을 주고 싶다면 
+                    // input.style.backgroundColor = '#e8f0fe'; 
+                    // setTimeout(() => input.style.backgroundColor = '', 300);
+                }
+                // 좌표 형식이 아니라면(예: 그냥 숫자 1개만 복사했다면) 원래대로 평범하게 붙여넣기 됩니다.
+            });
+        });
+
         if (this.ui.splitCols && this.ui.splitRows) {
             const validateInput = (input) => {
                 if (!state.finalDownloadableData) return;
