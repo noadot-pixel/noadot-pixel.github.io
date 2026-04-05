@@ -88,7 +88,7 @@ export class ExportFeature {
 
         this.initEvents();
         this.initBusListeners();
-        this.updateDownloadConflictLocks(); // 초기 로딩 시 락 검사
+        this.updateDownloadConflictLocks(); 
     }
 
     initBusListeners() {
@@ -101,6 +101,12 @@ export class ExportFeature {
                 state.finalDownloadableData = data.imageData;
                 if (this.ui.downloadBtn) this.ui.downloadBtn.disabled = false;
                 this.updateSplitInputLimits();
+                
+                // 만약 Wplace 체크된 상태에서 이미지가 새로 변환되면 픽셀 크기 자동 갱신
+                if (this.ui.chkWplace && this.ui.chkWplace.checked) {
+                    if (this.ui.wplacePixelX) this.ui.wplacePixelX.value = data.imageData.width;
+                    if (this.ui.wplacePixelY) this.ui.wplacePixelY.value = data.imageData.height;
+                }
             }
         });
 
@@ -109,10 +115,12 @@ export class ExportFeature {
         });
     }
 
-    // [신규] 다운로드 체크박스 양방향 잠금(Gray-out) 로직
+    // 🌟 [수정] Wplace 다운로드까지 고려한 체크박스 양방향 잠금 로직
     updateDownloadConflictLocks() {
         const isSeparatedChecked = this.ui.chkSeparated?.checked;
         const isSplitChecked = this.ui.chkSplit?.checked;
+        const isWplaceChecked = this.ui.chkWplace?.checked;
+        const isUplaceChecked = this.ui.chkUplace?.checked;
 
         const setLock = (element, isLocked, reasonMsg) => {
             if (!element) return;
@@ -132,21 +140,51 @@ export class ExportFeature {
 
         if (isSeparatedChecked) {
             setLock(this.ui.chkSplit, true, t('label_download_separated') || '색상별 다운로드');
+            setLock(this.ui.chkUplace, true, '색상별 다운로드');
         } else if (isSplitChecked) {
             setLock(this.ui.chkSeparated, true, t('label_download_split') || '도안 분할 다운로드');
+            setLock(this.ui.chkUplace, true, '도안 분할 다운로드');
+        } else if (isUplaceChecked) {
+            setLock(this.ui.chkSeparated, true, 'Uplace 다운로드');
+            setLock(this.ui.chkSplit, true, 'Uplace 다운로드');
         } else {
             setLock(this.ui.chkSplit, false);
             setLock(this.ui.chkSeparated, false);
+            setLock(this.ui.chkUplace, false);
+        }
+
+        // 🌟 Wplace 옵션은 어떤 상황에서도 강제로 비활성화(그레이아웃) 상태를 유지합니다.
+        if (this.ui.chkWplace) {
+            setLock(this.ui.chkWplace, true, '기능 개발 보류');
         }
     }
 
     updateUplaceOptionVisibility() {
+        // [기존] Uplace 표시 로직
         if (this.ui.uplaceWrapper) {
             if (state.currentMode === 'uplace') {
                 this.ui.uplaceWrapper.style.display = 'block'; 
             } else {
                 this.ui.uplaceWrapper.style.display = 'none';  
                 if (this.ui.chkUplace) this.ui.chkUplace.checked = false; 
+            }
+        }
+
+        // 🌟 [신규 추가] Wplace 표시 로직
+        if (this.ui.wplaceWrapper) {
+            // 현재 팔레트 모드가 'wplace'일 때만 보여줍니다
+            if (state.currentMode === 'wplace') {
+                this.ui.wplaceWrapper.style.display = 'block';
+            } else {
+                this.ui.wplaceWrapper.style.display = 'none';
+                
+                // 안 보일 때는 체크도 풀고, 밑에 열려있을지 모르는 좌표 입력란도 강제로 닫아줍니다.
+                if (this.ui.chkWplace) {
+                    this.ui.chkWplace.checked = false;
+                    if (this.ui.wplaceCoordSection) {
+                        this.ui.wplaceCoordSection.style.display = 'none';
+                    }
+                }
             }
         }
     }
@@ -158,7 +196,6 @@ export class ExportFeature {
             });
         }
 
-        // [이벤트 연결] 체크박스 선택 시 서로 잠금/해제 트리거
         if (this.ui.chkSeparated) {
             this.ui.chkSeparated.addEventListener('change', () => {
                 this.updateDownloadConflictLocks();
@@ -169,6 +206,29 @@ export class ExportFeature {
             this.ui.chkSplit.addEventListener('change', (e) => {
                 if (this.ui.splitOptions) {
                     this.ui.splitOptions.style.display = e.target.checked ? 'block' : 'none';
+                }
+                this.updateDownloadConflictLocks();
+            });
+        }
+        
+        if (this.ui.chkUplace) {
+            this.ui.chkUplace.addEventListener('change', () => {
+                this.updateDownloadConflictLocks();
+            });
+        }
+
+        // 🌟 [신규] Wplace 체크박스 선택 시 좌표 입력란 토글
+        if (this.ui.chkWplace) {
+            this.ui.chkWplace.addEventListener('change', (e) => {
+                const isChecked = e.target.checked;
+                if (this.ui.wplaceCoordSection) {
+                    this.ui.wplaceCoordSection.style.display = isChecked ? 'block' : 'none';
+                }
+                
+                // 열릴 때 현재 캔버스의 크기를 기본값으로 세팅
+                if (isChecked && state.finalDownloadableData) {
+                    if (this.ui.wplacePixelX) this.ui.wplacePixelX.value = state.finalDownloadableData.width;
+                    if (this.ui.wplacePixelY) this.ui.wplacePixelY.value = state.finalDownloadableData.height;
                 }
                 this.updateDownloadConflictLocks();
             });
@@ -250,6 +310,66 @@ export class ExportFeature {
         ], { type: 'image/png' });
     }
 
+    // 🌟 [신규] .wplace 파일 생성을 위한 데이터 조립 함수
+    // 🌟 [최종 완성판] Wplace 크기 불일치 오류 해결 및 1:1 선형 좌표계 적용
+    createWplaceFileBlob() {
+        const canvas = document.createElement('canvas');
+        if (state.finalDownloadableData) {
+            canvas.width = state.finalDownloadableData.width;
+            canvas.height = state.finalDownloadableData.height;
+            canvas.getContext('2d').putImageData(state.finalDownloadableData, 0, 0);
+        } else {
+            return null;
+        }
+
+        const dataUrl = canvas.toDataURL('image/png');
+        
+        // 1. 유저가 입력한 2중 좌표계 (타일 0~2047, 픽셀 0~999)
+        const tileX = parseInt(this.ui.wplaceTileX?.value, 10) || 0;
+        const tileY = parseInt(this.ui.wplaceTileY?.value, 10) || 0;
+        const localX = parseInt(this.ui.wplaceLocalX?.value, 10) || 0;
+        const localY = parseInt(this.ui.wplaceLocalY?.value, 10) || 0;
+        
+        // 2. 캔버스의 실제 픽셀 크기를 타겟 크기로 사용 (UI 입력 무시)
+        const targetW = canvas.width;
+        const targetH = canvas.height;
+
+        // 3. 전체 지도 기준 절대 픽셀 좌표
+        const globalStartX = (tileX * 1000) + localX;
+        const globalStartY = (tileY * 1000) + localY;
+
+        // 4. Wplace 고유의 1:1 선형 공식으로 Bounds 계산
+        const CENTER_OFFSET = 1024000; 
+        const DEG_PER_PIXEL = 0.00017578125; 
+
+        const deltaX = globalStartX - CENTER_OFFSET;
+        const deltaY = globalStartY - CENTER_OFFSET;
+
+        const calculatedBounds = {
+            north: -deltaY * DEG_PER_PIXEL,
+            south: -(deltaY + targetH) * DEG_PER_PIXEL,
+            west: deltaX * DEG_PER_PIXEL,
+            east: (deltaX + targetW) * DEG_PER_PIXEL
+        };
+
+        // 5. 🌟 targetSettings 등 불필요한 속성 전부 제거! 원본 파일과 완벽히 동일한 구조
+        const wplaceData = {
+            id: crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now(),
+            schemaVersion: "1",
+            name: `NOADOT_Export_${Date.now()}.png`,
+            opacity: 1,
+            image: { 
+                dataUrl: dataUrl
+            },
+            bounds: calculatedBounds, 
+            locked: false,
+            visible: true
+        };
+
+        const jsonString = JSON.stringify(wplaceData, null, 2);
+        return new Blob([jsonString], { type: 'application/octet-stream' });
+    }
+
     async handleDownload() {
         if (!state.finalDownloadableData) {
             alert(t('alert_no_data_to_download')); 
@@ -262,11 +382,18 @@ export class ExportFeature {
         
         const isUplaceMode = state.currentMode === 'uplace';
         const isYouFileRequested = isUplaceMode && this.ui.chkUplace && this.ui.chkUplace.checked;
+        
+        // 🌟 Wplace 체크 여부 확인
+        const isWplaceRequested = this.ui.chkWplace && this.ui.chkWplace.checked;
 
         const timestamp = this.getTimestamp();
 
         if (!isSeparated && !isSplit) {
-            if (isYouFileRequested) {
+            if (isWplaceRequested) {
+                // 🌟 Wplace 다운로드 실행
+                const blob = this.createWplaceFileBlob();
+                if (blob) saveAs(blob, `NOADOT_Export_${timestamp}.wplace`);
+            } else if (isYouFileRequested) {
                 const blob = this.createYouFileBlob(imageData, `NoaDot Export ${timestamp}`);
                 saveAs(blob, `NOADOT_Uplace_${timestamp}.you`);
             } else {

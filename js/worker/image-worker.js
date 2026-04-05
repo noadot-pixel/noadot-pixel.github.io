@@ -186,42 +186,7 @@ self.onmessage = (e) => {
                     for (let x = 0; x < width; x++) {
                         const idx = (y * width + x) * 4;
                         if (floatData[idx + 3] === 0) continue; 
-
-                        let currentAlpha = floatData[idx + 3] / 255;
-
-                        // [수정] 그라데이션 투명도 디더링 알고리즘 하드코딩 버그 해결!
-                        if (applyGradient && gradStrength > 0) {
-                            const projection = x * gradCos + y * gradSin;
-                            let t = clamp((projection - gradMin) / gradLen, 0, 1);
-                            const idealAlpha = currentAlpha * (1.0 - (t * gradStrength));
-                            let finalAlphaBinary = 255;
-
-                            if (gradientType === 'bayer' && bayerMap) {
-                                const px = Math.floor(x / gradientDitherSize) % bayerMap[0].length;
-                                const py = Math.floor(y / gradientDitherSize) % bayerMap.length;
-                                finalAlphaBinary = (idealAlpha > (bayerMap[py][px] / 255)) ? 255 : 0;
-                            } else {
-                                finalAlphaBinary = (idealAlpha > 0.5) ? 255 : 0;
-                                const error = idealAlpha - (finalAlphaBinary / 255);
-                                const distributeAlpha = (dx, dy, f) => {
-                                    const nx = x + dx, ny = y + dy;
-                                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                                        floatData[(ny * width + nx) * 4 + 3] += error * f * 255;
-                                    }
-                                };
-                                
-                                // 유저가 선택한 알고리즘에 따라 투명도 에러 확산
-                                if (gradientType === 'floyd') {
-                                    distributeAlpha(1, 0, 7/16); distributeAlpha(-1, 1, 3/16); distributeAlpha(0, 1, 5/16); distributeAlpha(1, 1, 1/16);
-                                } else if (gradientType === 'atkinson') {
-                                    distributeAlpha(1, 0, 1/8); distributeAlpha(2, 0, 1/8); distributeAlpha(-1, 1, 1/8); distributeAlpha(0, 1, 1/8); distributeAlpha(1, 1, 1/8); distributeAlpha(0, 2, 1/8);
-                                } else if (gradientType === 'sierra') {
-                                    distributeAlpha(1, 0, 2/4); distributeAlpha(-1, 1, 1/4); distributeAlpha(0, 1, 1/4);
-                                }
-                            }
-                            floatData[idx + 3] = clamp(finalAlphaBinary, 0, 255);
-                            if (floatData[idx + 3] === 0) continue;
-                        }
+                        floatData[idx + 3] = 255;
 
                         let oldR = floatData[idx], oldG = floatData[idx+1], oldB = floatData[idx+2];
 

@@ -604,6 +604,37 @@
             
             <button id="downloadBtn" disabled data-lang-key="btn_download">다운로드</button>
             <div id="download-options-container" style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">
+                <div class="custom-checkbox-wrapper locked-container" style="opacity: 0.5; cursor: not-allowed;" title="현재 Wplace 서버 호환성 문제로 기능이 임시 비활성화되었습니다.">
+                    <input type="checkbox" id="chkDownloadWplace" class="custom-checkbox-input" disabled>
+                    <label for="chkDownloadWplace" class="custom-checkbox-label" style="pointer-events: none;">
+                        <span class="checkmark"></span>
+                        <span data-lang-key="label_download_wplace">Wplace 버전으로 다운로드 (.wplace) [준비중]</span>
+                    </label>
+                </div>
+
+                <div id="wplaceCoordSection" style="display: none; margin-top: 10px; padding: 12px; border: 1px dashed #ccc; border-radius: 6px; background-color: #fcfcfc;">
+                    <div style="font-size: 12px; margin-bottom: 10px; color: #555; font-weight: bold;">📍 Wplace 타일 및 픽셀 좌표 설정</div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                        <div class="control-group" style="flex: 1; padding: 0; margin: 0; border: none;">
+                            <label for="wplaceTileX" style="font-size: 11px;">타일 X (0~2047)</label>
+                            <input type="number" id="wplaceTileX" value="1737" style="width: 100%;">
+                        </div>
+                        <div class="control-group" style="flex: 1; padding: 0; margin: 0; border: none;">
+                            <label for="wplaceTileY" style="font-size: 11px;">타일 Y (0~2047)</label>
+                            <input type="number" id="wplaceTileY" value="812" style="width: 100%;">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                        <div class="control-group" style="flex: 1; padding: 0; margin: 0; border: none;">
+                            <label for="wplaceLocalX" style="font-size: 11px;">픽셀 X (0~999)</label>
+                            <input type="number" id="wplaceLocalX" value="0" style="width: 100%;">
+                        </div>
+                        <div class="control-group" style="flex: 1; padding: 0; margin: 0; border: none;">
+                            <label for="wplaceLocalY" style="font-size: 11px;">픽셀 Y (0~999)</label>
+                            <input type="number" id="wplaceLocalY" value="0" style="width: 100%;">
+                        </div>
+                    </div>
+                </div>
                 <div class="custom-checkbox-wrapper">
                     <input type="checkbox" id="chkDownloadUplace" class="custom-checkbox-input">
                     <label for="chkDownloadUplace" class="custom-checkbox-label">
