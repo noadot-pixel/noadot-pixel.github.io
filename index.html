@@ -604,11 +604,11 @@
             
             <button id="downloadBtn" disabled data-lang-key="btn_download">다운로드</button>
             <div id="download-options-container" style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">
-                <div class="custom-checkbox-wrapper locked-container" style="opacity: 0.5; cursor: not-allowed;" title="현재 Wplace 서버 호환성 문제로 기능이 임시 비활성화되었습니다.">
-                    <input type="checkbox" id="chkDownloadWplace" class="custom-checkbox-input" disabled>
-                    <label for="chkDownloadWplace" class="custom-checkbox-label" style="pointer-events: none;">
+                <div class="custom-checkbox-wrapper">
+                    <input type="checkbox" id="chkDownloadWplace" class="custom-checkbox-input">
+                    <label for="chkDownloadWplace" class="custom-checkbox-label">
                         <span class="checkmark"></span>
-                        <span data-lang-key="label_download_wplace">Wplace 버전으로 다운로드 (.wplace) [준비중]</span>
+                        <span data-lang-key="label_download_wplace">Wplace 버전으로 다운로드 (.wplace)</span>
                     </label>
                 </div>
 
@@ -617,11 +617,11 @@
                     <div style="display: flex; gap: 10px; margin-bottom: 8px;">
                         <div class="control-group" style="flex: 1; padding: 0; margin: 0; border: none;">
                             <label for="wplaceTileX" style="font-size: 11px;">타일 X (0~2047)</label>
-                            <input type="number" id="wplaceTileX" value="1737" style="width: 100%;">
+                            <input type="number" id="wplaceTileX" value="0" style="width: 100%;">
                         </div>
                         <div class="control-group" style="flex: 1; padding: 0; margin: 0; border: none;">
                             <label for="wplaceTileY" style="font-size: 11px;">타일 Y (0~2047)</label>
-                            <input type="number" id="wplaceTileY" value="812" style="width: 100%;">
+                            <input type="number" id="wplaceTileY" value="0" style="width: 100%;">
                         </div>
                     </div>
                     <div style="display: flex; gap: 10px; margin-bottom: 12px;">

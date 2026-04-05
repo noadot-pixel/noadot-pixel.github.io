@@ -138,24 +138,28 @@ export class ExportFeature {
             }
         };
 
+        // 🌟 다시 정상적인 상호 배타적 잠금(충돌 방지) 로직으로 복구되었습니다.
         if (isSeparatedChecked) {
             setLock(this.ui.chkSplit, true, t('label_download_separated') || '색상별 다운로드');
             setLock(this.ui.chkUplace, true, '색상별 다운로드');
+            setLock(this.ui.chkWplace, true, '색상별 다운로드');
         } else if (isSplitChecked) {
             setLock(this.ui.chkSeparated, true, t('label_download_split') || '도안 분할 다운로드');
             setLock(this.ui.chkUplace, true, '도안 분할 다운로드');
+            setLock(this.ui.chkWplace, true, '도안 분할 다운로드');
+        } else if (isWplaceChecked) {
+            setLock(this.ui.chkSeparated, true, 'Wplace 다운로드');
+            setLock(this.ui.chkSplit, true, 'Wplace 다운로드');
+            setLock(this.ui.chkUplace, true, 'Wplace 다운로드');
         } else if (isUplaceChecked) {
             setLock(this.ui.chkSeparated, true, 'Uplace 다운로드');
             setLock(this.ui.chkSplit, true, 'Uplace 다운로드');
+            setLock(this.ui.chkWplace, true, 'Uplace 다운로드');
         } else {
             setLock(this.ui.chkSplit, false);
             setLock(this.ui.chkSeparated, false);
             setLock(this.ui.chkUplace, false);
-        }
-
-        // 🌟 Wplace 옵션은 어떤 상황에서도 강제로 비활성화(그레이아웃) 상태를 유지합니다.
-        if (this.ui.chkWplace) {
-            setLock(this.ui.chkWplace, true, '기능 개발 보류');
+            setLock(this.ui.chkWplace, false);
         }
     }
 
@@ -330,39 +334,48 @@ export class ExportFeature {
         const localX = parseInt(this.ui.wplaceLocalX?.value, 10) || 0;
         const localY = parseInt(this.ui.wplaceLocalY?.value, 10) || 0;
         
-        // 2. 캔버스의 실제 픽셀 크기를 타겟 크기로 사용 (UI 입력 무시)
+        // 2. 캔버스의 실제 크기로 고정 (서버 튕김 방지)
         const targetW = canvas.width;
         const targetH = canvas.height;
 
         // 3. 전체 지도 기준 절대 픽셀 좌표
         const globalStartX = (tileX * 1000) + localX;
         const globalStartY = (tileY * 1000) + localY;
+        const globalEndX = globalStartX + targetW;
+        const globalEndY = globalStartY + targetH;
 
-        // 4. Wplace 고유의 1:1 선형 공식으로 Bounds 계산
-        const CENTER_OFFSET = 1024000; 
-        const DEG_PER_PIXEL = 0.00017578125; 
-
-        const deltaX = globalStartX - CENTER_OFFSET;
-        const deltaY = globalStartY - CENTER_OFFSET;
-
-        const calculatedBounds = {
-            north: -deltaY * DEG_PER_PIXEL,
-            south: -(deltaY + targetH) * DEG_PER_PIXEL,
-            west: deltaX * DEG_PER_PIXEL,
-            east: (deltaX + targetW) * DEG_PER_PIXEL
+        // 4. 🌟 증명된 Web Mercator 수학 공식 적용
+        const MAP_SIZE = 2048000;
+        const pixelToLng = (x) => (x / MAP_SIZE) * 360 - 180;
+        const pixelToLat = (y) => {
+            const n = Math.PI - (2 * Math.PI * y) / MAP_SIZE;
+            return (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
         };
 
-        // 5. 🌟 targetSettings 등 불필요한 속성 전부 제거! 원본 파일과 완벽히 동일한 구조
+        const calculatedBounds = {
+            north: pixelToLat(globalStartY),
+            south: pixelToLat(globalEndY),
+            west: pixelToLng(globalStartX),
+            east: pixelToLng(globalEndX)
+        };
+
+        // 5. 🌟 업로드해주신 texsss.png 파일과 100% 완벽하게 일치하는 구조로 조립
         const wplaceData = {
             id: crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now(),
             schemaVersion: "1",
             name: `NOADOT_Export_${Date.now()}.png`,
             opacity: 1,
             image: { 
-                dataUrl: dataUrl
+                dataUrl: dataUrl,
+                width: targetW,
+                height: targetH
             },
             bounds: calculatedBounds, 
+            colorMetric: "lab",
+            dithering: false,
+            order: 0,
             locked: false,
+            hasPlaced: true,
             visible: true
         };
 
