@@ -468,12 +468,33 @@ export class ExportFeature {
     }
 
     async downloadCanvasAsPng(imageData, fileName) {
-        const canvas = document.createElement('canvas');
-        canvas.width = imageData.width;
-        canvas.height = imageData.height;
-        canvas.getContext('2d').putImageData(imageData, 0, 0);
+        // 1. 🌟 ImageResizer가 얌전히 저장해둔 전역 변수를 그대로 가져옵니다! (DOM을 뒤질 필요가 없습니다)
+        const scale = state.exportScale || 1;
+
+        // 2. 원본(1:1) 크기의 임시 캔버스 생성 및 픽셀 데이터 삽입
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = imageData.width;
+        tempCanvas.height = imageData.height;
+        tempCanvas.getContext('2d').putImageData(imageData, 0, 0);
+
+        let finalCanvas = tempCanvas;
+
+        // 3. 배율이 1보다 크면, 뻥튀기용 캔버스를 새로 만들어 확대해서 그리기
+        if (scale > 1) {
+            finalCanvas = document.createElement('canvas');
+            finalCanvas.width = imageData.width * scale;
+            finalCanvas.height = imageData.height * scale;
+            const ctx = finalCanvas.getContext('2d');
+            
+            // 🌟 픽셀 아트 확대의 핵심: 안티앨리어싱 끄기 (테두리가 흐려지는 현상 방지)
+            ctx.imageSmoothingEnabled = false;
+            
+            // 원본 캔버스를 배율만큼 확대해서 최종 캔버스에 복사
+            ctx.drawImage(tempCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
+        }
         
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        // 4. 메타데이터 주입 및 다운로드 실행
+        const blob = await new Promise(resolve => finalCanvas.toBlob(resolve, 'image/png'));
         const arrayBuffer = await blob.arrayBuffer();
         const secureBlob = this.injectMetadataToPng(arrayBuffer, "Comment", createSecureStamp());
         
