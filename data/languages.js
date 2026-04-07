@@ -3,7 +3,7 @@
 export const languageData = {
     ko: {
         app_title: "NoaDot - 이미지/텍스트 변환기",
-        app_header: "🎨 노아도트 v7.3",
+        app_header: "🎨 노아도트 v7.5",
         section_mode: "모드 선택",
         mode_image: "🖼️ 이미지",
         mode_text: "✏️ 텍스트",
@@ -70,7 +70,7 @@ export const languageData = {
         label_refinement_strength: "강도",
 
         option_hq_mode: "고품질 색상 계산 (느림)",
-        option_cartoon_filter: "만화 스타일 필터",
+        option_cartoon_filter: "K-means + 색상 제한 필터",
         label_sharp_resizing: "선명한 리사이징 (픽셀 선명도 증가)",
         section_ai_preset: "✨프리셋 추천(테스트 기능)",
         btn_get_recommendations: "프리셋 추천",
@@ -287,7 +287,14 @@ export const languageData = {
         alert_error_general: "파일 읽기 오류",
 
         label_download_uplace: "youplace 버전으로 다운로드 받기(.you)",
+        label_download_wplace: "wplace 버전으로 다운로드 받기(.wplace)",
         label_download_separated: "색상별 이미지 별도 다운로드 (.zip)",
+
+        download_wplace_Tx:"타일 X (0~2047)",
+        download_wplace_Ty:"타일 y (0~2047)",
+        download_wplace_Pxx: "픽셀 X (0~999)",
+        download_wplace_Pxy: "픽셀 Y (0~999)",
+        download_wplace_exp: "📍 Wplace 타일 및 픽셀 좌표 설정",
         
         alert_font_uploaded: "폰트 '{name}' 업로드 완료!",
         alert_font_load_error: "폰트 로드 실패. 유효한 TTF/OTF 파일인지 확인하세요.",
@@ -341,7 +348,7 @@ export const languageData = {
     },
     en: {
         app_title: "NoaDot - Image/Text Converter",
-        app_header: "🎨 NoaDot v7.3",
+        app_header: "🎨 NoaDot v7.5",
         section_mode: "Select Mode",
         mode_image: "🖼️ Image",
         mode_text: "✏️ Text",
@@ -459,7 +466,7 @@ export const languageData = {
         placeholder_hex: "HEX code input (ex: #FFFFFF)",
 
         option_hq_mode: "High Quality Color Calc (Slow)",
-        option_cartoon_filter: "Cartoon Style Filter",
+        option_cartoon_filter: "K-means + Color Restriction Filter",
         cartoon_section_quant: "Color Extraction",
         cartoon_algorithm: "Algorithm",
         cartoon_color_level: "Color Levels",
@@ -665,6 +672,13 @@ export const languageData = {
         text_option_algorithms_smooth: "smooth",
 
         label_download_uplace: "download youplace version(.you)",
+        label_download_wplace: "download wplace version(.wplace)",
+
+        download_wplace_Tx:"Tile X (0~2047)",
+        download_wplace_Ty:"Tile y (0~2047)",
+        download_wplace_Pxx: "pixel X (0~999)",
+        download_wplace_Pxy: "pixel Y (0~999)",
+        download_wplace_exp: "📍 setting Wplace Tile & Pixel",
 
         dithering_pattern_ex: "Patterns",
         dithering_noise_ex: "Noise",

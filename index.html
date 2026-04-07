@@ -407,7 +407,7 @@
                         <div id="refinementOptions" class="sub-options" style="display: none; padding-left: 5px;">
                             <div class="control-group">
                                 <label for="refinementSlider" data-lang-key="label_refinement_strength">평탄화 강도: <span id="refinementValue">50</span></label>
-                                <input type="range" id="refinementSlider" min="1" max="100" value="50">
+                                <input type="range" id="refinementSlider" min="1" max="100" value="10">
                             </div>
                         </div>
 
@@ -613,24 +613,24 @@
                 </div>
 
                 <div id="wplaceCoordSection" style="display: none; margin-top: 10px; padding: 12px; border: 1px dashed #ccc; border-radius: 6px; background-color: #fcfcfc;">
-                    <div style="font-size: 12px; margin-bottom: 10px; color: #555; font-weight: bold;">📍 Wplace 타일 및 픽셀 좌표 설정</div>
+                    <div style="font-size: 12px; margin-bottom: 10px; color: #555; font-weight: bold;" data-lang-key="download_wplace_exp">📍 Wplace 타일 및 픽셀 좌표 설정</div>
                     <div style="display: flex; gap: 10px; margin-bottom: 8px;">
                         <div class="control-group" style="flex: 1; padding: 0; margin: 0; border: none;">
-                            <label for="wplaceTileX" style="font-size: 11px;">타일 X (0~2047)</label>
+                            <label for="wplaceTileX" style="font-size: 11px;" data-lang-key="download_wplace_Tx">타일 X (0~2047)</label>
                             <input type="number" id="wplaceTileX" value="0" style="width: 100%;">
                         </div>
                         <div class="control-group" style="flex: 1; padding: 0; margin: 0; border: none;">
-                            <label for="wplaceTileY" style="font-size: 11px;">타일 Y (0~2047)</label>
+                            <label for="wplaceTileY" style="font-size: 11px;" data-lang-key="download_wplace_Ty">타일 Y (0~2047)</label>
                             <input type="number" id="wplaceTileY" value="0" style="width: 100%;">
                         </div>
                     </div>
                     <div style="display: flex; gap: 10px; margin-bottom: 12px;">
                         <div class="control-group" style="flex: 1; padding: 0; margin: 0; border: none;">
-                            <label for="wplaceLocalX" style="font-size: 11px;">픽셀 X (0~999)</label>
+                            <label for="wplaceLocalX" style="font-size: 11px;" data-lang-key="download_wplace_Pxx">픽셀 X (0~999)</label>
                             <input type="number" id="wplaceLocalX" value="0" style="width: 100%;">
                         </div>
                         <div class="control-group" style="flex: 1; padding: 0; margin: 0; border: none;">
-                            <label for="wplaceLocalY" style="font-size: 11px;">픽셀 Y (0~999)</label>
+                            <label for="wplaceLocalY" style="font-size: 11px;" data-lang-key="download_wplace_Pxy">픽셀 Y (0~999)</label>
                             <input type="number" id="wplaceLocalY" value="0" style="width: 100%;">
                         </div>
                     </div>
