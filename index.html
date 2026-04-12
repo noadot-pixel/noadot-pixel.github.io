@@ -259,7 +259,7 @@
                             <option value="oklab" data-lang-key="option_color_method_oklab" selected>OKlab - 색상 보정 변환</option>
                             <option value="ciede2000" data-lang-key="option_color_method_ciede2000">Wdot - 고품질 변환(웜톤)</option>
                             <option value="ciede2000-d65" data-lang-key="option_color_method_D65">D65 - 고품질 변환(쿨톤)</option>
-                            <option value="wdot-plus" data-lang-key="option_color_method_Kochanexe">NoaDot-X - 픽셀 재배열 변환</option>
+                            <option value="wdot-plus" data-lang-key="option_color_method_Kochanexe">Kochanexe - 픽셀 재배열 변환</option>
                         </select>
                     </div>
 
@@ -363,19 +363,17 @@
                                 🎨 K-Means 스마트 팔레트 가져오기
                             </button>
                         </fieldset>
-                        <fieldset class="sub-fieldset">
-                            <legend data-lang-key="cartoon_section_outline">외곽선 (Outline)</legend>
                     </div>
 
                     <div id="texture-group">
                         <div class="control-group" id="dither-select-container">
                             <label for="ditheringAlgorithmSelect" data-lang-key="option_dithering">질감 효과 (디더링/패턴)</label>
                             <select id="ditheringAlgorithmSelect">
-                                <option value="none" data-lang-key="dithering_none">사용 안함</option>
+                                <option value="none" selected data-lang-key="dithering_none">사용 안함</option>
                                 <optgroup label="오차 확산 (자연스러운 노이즈)" data-lang-label="dithering_noise_ex">
                                     <option value="floyd" data-lang-key="dithering_floyd">플로이드-스타인버그</option>
                                     <option value="sierra" data-lang-key="dithering_sierra">시에라-2</option>
-                                    <option value="atkinson" selected data-lang-key="dithering_atkinson">애킨슨</option>
+                                    <option value="atkinson" data-lang-key="dithering_atkinson">애킨슨</option>
                                 </optgroup>
                                 <optgroup label="패턴 적용 (규칙적인 질감)" data-lang-label="dithering_pattern_ex">
                                     <option value="bayer8x8" data-lang-key="pattern_bayer">점묘화 (베이어 8x8)</option>
@@ -399,9 +397,9 @@
                             <input type="range" id="patternSizeSlider" min="1" max="32" value="1">
                         </div>
                         
-                        <div class="control-group checkbox-group" style="margin-top: 15px;">
+                        <div class="control-group checkbox-group" style="margin-top: 10px;">
                             <input type="checkbox" id="applyRefinement">
-                            <label for="applyRefinement" data-lang-key="option_apply_refinement" style="font-weight: bold;">면 평탄화 (노이즈 제거)</label>
+                            <label for="applyRefinement" data-lang-key="option_apply_refinement" style="font-weight: bold;">면 평탄화 (외곽선 유지)</label>
                         </div>
                         
                         <div id="refinementOptions" class="sub-options" style="display: none; padding-left: 5px;">

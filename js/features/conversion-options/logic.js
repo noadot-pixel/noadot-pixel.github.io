@@ -9,10 +9,6 @@ export class ConversionOptionsFeature {
     constructor() {
         this.ui = new ConversionOptionsUI();
 
-        if (!state.ditheringAlgorithmSelect || state.ditheringAlgorithmSelect === 'none') {
-            state.ditheringAlgorithmSelect = 'atkinson';
-        }
-
         this.initEvents();
         this.initBusListeners();
         this.loadInitialState();

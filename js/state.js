@@ -13,7 +13,7 @@ export const CONFIG = {
         rgbWeightB: 0,
         
         // 초기값 Sierra-2 설정
-        ditheringAlgorithmSelect: 'atkinson', 
+        ditheringAlgorithmSelect: 'none', 
         
         applyPattern: false,
         patternTypeSelect: 'bayer8x8',

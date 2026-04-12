@@ -120,9 +120,10 @@ self.onmessage = (e) => {
                 const ditheringIntensity = (options.ditheringIntensity || 0) / 100;
 
                 const applyRefinement = options.applyRefinement === true;
-                const refinementStrength = applyRefinement ? (options.refinementStrength || 0) : 0;
+                const refinementStrength = options.refinementStrength || 0;
 
-                if (refinementStrength > 0) {
+                // 🌟 2. 완벽하게 독립된 상호 배타적 구조 (If - Else If)
+                if (applyRefinement && refinementStrength > 0) {
                     if (refinementStrength <= 40) {
                         processedData = applySmartBlur(processedData, refinementStrength > 20 ? 2 : 1, 10 + refinementStrength);
                     } else if (refinementStrength <= 80) {
@@ -130,6 +131,7 @@ self.onmessage = (e) => {
                     } else {
                         processedData = applyMedianFilter(processedData, refinementStrength > 90 ? 2 : 1);
                     }
+                    
                     if (refinementStrength > 50) {
                         const step = Math.floor((refinementStrength - 50) * 0.4);
                         if (step > 2) processedData = applyColorSimplification(processedData, step);
@@ -199,11 +201,15 @@ self.onmessage = (e) => {
                             oldB = clamp(oldB + adjustment, 0, 255);
                         }
 
-                        const rKey = clamp(oldR, 0, 255), gKey = clamp(oldG, 0, 255), bKey = clamp(oldB, 0, 255);
-                        const cacheKey = (rKey << 16) | (gKey << 8) | bKey;
+                        // 🌟 1. [카오스 제거] 캐시 오염 방지를 위한 완벽한 정수화
+                        const matchR = Math.round(clamp(oldR, 0, 255));
+                        const matchG = Math.round(clamp(oldG, 0, 255));
+                        const matchB = Math.round(clamp(oldB, 0, 255));
+                        const cacheKey = (matchR << 16) | (matchG << 8) | matchB;
                         
                         let bestColor;
 
+                        // Aspire 로직은 원본 oldR, oldG, oldB를 그대로 사용하여 작동성 유지
                         if (useAspireDither && activePalette.length > 1) {
                             let cached = colorCache.get(cacheKey);
                             
@@ -231,7 +237,8 @@ self.onmessage = (e) => {
                         } else {
                             bestColor = colorCache.get(cacheKey);
                             if (!bestColor || bestColor.c1) {
-                                bestColor = findClosestColor(oldR, oldG, oldB, activePalette, paletteConverted, options.colorMethod, satWeight).color;
+                                // 정제된 match 값을 넘겨서 이상한 색상 매칭 원천 차단
+                                bestColor = findClosestColor(matchR, matchG, matchB, activePalette, paletteConverted, options.colorMethod, satWeight).color;
                                 colorCache.set(cacheKey, bestColor);
                             }
                         }
@@ -242,9 +249,16 @@ self.onmessage = (e) => {
 
                         const isErrorDiffusion = ['floyd', 'atkinson', 'sierra'].includes(ditheringType);
                         if (isErrorDiffusion && ditheringIntensity > 0) {
-                            const errR = (oldR - bestColor[0]) * ditheringIntensity;
-                            const errG = (oldG - bestColor[1]) * ditheringIntensity;
-                            const errB = (oldB - bestColor[2]) * ditheringIntensity;
+                            // 상수(const)를 변수(let)로 변경하여 덮어쓰기 가능하게 수정
+                            let errR = (oldR - bestColor[0]) * ditheringIntensity;
+                            let errG = (oldG - bestColor[1]) * ditheringIntensity;
+                            let errB = (oldB - bestColor[2]) * ditheringIntensity;
+
+                            // 🌟 2. [카오스 제거] 오차 폭주 제한 방파제 (Color Bleeding 차단)
+                            const maxErr = 32; 
+                            errR = clamp(errR, -maxErr, maxErr);
+                            errG = clamp(errG, -maxErr, maxErr);
+                            errB = clamp(errB, -maxErr, maxErr);
 
                             const distribute = (dx, dy, f) => {
                                 const nx = x + dx, ny = y + dy;
@@ -255,6 +269,8 @@ self.onmessage = (e) => {
                                     }
                                 }
                             };
+                            
+                            // 기존 디더링 알고리즘 유지
                             if (ditheringType === 'floyd') {
                                 distribute(1, 0, 7/16); distribute(-1, 1, 3/16); distribute(0, 1, 5/16); distribute(1, 1, 1/16);
                             } else if (ditheringType === 'atkinson') {
