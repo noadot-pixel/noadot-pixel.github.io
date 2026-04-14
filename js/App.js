@@ -23,8 +23,35 @@ class App {
         this.initFeatures();
         this.initLanguage();
         this.initCoreListeners();
+        this.initTheme();
     }
 
+    initTheme() {
+        const darkModeBtn = document.getElementById('darkModeToggle');
+        if (!darkModeBtn) return;
+
+        // 1. 브라우저에 저장된 이전 테마 설정 불러오기 (새로고침 해도 유지)
+        const savedTheme = localStorage.getItem('noadot_theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-theme');
+            darkModeBtn.textContent = '☀️ 라이트 모드';
+        }
+
+        // 2. 버튼 클릭 시 작동 로직
+        darkModeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-theme');
+            const isDark = document.body.classList.contains('dark-theme');
+            
+            if (isDark) {
+                darkModeBtn.textContent = '☀️ 라이트 모드';
+                localStorage.setItem('noadot_theme', 'dark'); // 다크모드 기억하기
+            } else {
+                darkModeBtn.textContent = '🌙 다크 모드';
+                localStorage.setItem('noadot_theme', 'light'); // 라이트모드 기억하기
+            }
+        });
+    }
+    
     initFeatures() {
         this.modeSelector = new ModeSelectorFeature();
         this.conversionOptions = new ConversionOptionsFeature();

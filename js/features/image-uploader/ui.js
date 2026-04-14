@@ -7,6 +7,8 @@ export class ImageUploaderUI {
         this.triggerBtn = document.getElementById('placeholder-ui'); 
         this.container = document.getElementById('convertedCanvasContainer');
 
+        this.reuploadBtn = document.getElementById('reuploadBtn');
+
         this.dropZone = document.body;
         this.loadingOverlay = document.getElementById('loading-indicator');
 

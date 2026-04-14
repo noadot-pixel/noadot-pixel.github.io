@@ -187,11 +187,53 @@ self.onmessage = (e) => {
                 for (let y = 0; y < height; y++) {
                     for (let x = 0; x < width; x++) {
                         const idx = (y * width + x) * 4;
+                        
+                        // 1. 원래 투명한 배경은 연산 패스
                         if (floatData[idx + 3] === 0) continue; 
+                        
+                        // 2. 기본적으로는 불투명(255)하게 세팅
                         floatData[idx + 3] = 255;
 
-                        let oldR = floatData[idx], oldG = floatData[idx+1], oldB = floatData[idx+2];
+                        // 3. 🌟 투명도 그라데이션 (펀치로 구멍 뚫기)
+                        if (applyGradient) {
+                            const proj = x * gradCos + y * gradSin;
+                            const ratio = (proj - gradMin) / gradLen; 
+                            const adjustedRatio = ratio * gradStrength + (1.0 - gradStrength);
 
+                            let threshold = 0.5;
+                            if (bayerMap) {
+                                // 1. 베어링 맵 (패턴 기반)
+                                const px = Math.floor(x / gradientDitherSize) % bayerMap[0].length;
+                                const py = Math.floor(y / gradientDitherSize) % bayerMap.length;
+                                threshold = bayerMap[py][px] / 255.0;
+                            } else {
+                                // 2. 랜덤 노이즈 (입자 묶음 기반)
+                                if (gradientDitherSize > 1) {
+                                    // 픽셀 좌표를 입자 크기로 나눠서 '블록 좌표'를 만듭니다.
+                                    const blockX = Math.floor(x / gradientDitherSize);
+                                    const blockY = Math.floor(y / gradientDitherSize);
+                                    
+                                    // 블록 좌표(blockX, blockY)를 고유한 숫자로 섞어버리는 수학 공식 (GLSL 셰이더 방식)
+                                    // 같은 블록 안에 있는 픽셀들은 모두 이 똑같은 난수(threshold)를 얻게 됩니다.
+                                    const seed = blockX * 12.9898 + blockY * 78.233;
+                                    threshold = Math.abs(Math.sin(seed) * 43758.5453) % 1; 
+                                } else {
+                                    // 입자 크기가 1일 때는 기존처럼 픽셀마다 개별 주사위를 던집니다.
+                                    threshold = Math.random();
+                                }
+                            }
+
+                            // 패턴 임계값에 걸리면 픽셀을 투명하게(0) 날려버리고 다음 픽셀로 패스!
+                            if (adjustedRatio < threshold) {
+                                floatData[idx + 3] = 0; 
+                                continue; 
+                            }
+                        }
+
+                        // 4. 살아남은 픽셀의 원본 색상
+                        let oldR = floatData[idx], oldG = floatData[idx+1], oldB = floatData[idx+2];
+                        
+                        // 5. (옵션) 흑백 패턴(질감) 조정
                         if (patternMap) {
                             const px = Math.floor(x / patternSize) % patternMap[0].length;
                             const py = Math.floor(y / patternSize) % patternMap.length;
@@ -201,7 +243,7 @@ self.onmessage = (e) => {
                             oldB = clamp(oldB + adjustment, 0, 255);
                         }
 
-                        // 🌟 1. [카오스 제거] 캐시 오염 방지를 위한 완벽한 정수화
+                        // 6. 🌟 [복구됨!] 가장 가까운 팔레트 색상 찾기 (캐시 최적화)
                         const matchR = Math.round(clamp(oldR, 0, 255));
                         const matchG = Math.round(clamp(oldG, 0, 255));
                         const matchB = Math.round(clamp(oldB, 0, 255));
@@ -209,14 +251,11 @@ self.onmessage = (e) => {
                         
                         let bestColor;
 
-                        // Aspire 로직은 원본 oldR, oldG, oldB를 그대로 사용하여 작동성 유지
                         if (useAspireDither && activePalette.length > 1) {
                             let cached = colorCache.get(cacheKey);
-                            
                             if (!cached || !cached.c1) {
                                 let d1 = Infinity, idx1 = 0;
                                 let d2 = Infinity, idx2 = 0;
-                                
                                 for (let j = 0; j < activePalette.length; j++) {
                                     const pr = activePalette[j][0], pg = activePalette[j][1], pb = activePalette[j][2];
                                     const dist = (oldR-pr)*(oldR-pr) + (oldG-pg)*(oldG-pg) + (oldB-pb)*(oldB-pb);
@@ -226,35 +265,32 @@ self.onmessage = (e) => {
                                 cached = { c1: activePalette[idx1], c2: activePalette[idx2], d1, d2 };
                                 colorCache.set(cacheKey, cached);
                             }
-                            
                             let ratio = 0;
                             if (cached.d1 + cached.d2 > 0) {
                                 ratio = (cached.d1 / (cached.d1 + cached.d2)) * ditheringIntensity;
                             }
                             const threshold = aspireBayer[y % 8][x % 8] / 64.0;
                             bestColor = ratio > threshold ? cached.c2 : cached.c1;
-
                         } else {
                             bestColor = colorCache.get(cacheKey);
                             if (!bestColor || bestColor.c1) {
-                                // 정제된 match 값을 넘겨서 이상한 색상 매칭 원천 차단
                                 bestColor = findClosestColor(matchR, matchG, matchB, activePalette, paletteConverted, options.colorMethod, satWeight).color;
                                 colorCache.set(cacheKey, bestColor);
                             }
                         }
-                        
+
+                        // 7. 찾은 색상 칠하기
                         floatData[idx] = bestColor[0];
                         floatData[idx+1] = bestColor[1];
                         floatData[idx+2] = bestColor[2];
 
+                        // 8. 오차 확산 (디더링 방파제 로직 포함)
                         const isErrorDiffusion = ['floyd', 'atkinson', 'sierra'].includes(ditheringType);
                         if (isErrorDiffusion && ditheringIntensity > 0) {
-                            // 상수(const)를 변수(let)로 변경하여 덮어쓰기 가능하게 수정
                             let errR = (oldR - bestColor[0]) * ditheringIntensity;
                             let errG = (oldG - bestColor[1]) * ditheringIntensity;
                             let errB = (oldB - bestColor[2]) * ditheringIntensity;
 
-                            // 🌟 2. [카오스 제거] 오차 폭주 제한 방파제 (Color Bleeding 차단)
                             const maxErr = 32; 
                             errR = clamp(errR, -maxErr, maxErr);
                             errG = clamp(errG, -maxErr, maxErr);
@@ -270,7 +306,6 @@ self.onmessage = (e) => {
                                 }
                             };
                             
-                            // 기존 디더링 알고리즘 유지
                             if (ditheringType === 'floyd') {
                                 distribute(1, 0, 7/16); distribute(-1, 1, 3/16); distribute(0, 1, 5/16); distribute(1, 1, 1/16);
                             } else if (ditheringType === 'atkinson') {

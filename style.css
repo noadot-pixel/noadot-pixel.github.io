@@ -2,27 +2,34 @@
 /*          NoaDot v5.1x - 전체 스타일 시트         */
 /* ============================================= */
 
+body.dark-theme {
+    background-color: #1a1a2e; /* 어두운 남색 배경 */
+    color: #e0e0e0; /* 밝은 회색 글씨 */
+}
+
+body.dark-theme .control-panel,
+body.dark-theme .upload-area {
+    background-color: #16213e; /* 패널 배경색 */
+    border-color: #0f3460;
+    color: #e0e0e0;
+}
+
+body.dark-theme input[type="text"], 
+body.dark-theme input[type="number"], 
+body.dark-theme select, 
+body.dark-theme textarea {
+    background-color: #2a2a4a;
+    color: #ffffff;
+    border-color: #4a4a6a;
+}
+
 /* ===== 1. 기본 및 레이아웃 스타일 ===== */
 :root {
   --padding: 15px;
   --primary-color: #4A90E2; /* 신규 코드에서 사용된 변수 추가 정의 */
-  --bg-color: #f5f7fa;
-  --panel-bg: #ffffff;
-  --text-color: #333333;
-  --border-color: #e1e4e8;
-}
-
-/* 다크 테마 */
-[data-theme="dark"] {
-    --bg-color: #1a1a2e;
-    --panel-bg: #16213e;
-    --text-color: #e0e0e0;
-    --border-color: #0f3460;
 }
 
 body {
-  background-color: var(--bg-color);
-  color: var(--text-color);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   background-image: url('image.png');
   background-size: cover;
@@ -31,11 +38,6 @@ body {
   margin: 0;
   color: #333;
   overflow: hidden;
-}
-
-.control-panel {
-    background-color: var(--panel-bg);
-    border-color: var(--border-color);
 }
 
 section {
@@ -1758,4 +1760,405 @@ fieldset.sub-fieldset {
         background: transparent;
         box-shadow: none;
     }
+}
+
+body.dark-theme {
+    background-color: #1a1a2e !important;
+    color: #e0e0e0 !important;
+}
+
+/* 2. 각 섹션 및 패널 배경 */
+body.dark-theme section,
+body.dark-theme .option-section,
+body.dark-theme .main-mode-switcher,
+body.dark-theme .mode-switcher,
+body.dark-theme .main-header,
+body.dark-theme .palette-category {
+    background-color: rgba(22, 33, 62, 0.95) !important;
+    border-color: #0f3460 !important;
+    color: #e0e0e0 !important;
+}
+
+/* 팔레트 내부 섹션 */
+body.dark-theme .palette-section {
+    background-color: #16213e !important;
+    border-color: #2a2a4a !important;
+}
+
+/* 3. 입력창 (텍스트박스, 숫자, 셀렉트 등) */
+body.dark-theme input[type="text"], 
+body.dark-theme input[type="number"], 
+body.dark-theme select, 
+body.dark-theme textarea {
+    background-color: #2a2a4a !important;
+    color: #ffffff !important;
+    border: 1px solid #4a4a6a !important;
+}
+
+/* 4. 라디오 토글 버튼 (모드 선택 등) */
+body.dark-theme .radio-toggle {
+    background-color: #16213e !important;
+    border-color: #4a4a6a !important;
+}
+body.dark-theme .radio-toggle label {
+    background-color: #1f2d50 !important;
+    color: #bbbbbb !important;
+}
+body.dark-theme .radio-toggle input[type="radio"]:checked + label {
+    background-color: #3a7bc8 !important;
+    color: #ffffff !important;
+}
+
+/* 5. 제목 및 라벨 글씨 색상 */
+body.dark-theme h1, 
+body.dark-theme h2, 
+body.dark-theme h3, 
+body.dark-theme h4,
+body.dark-theme .control-group label,
+body.dark-theme summary {
+    color: #e0e0e0 !important;
+}
+
+/* 6. 캔버스 배경 (변환 이미지 뜨는 곳) */
+body.dark-theme #convertedCanvasContainer {
+    background-color: #0f172a !important;
+    border-color: #4a4a6a !important;
+    /* 체크무늬 배경도 어둡게 처리 */
+    background-image: linear-gradient(45deg, #1f2d50 25%, transparent 25%), 
+                      linear-gradient(-45deg, #1f2d50 25%, transparent 25%), 
+                      linear-gradient(45deg, transparent 75%, #1f2d50 75%), 
+                      linear-gradient(-45deg, transparent 75%, #1f2d50 75%) !important;
+}
+
+/* 7. 색상 팔레트 타일 (작은 네모들) */
+body.dark-theme .color-tile {
+    background: #16213e !important;
+    border-color: #4a4a6a !important;
+}
+body.dark-theme .color-tile .hex {
+    color: #e0e0e0 !important;
+}
+body.dark-theme .color-tile .rgb {
+    color: #888888 !important;
+}
+
+.theme-toggle-btn {
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 6px 12px;
+    cursor: pointer;
+    color: #555;
+    font-size: 13px;
+    font-weight: bold;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.theme-toggle-btn:hover { background-color: #f0f0f0; border-color: #bbb; }
+
+/* ========================================================= */
+/* 🌙 다크 모드 덮어쓰기 (!important)                          */
+/* ========================================================= */
+
+/* 1. 전체 배경 및 기본 글씨 */
+body.dark-theme {
+    background-color: #121826 !important; /* 조금 더 깊은 네이비 */
+    color: #e2e8f0 !important;
+}
+
+/* 2. 메인 헤더 & 패널 */
+body.dark-theme section,
+body.dark-theme .option-section,
+body.dark-theme .main-mode-switcher,
+body.dark-theme .mode-switcher,
+body.dark-theme .main-header,
+body.dark-theme .palette-category,
+body.dark-theme .image-info-group {
+    background-color: #1e293b !important; /* 패널 배경색 */
+    border-color: #334155 !important;
+    color: #e2e8f0 !important;
+}
+
+/* 상단 우측 버튼류 (언어, 테마 스위치) */
+body.dark-theme .language-switcher button,
+body.dark-theme .theme-toggle-btn,
+body.dark-theme .scale-mod-btn {
+    background-color: #334155 !important;
+    color: #cbd5e1 !important;
+    border-color: #475569 !important;
+}
+body.dark-theme .language-switcher button:hover,
+body.dark-theme .theme-toggle-btn:hover,
+body.dark-theme .scale-mod-btn:hover { background-color: #475569 !important; color: #ffffff !important;}
+body.dark-theme .language-switcher button.active {
+    background-color: #3b82f6 !important; /* 파란색 활성화 */
+    color: #ffffff !important;
+    border-color: #3b82f6 !important;
+}
+
+/* 3. 옵션창 디테일 (아코디언, 카테고리) */
+body.dark-theme .category-details summary,
+body.dark-theme summary {
+    background-color: #0f172a !important; /* 카테고리 제목 배경 */
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
+}
+body.dark-theme .category-details summary:hover,
+body.dark-theme summary:hover { background-color: #1e293b !important; }
+
+body.dark-theme .category-fieldset,
+body.dark-theme fieldset.sub-fieldset {
+    background-color: #1e293b !important;
+    border-color: #475569 !important;
+}
+body.dark-theme .category-fieldset legend,
+body.dark-theme fieldset.sub-fieldset legend {
+    background-color: #0f172a !important;
+    color: #e2e8f0 !important;
+    border-color: #475569 !important;
+}
+
+/* 4. 입력창 및 체크박스 */
+body.dark-theme input[type="text"], 
+body.dark-theme input[type="number"], 
+body.dark-theme select, 
+body.dark-theme textarea {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+    border: 1px solid #475569 !important;
+}
+body.dark-theme .custom-checkbox-label { color: #cbd5e1 !important; }
+body.dark-theme .custom-checkbox-label .checkmark {
+    background-color: #0f172a !important;
+    border-color: #475569 !important;
+}
+body.dark-theme .custom-checkbox-input:checked + .custom-checkbox-label .checkmark {
+    background-color: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+}
+
+/* 5. 색상 추출 추천 패널 (가장 눈뽕 심한 곳 해결) */
+body.dark-theme #extractControlPanel {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+}
+body.dark-theme #extractControlPanel > div[style*="background: #fff"] {
+    background-color: #1e293b !important; /* 스텝 버튼 그룹 배경 */
+    border-color: #475569 !important;
+}
+body.dark-theme .step-btn {
+    background-color: #334155 !important;
+    color: #94a3b8 !important;
+    border-color: #475569 !important;
+}
+body.dark-theme .step-btn.active {
+    background-color: #3b82f6 !important;
+    color: #ffffff !important;
+    border-color: #3b82f6 !important;
+}
+body.dark-theme #extractMinusBtn,
+body.dark-theme #extractPlusBtn {
+    background-color: #334155 !important;
+    color: #e2e8f0 !important;
+    border-color: #475569 !important;
+}
+/* 초록색 경고창 -> 다크 모드에 맞는 어두운 초록 */
+body.dark-theme #extractWarningBox {
+    background-color: rgba(34, 197, 94, 0.1) !important; 
+    border-color: rgba(34, 197, 94, 0.3) !important;
+    color: #4ade80 !important; 
+}
+
+/* 6. 추가한 색상 패널 */
+body.dark-theme #addedColors {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+}
+body.dark-theme .added-color-item {
+    background-color: #1e293b !important;
+    border-color: #475569 !important;
+    color: #e2e8f0 !important;
+}
+body.dark-theme .added-color-item .color-hex { color: #f8fafc !important; }
+body.dark-theme .added-color-item .color-info-rgb { color: #94a3b8 !important; }
+body.dark-theme .added-color-item .remove-color-btn {
+    background-color: #334155 !important;
+    border-color: #475569 !important;
+    color: #cbd5e1 !important;
+}
+body.dark-theme .added-color-item .remove-color-btn:hover {
+    background-color: #ef4444 !important;
+    color: #ffffff !important;
+}
+body.dark-theme .placeholder-section {
+    background-color: #0f172a !important;
+    border-color: #475569 !important;
+    color: #64748b !important;
+}
+
+/* 7. 기타 하단 버튼류 */
+body.dark-theme .button-group-horizontal button,
+body.dark-theme #resetAddedColorsBtn {
+    background-color: #334155 !important;
+    color: #e2e8f0 !important;
+    border: 1px solid #475569 !important;
+}
+body.dark-theme .button-group-horizontal button:hover { background-color: #475569 !important; }
+body.dark-theme #resetAddedColorsBtn {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+    color: #f87171 !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+}
+body.dark-theme #resetAddedColorsBtn:hover { background-color: rgba(239, 68, 68, 0.25) !important; }
+
+/* 8. 캔버스 배경 및 기타 텍스트 색상 */
+body.dark-theme #convertedCanvasContainer {
+    background-color: #0f172a !important;
+    border-color: #475569 !important;
+    background-image: linear-gradient(45deg, #1e293b 25%, transparent 25%), 
+                      linear-gradient(-45deg, #1e293b 25%, transparent 25%), 
+                      linear-gradient(45deg, transparent 75%, #1e293b 75%), 
+                      linear-gradient(-45deg, transparent 75%, #1e293b 75%) !important;
+}
+body.dark-theme h1, body.dark-theme h2, body.dark-theme h3, body.dark-theme h4,
+body.dark-theme .control-group label { color: #e2e8f0 !important; }
+
+body.dark-theme .radio-toggle { background-color: #0f172a !important; border-color: #475569 !important; }
+body.dark-theme .radio-toggle label { background-color: #1e293b !important; color: #94a3b8 !important; }
+body.dark-theme .radio-toggle input[type="radio"]:checked + label { background-color: #3b82f6 !important; color: #ffffff !important; }
+
+body.dark-theme .category-details,
+body.dark-theme .advanced-settings {
+    background-color: #1e293b !important; /* 패널 배경과 동일한 네이비 */
+    border-color: #334155 !important;
+}
+
+body.dark-theme .category-details[open] summary {
+    border-bottom-color: #334155 !important;
+}
+
+body.dark-theme .advanced-settings summary {
+    background-color: #0f172a !important;
+    color: #e2e8f0 !important;
+}
+
+/* 하위 옵션(들여쓰기) 왼쪽 안내선 색상 어둡게 변경 */
+body.dark-theme .sub-options {
+    border-left-color: #475569 !important;
+}
+
+body.dark-theme section,
+body.dark-theme .option-section,
+body.dark-theme .category-details,
+body.dark-theme .advanced-settings,
+body.dark-theme .details-content {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #e2e8f0 !important;
+}
+
+body.dark-theme .category-details summary,
+body.dark-theme .advanced-settings summary {
+    background-color: #0f172a !important;
+    color: #e2e8f0 !important;
+    border-bottom-color: #334155 !important;
+}
+
+body.dark-theme .sub-options {
+    border-left-color: #475569 !important;
+}
+
+/* 2. 모든 입력창 (텍스트, 드롭다운, 댓글창 등) 강제 통일 */
+body.dark-theme input[type="text"], 
+body.dark-theme input[type="number"], 
+body.dark-theme select, 
+body.dark-theme textarea,
+body.dark-theme .comment-input-field {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+    border: 1px solid #475569 !important;
+}
+
+body.dark-theme input:focus, 
+body.dark-theme select:focus, 
+body.dark-theme textarea:focus,
+body.dark-theme .comment-input-field:focus {
+    border-color: #3b82f6 !important;
+    outline: none !important;
+}
+
+/* 3. 체크박스 디자인 (다크모드용) */
+body.dark-theme .custom-checkbox-label {
+    color: #cbd5e1 !important;
+}
+body.dark-theme .custom-checkbox-label .checkmark {
+    background-color: #0f172a !important;
+    border-color: #475569 !important;
+}
+body.dark-theme .custom-checkbox-input:checked + .custom-checkbox-label .checkmark {
+    background-color: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+}
+
+/* =========================================================
+   💬 댓글 모달창 (JS 인라인 스타일 강제 무력화)
+   ========================================================= */
+
+/* 모달 전체 배경 및 텍스트 */
+body.dark-theme .comment-modal-content {
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+}
+
+body.dark-theme .comment-modal-title,
+body.dark-theme .comment-section-title,
+body.dark-theme .comment-input-title {
+    color: #f8fafc !important;
+}
+
+body.dark-theme .comment-close-btn {
+    color: #94a3b8 !important;
+}
+body.dark-theme .comment-close-btn:hover {
+    color: #f8fafc !important;
+}
+
+/* 개별 댓글 리스트 (JS가 뿌린 흰색 배경을 강제로 덮어씌움) */
+body.dark-theme div[data-comment-id] {
+    background-color: #0f172a !important; /* 댓글 배경 */
+    border-color: #334155 !important; /* 댓글 테두리 */
+    color: #e2e8f0 !important;
+}
+
+body.dark-theme div[data-comment-id] hr {
+    border-color: #334155 !important;
+}
+
+/* 시간 텍스트 등 회색 글씨 어둡게 보정 */
+body.dark-theme div[data-comment-id] span[style*="color: #666"] {
+    color: #94a3b8 !important; 
+}
+
+/* 대댓글 작성 영역 강조선 색상 변경 */
+body.dark-theme div[id^="reply-form-"] {
+    border-top-color: #334155 !important;
+    border-left-color: #3b82f6 !important; /* 기존 노란색 선을 파란색으로 */
+}
+
+/* 모달 내부 등록/취소 버튼들 */
+body.dark-theme .comment-submit-btn.comment-input-submit-btn {
+    background-color: #3b82f6 !important;
+    color: white !important;
+}
+body.dark-theme button[onclick*="addReply"] {
+    background-color: #3b82f6 !important; /* 대댓글 등록 버튼 */
+    color: white !important;
+}
+body.dark-theme button[onclick*="document.getElementById('reply-nickname"] {
+    background-color: #475569 !important; /* 대댓글 취소 버튼 */
+    color: #e2e8f0 !important;
 }

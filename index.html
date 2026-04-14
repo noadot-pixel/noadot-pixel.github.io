@@ -48,6 +48,9 @@
                     <button data-lang="en">EN</button>
                 </div>
 
+                <div class="link-separator desktop-only"></div>
+                <button id="darkModeToggle" class="theme-toggle-btn desktop-only" title="테마 변경">🌙 다크 모드</button>
+
                 <button id="topModeToggleBtn" class="top-action-btn mobile-only" title="모드 전환" style="margin-left: 8px;">T</button>
             </div>
         </header>
@@ -98,6 +101,9 @@
 
         <div id="image-controls">
             <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/gif" hidden>
+            <button id="reuploadBtn" class="analyze-button" style="width: 100%; margin-bottom: 15px; background-color: #28a745; color: white; font-weight: bold; padding: 10px 0; font-size: 1.1em; border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" data-lang-key="btn_reupload">
+                📁 다른 이미지 불러오기
+            </button>
             <div id="imageInfoPanel" class="image-info-group" style="display: none; background: rgba(255,255,255,0.5); padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ddd;">
                 <div style="font-size: 13px; color: #555; margin-bottom: 4px;">
                     <span data-lang-key="info_original_size">원본 크기</span>: 

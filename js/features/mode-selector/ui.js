@@ -29,6 +29,8 @@ export class ModeSelectorUI {
         this.placeholderText = document.querySelector('#placeholder-ui p');
         this.fileInput = document.getElementById('imageUpload');
 
+        this.reuploadBtn = document.getElementById('reuploadBtn');
+
         // 📱 [모바일 연동을 위한 요소 추가]
         this.appContainer = document.querySelector('.app-container');
         this.topModeToggleBtn = document.getElementById('topModeToggleBtn');
@@ -66,6 +68,7 @@ export class ModeSelectorUI {
                 this.placeholderText.textContent = t('placeholder_image_upload') || "창 클릭 혹은 이미지를 화면으로 드래그";
             }
             if (this.fileInput) this.fileInput.disabled = false;
+            this.toggleDisplay(this.reuploadBtn, true);
 
             // 📱 모바일 컨테이너 및 버튼/탭 동기화
             if(this.appContainer) {
@@ -104,7 +107,8 @@ export class ModeSelectorUI {
                 this.placeholderText.textContent = t('placeholder_text_preview') || "해당 화면을 통해 텍스트를 미리 확인할 수 있습니다";
             }
             if (this.fileInput) this.fileInput.disabled = true;
-
+            this.toggleDisplay(this.reuploadBtn, false);
+            
             // 📱 모바일 컨테이너 및 버튼/탭 동기화
             if(this.appContainer) {
                 this.appContainer.classList.remove('image-mode', 'image-loaded');

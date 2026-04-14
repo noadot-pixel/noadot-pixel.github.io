@@ -23,6 +23,10 @@ export class ImageUploaderFeature {
         if (this.ui.triggerBtn) {
             this.ui.triggerBtn.addEventListener('click', openUpload);
         }
+
+        if (this.ui.reuploadBtn) {
+            this.ui.reuploadBtn.addEventListener('click', openUpload);
+        }
         
         if (this.ui.container) {
             this.ui.container.addEventListener('click', (e) => {
@@ -50,13 +54,26 @@ export class ImageUploaderFeature {
             });
         });
 
+        // 🌟 드롭(끌어다 놓기) 업로드 처리
         this.ui.dropZone.addEventListener('drop', (e) => {
+            // [추가된 방어벽] 캔버스에 이미지가 있다면 업로드 취소!
+            if (this.ui.container && this.ui.container.classList.contains('has-image')) {
+                console.log("[Prevent] 이미지가 이미 존재하여 드롭 업로드를 차단합니다.");
+                return; // 여기서 함수를 끝내버려서 handleFile이 실행되지 않게 함
+            }
+
             const file = e.dataTransfer.files[0];
             if (file) this.handleFile(file);
         });
 
-        // 4. 붙여넣기
+        // 4. 붙여넣기 (Ctrl + V) 처리
         window.addEventListener('paste', (e) => {
+            // 🌟 [추가된 방어벽] 붙여넣기로 강제 덮어씌워지는 것도 차단!
+            if (this.ui.container && this.ui.container.classList.contains('has-image')) {
+                console.log("[Prevent] 이미지가 이미 존재하여 붙여넣기 업로드를 차단합니다.");
+                return; 
+            }
+
             const items = (e.clipboardData || e.originalEvent.clipboardData).items;
             for (let item of items) {
                 if (item.type.indexOf('image') !== -1) {
