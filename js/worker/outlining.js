@@ -115,7 +115,7 @@ export function applyCelShadingFilter(imageData, palette, options) {
                 finalImageData.data[i] = chosenColor[0];
                 finalImageData.data[i+1] = chosenColor[1];
                 finalImageData.data[i+2] = chosenColor[2];
-                finalImageData.data[i+3] = 255;
+                finalImageData.data[i+3] = procData[i+3];
             }
         }
     } else {
@@ -131,7 +131,7 @@ export function applyCelShadingFilter(imageData, palette, options) {
                 finalImageData.data[i] = finalColor[0]; 
                 finalImageData.data[i + 1] = finalColor[1]; 
                 finalImageData.data[i + 2] = finalColor[2]; 
-                finalImageData.data[i + 3] = 255;
+                finalImageData.data[i + 3] = posterizedData.data[i + 3];
             }
         }
     }

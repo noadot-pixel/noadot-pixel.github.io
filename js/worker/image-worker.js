@@ -16,16 +16,7 @@ import { smartResize } from './smart-resizer.js';
 const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
 
 function removeTransparency(imageData) {
-    const data = imageData.data;
-    for (let i = 0; i < data.length; i += 4) {
-        const alpha = data[i + 3];
-        if (alpha <= 25) {
-            data[i + 3] = 0;
-        } else {
-            data[i + 3] = 255;
-        }
-    }
-    return imageData;
+    return imageData; 
 }
 
 function resizeImageData(imageData, targetWidth, targetHeight) {
@@ -153,10 +144,11 @@ self.onmessage = (e) => {
                 const height = processedData.height;
                 const floatData = new Float32Array(processedData.data);
                 
-                const applyPattern = options.applyPattern;
-                const patternMap = applyPattern ? THRESHOLD_MAPS[options.patternType] : null;
+                const isPatternDither = ['bayer8x8', 'crosshatch', 'vertical', 'checkerboard', 'diagonal_right', 'diagonal_left', 'brick'].includes(ditheringType);
+                const applyPattern = options.applyPattern || isPatternDither;
+                const patternType = isPatternDither ? ditheringType : (options.patternType || 'bayer8x8');
+                const patternMap = applyPattern ? THRESHOLD_MAPS[patternType] : null;
                 const patternSize = options.patternSize || 4;
-                const patternStrength = 0.3;
                 
                 const applyGradient = options.applyGradient;
                 const gradientType = options.gradientType || 'bayer';
@@ -190,9 +182,6 @@ self.onmessage = (e) => {
                         
                         // 1. 원래 투명한 배경은 연산 패스
                         if (floatData[idx + 3] === 0) continue; 
-                        
-                        // 2. 기본적으로는 불투명(255)하게 세팅
-                        floatData[idx + 3] = 255;
 
                         // 3. 🌟 투명도 그라데이션 (펀치로 구멍 뚫기)
                         if (applyGradient) {
@@ -234,10 +223,18 @@ self.onmessage = (e) => {
                         let oldR = floatData[idx], oldG = floatData[idx+1], oldB = floatData[idx+2];
                         
                         // 5. (옵션) 흑백 패턴(질감) 조정
-                        if (patternMap) {
+                        if (patternMap && ditheringIntensity > 0) {
                             const px = Math.floor(x / patternSize) % patternMap[0].length;
                             const py = Math.floor(y / patternSize) % patternMap.length;
-                            const adjustment = (patternMap[py][px] - 128) * patternStrength;
+                            
+                            // 패턴 맵의 값(0~255)을 -0.5 ~ 0.5 로 변환
+                            const mapValue = (patternMap[py][px] / 255.0) - 0.5;
+                            
+                            // 진폭(Amplitude) 계산: 슬라이더(0~1) 값에 따라 색상을 흔드는 폭을 결정
+                            // 슬라이더가 100%일 때 최대 +-128까지 변동 (팔레트 색상을 넘나듦)
+                            const amplitude = ditheringIntensity * 128; 
+                            const adjustment = mapValue * amplitude;
+                            
                             oldR = clamp(oldR + adjustment, 0, 255);
                             oldG = clamp(oldG + adjustment, 0, 255);
                             oldB = clamp(oldB + adjustment, 0, 255);

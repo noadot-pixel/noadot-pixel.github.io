@@ -41,7 +41,7 @@ export const calculateRecommendations = (imageData, currentPalette, options) => 
         const b = data[i+2];
         const a = data[i+3]; 
 
-        if (a >= 100) {
+        if (a > 0) {
             validPixelCount++;
             const key = rgbToHex(r, g, b);
             if (!colorStats.has(key)) {
@@ -163,7 +163,7 @@ export const extractExactKMeansPalette = (imageData, k) => {
     const step = Math.max(1, Math.floor(totalPixels / maxSamples));
 
     for (let i = 0; i < data.length; i += 4 * step) {
-        if (data[i + 3] >= 100) {
+        if (data[i + 3] > 0) {
             pixels.push([data[i], data[i+1], data[i+2]]);
         }
     }

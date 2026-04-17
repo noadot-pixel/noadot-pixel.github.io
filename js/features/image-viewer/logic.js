@@ -76,10 +76,6 @@ export class ImageViewerFeature {
             const rawData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
             const data = rawData.data;
 
-            for (let i = 0; i < data.length; i += 4) {
-                if (data[i + 3] < 255) data[i + 3] = 0; 
-            }
-
             ctx.putImageData(rawData, 0, 0);
             state.originalImageData = rawData;
             state.originalImageObject = new Image();

@@ -13,9 +13,10 @@ export function smartResize(imageData, targetWidth, targetHeight) {
 
     const lumaMap = new Uint8Array(srcW * srcH);
     for (let i = 0; i < srcW * srcH; i++) {
+        const a = srcData[i*4+3] / 255; // 투명도 비율 (0 ~ 1)
+        // 투명할수록 밝기 값을 0으로 깎아내려 무시되도록 만듭니다.
         lumaMap[i] = srcData[i*4]*0.299 + srcData[i*4+1]*0.587 + srcData[i*4+2]*0.114;
     }
-
     for (let y = 0; y < targetHeight; y++) {
         for (let x = 0; x < targetWidth; x++) {
             

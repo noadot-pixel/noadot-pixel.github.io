@@ -52,7 +52,7 @@ export class ConversionOptionsFeature {
             if (ditherStrengthGroup) ditherStrengthGroup.style.display = 'none';
             if (patternSizeGroup) patternSizeGroup.style.display = 'none';
         } else if (isPattern) {
-            if (ditherStrengthGroup) ditherStrengthGroup.style.display = 'none';
+            if (ditherStrengthGroup) ditherStrengthGroup.style.display = 'block';
             if (patternSizeGroup) patternSizeGroup.style.display = 'block'; 
         } else {
             if (ditherStrengthGroup) ditherStrengthGroup.style.display = 'block';
@@ -119,6 +119,7 @@ export class ConversionOptionsFeature {
             setLock('refinementSlider', true, msgPattern);
             setLock('ditheringAlgorithmSelect', false); 
             setLock('patternSizeSlider', false);
+            setLock('ditheringSlider', false);
         }
         else if (ditherStrength > 0) {
             setLock('applyRefinement', true, msgDitherActive);

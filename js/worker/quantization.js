@@ -37,7 +37,7 @@ function applyPaletteToImage(imageData, palette, options) {
     const colorCache = new Map();
 
     for (let i = 0; i < data.length; i += 4) {
-        if (data[i + 3] > 128) {
+        if (data[i + 3] > 0) {
             const r = data[i], g = data[i + 1], b = data[i + 2];
             const cacheKey = (r << 16) | (g << 8) | b;
             
@@ -51,7 +51,7 @@ function applyPaletteToImage(imageData, palette, options) {
             posterizedData.data[i] = bestColor[0];
             posterizedData.data[i + 1] = bestColor[1];
             posterizedData.data[i + 2] = bestColor[2];
-            posterizedData.data[i + 3] = 255;
+            posterizedData.data[i + 3] = data[i + 3];
         } else {
             posterizedData.data[i + 3] = 0;
         }
@@ -83,7 +83,7 @@ export function quantizePopularity(imageData, options) {
     const colorCounts = new Map();
 
     for (let i = 0; i < data.length; i += 4) {
-        if (data[i + 3] < 128) continue;
+        if (data[i + 3] === 0) continue;
         const rgb = (data[i] << 16) | (data[i + 1] << 8) | data[i + 2];
         colorCounts.set(rgb, (colorCounts.get(rgb) || 0) + 1);
     }
