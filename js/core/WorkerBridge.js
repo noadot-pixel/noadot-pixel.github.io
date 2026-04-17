@@ -156,6 +156,7 @@ export class WorkerBridge {
                 saturationWeight: state.saturationWeight ?? 50, 
 
                 applySmartSampling: state.applySmartSampling ?? false,
+                applyDotSampling: state.applyDotSampling ?? false,
                 
                 applyPattern: state.applyPattern ?? false,
                 patternType: state.patternTypeSelect ?? 'bayer8x8',

@@ -130,7 +130,8 @@ self.onmessage = (e) => {
                 }
 
                 let paletteConverted = null;
-                const baseMethodForConv = (options.colorMethod === 'wdot-plus') ? 'ciede2000' : options.colorMethod;
+                const isDotMode = options.applyDotSampling === true;
+                const baseMethodForConv = isDotMode ? 'rgb' : ((options.colorMethod === 'wdot-plus') ? 'ciede2000' : options.colorMethod);
                 
                 if (baseMethodForConv === 'oklab') {
                     paletteConverted = activePalette.map(rgb => ColorConverter.rgbToOklab(rgb));
@@ -271,7 +272,7 @@ self.onmessage = (e) => {
                         } else {
                             bestColor = colorCache.get(cacheKey);
                             if (!bestColor || bestColor.c1) {
-                                bestColor = findClosestColor(matchR, matchG, matchB, activePalette, paletteConverted, options.colorMethod, satWeight).color;
+                                bestColor = findClosestColor(matchR, matchG, matchB, activePalette, paletteConverted, isDotMode ? 'rgb' : options.colorMethod, satWeight).color;
                                 colorCache.set(cacheKey, bestColor);
                             }
                         }
@@ -288,6 +289,13 @@ self.onmessage = (e) => {
                             let errG = (oldG - bestColor[1]) * ditheringIntensity;
                             let errB = (oldB - bestColor[2]) * ditheringIntensity;
 
+                            if (isDotMode) {
+                                const tolerance = 15; // 노이즈 억제력 (이 수치보다 작은 오차는 버림)
+                                if (Math.abs(errR) < tolerance) errR = 0;
+                                if (Math.abs(errG) < tolerance) errG = 0;
+                                if (Math.abs(errB) < tolerance) errB = 0;
+                            }
+                            
                             const maxErr = 32; 
                             errR = clamp(errR, -maxErr, maxErr);
                             errG = clamp(errG, -maxErr, maxErr);

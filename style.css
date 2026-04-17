@@ -2162,3 +2162,12 @@ body.dark-theme button[onclick*="document.getElementById('reply-nickname"] {
     background-color: #475569 !important; /* 대댓글 취소 버튼 */
     color: #e2e8f0 !important;
 }
+
+.app-container {
+  display: flex;
+  width: 100%; /* 🌟 [핵심 추가] 화면이 쏠리지 않도록 100% 너비 강제 고정! */
+  gap: var(--padding);
+  padding: var(--padding);
+  height: 100vh;
+  box-sizing: border-box;
+}

@@ -27,6 +27,34 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
 <body>
+    <div id="maintenanceModal" class="modal-overlay" style="display: none; z-index: 9999;">
+        <div class="modal-content" style="max-width: 450px; padding: 30px; text-align: center;">
+            <h2 id="maintenanceTitle" style="color: #ff4757; border: none; margin-bottom: 15px;">🚧 System Rework 🚧</h2>
+            
+            <div id="maintenanceMsgKo" style="display: none; margin-bottom: 25px; line-height: 1.6; color: var(--text-main);">
+                <p>현재 <b>Noadot</b>은 최적화 및 대규모 리워크 작업(공사)을 진행 중입니다.</p>
+                <p style="color: #ff4757; font-weight: bold; margin-top: 10px;">사용은 가능하지만, 변환 결과가 불안정하거나 일부 기능이 정상 작동하지 않을 수 있습니다.</p>
+                <p style="margin-top: 15px; font-size: 0.9em; color: var(--text-muted);">
+                    안정적인 도트 변환이 필요하시다면,<br> <a href="https://noipung.github.io/wdot/" target="_blank" style="color: #4A90E2; font-weight: bold; text-decoration: underline;">Wdot</a> 사용을 권장합니다.
+                </p>
+            </div>
+
+            <div id="maintenanceMsgEn" style="display: none; margin-bottom: 25px; line-height: 1.6; color: var(--text-main);">
+                <p><b>Noadot</b> is currently undergoing a major engine rework and optimization.</p>
+                <p style="color: #ff4757; font-weight: bold; margin-top: 10px;">You can still use the app, but please note that conversion results may be unstable or some features may not work as expected.</p>
+                <p style="margin-top: 15px; font-size: 0.9em; color: var(--text-muted);">
+                    For stable pixel art conversion,<br>we recommend using the <a href="https://noipung.github.io/wdot/" target="_blank" style="color: #4A90E2; font-weight: bold; text-decoration: underline;">Wdot</a>.
+                </p>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                <button id="btnLeaveSite" class="analyze-button" style="background-color: #6c757d; flex: 1;">돌아가기 (Leave)</button>
+                <button id="btnContinueSite" class="analyze-button" style="background-color: #4A90E2; flex: 1;">계속하기 (Continue)</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="app-container" id="appContainer">
 
 <div class="app-container">
     <div class="left-panel">

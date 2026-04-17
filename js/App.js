@@ -24,6 +24,45 @@ class App {
         this.initLanguage();
         this.initCoreListeners();
         this.initTheme();
+        this.showMaintenanceModal();
+    }
+
+    showMaintenanceModal() {
+        const modal = document.getElementById('maintenanceModal');
+        const msgKo = document.getElementById('maintenanceMsgKo');
+        const msgEn = document.getElementById('maintenanceMsgEn');
+        const btnLeave = document.getElementById('btnLeaveSite');
+        const btnContinue = document.getElementById('btnContinueSite');
+
+        if (!modal) return;
+
+        // 현재 언어 세팅 (한국어/영어)
+        const currentLang = state.language || 'ko';
+        if (currentLang === 'ko') {
+            msgKo.style.display = 'block';
+            msgEn.style.display = 'none';
+            btnLeave.textContent = '돌아가기 (Wdot)';
+            btnContinue.textContent = '동의 후 계속(Continue)';
+        } else {
+            msgKo.style.display = 'none';
+            msgEn.style.display = 'block';
+            btnLeave.textContent = 'Go to Wdot';
+            btnContinue.textContent = 'I understand, Continue';
+        }
+
+        // 모달 띄우기
+        modal.style.display = 'flex';
+
+        // '돌아가기' 버튼 클릭 시 Wdot으로 이동
+        btnLeave.addEventListener('click', () => {
+            window.location.href = 'https://noipung.github.io/wdot/'; 
+        });
+
+        // '계속하기' 버튼 클릭 시 모달 닫기
+        btnContinue.addEventListener('click', () => {
+            modal.style.display = 'none';
+            console.log("[Maintenance] 사용자가 불안정함을 인지하고 진입했습니다.");
+        });
     }
 
     initTheme() {
