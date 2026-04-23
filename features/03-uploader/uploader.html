@@ -1,0 +1,14 @@
+<section class="sidebar-section">
+    <h2>1. 이미지 업로드</h2>
+    <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/gif" hidden>
+    
+    <button id="reuploadBtn" class="primary-btn">
+        📁 이미지 불러오기
+    </button>
+    
+    <div id="imageInfoPanel" class="info-panel" style="display: none;">
+        <div style="margin-bottom: 4px;">원본 크기: <strong id="originalDimensions">0 x 0 px</strong></div>
+        <div style="margin-bottom: 4px; color: var(--text-main);">변환 크기: <strong id="convertedDimensions">0 x 0 px</strong></div>
+        <div style="font-size: 0.8rem;">총 픽셀 수: <strong id="totalPixelCount">0</strong></div>
+    </div>
+</section>

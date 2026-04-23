@@ -1,0 +1,89 @@
+/* 접었다 펴는 옵션 메뉴 (Details/Summary) */
+.category-details {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.category-details summary {
+    padding: 10px 12px;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+}
+
+.category-details summary:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.details-content {
+    padding: 12px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* 라디오 버튼 스위치 (기본/전문가 투트랙용) */
+/* 라디오 버튼 스위치 (기본/전문가 투트랙용) */
+.radio-group {
+    display: flex;
+    gap: 10px;
+    background: rgba(0,0,0,0.2);
+    padding: 4px;
+    border-radius: 6px;
+}
+
+.radio-group label {
+    flex: 1;
+    /* 🌟 라디오 버튼 안의 텍스트를 정중앙에 완벽히 배치합니다 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 8px 0;
+    border-radius: 4px;
+    color: var(--text-sub);
+}
+
+.radio-group input[type="radio"] {
+    display: none;
+}
+
+.radio-group input[type="radio"]:checked + label,
+.radio-group label:has(input[type="radio"]:checked) {
+    background: var(--accent-primary);
+    color: #111;
+    font-weight: bold;
+}
+
+/* 체크박스 그룹 */
+.checkbox-group {
+    /* 🌟 상위 클래스의 위아래(Column) 배치를 무시하고 무조건 좌우(Row)로 배치합니다! */
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: flex-start; /* 왼쪽 정렬 */
+    gap: 10px; /* 체크박스와 텍스트 사이 간격 */
+    cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--accent-primary);
+    margin: 0; /* 불필요한 마진 제거 */
+}
+
+.checkbox-group label {
+    margin: 0;
+    cursor: pointer;
+}

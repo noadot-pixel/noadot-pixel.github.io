@@ -1,0 +1,43 @@
+:root {
+    /* NoaDot 기본 컬러 팔레트 */
+    --bg-main: #1e1e2e;
+    --bg-panel: #181825;
+    --bg-surface: #313244;
+    
+    --text-main: #cdd6f4;
+    --text-sub: #a6adc8;
+    
+    --accent-primary: #cba6f7; /* 메인 보라색 */
+    --accent-success: #a6e3a1; /* 초록색 */
+    --accent-warning: #fab387; /* 주황색 */
+    --accent-danger: #f38ba8;  /* 빨간색 */
+    
+    --border-color: #45475a;
+    
+    --font-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ==========================================
+   🌟 라이트 모드 (Light Theme) 오버라이드
+========================================== */
+html[data-theme="light"] {
+    /* 1. 사이드바 & 레이아웃 (구버전 변수) */
+    --bg-main: #f4f5f7;       /* 뷰어 빈 공간 & 섹션 카드 배경 */
+    --bg-panel: #ffffff;      /* 우측 전체 사이드바 & 헤더 배경 */
+    --text-main: #2c3e50;     /* 제목, 주요 입력창 텍스트 (진한 남색/검정) */
+    --text-sub: #7f8c8d;      /* 설명, 라벨 텍스트 (회색) */
+
+    /* 2. 툴바 & 팝업 & 버튼 (신버전 변수) */
+    --bg-color: #f4f5f7;      /* 모달 뒷배경 등 */
+    --bg-surface: #ffffff;    /* 툴바, 팝업, 컨트롤러 배경 */
+    --text-primary: #2c3e50;  /* 툴바 주요 텍스트 */
+    --text-secondary: #7f8c8d;/* 툴바 보조 텍스트 */
+
+    /* 3. 공통 테두리선 */
+    --border-color: #dcdde1;  /* 경계선 (부드러운 회색) */
+
+    /* 4. 그림자 부드럽게 조정 (라이트 모드는 그림자가 옅어야 예쁩니다) */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.15);
+}

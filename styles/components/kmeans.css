@@ -1,0 +1,129 @@
+/* =========================================
+   🎨 3. 스마트 색상 추출 (K-Means) 스타일
+========================================= */
+
+/* ✨ 추출 버튼 화려하게 꾸미기 */
+#extractKMeansBtn {
+    background: linear-gradient(135deg, #8A2BE2, #a252eb); /* 세련된 보라색 그라데이션 */
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-size: 1em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* 마우스 올렸을 때 (Hover) - 살짝 떠오르며 네온 빛 발산 */
+#extractKMeansBtn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #9b41ed, #b468f7);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(138, 43, 226, 0.4); 
+}
+
+/* 클릭했을 때 (Active) - 꾹 눌리는 효과 */
+#extractKMeansBtn:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 추출 중일 때 (Disabled) - 회색으로 비활성화 */
+#extractKMeansBtn:disabled {
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+/* styles/components/kmeans.css */
+
+.kmeans-panel {
+    background: var(--bg-surface);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.kmeans-track {
+    margin-bottom: 20px;
+}
+
+.kmeans-track.track-divider {
+    border-top: 1px dashed var(--border-color);
+    padding-top: 18px;
+    margin-bottom: 0;
+}
+
+.kmeans-control {
+    margin-bottom: 12px;
+}
+
+.kmeans-label {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.kmeans-slider {
+    width: 100%;
+}
+
+.kmeans-desc {
+    color: var(--text-secondary);
+    display: block;
+    margin-top: 6px;
+    line-height: 1.3;
+    font-size: 0.85em;
+}
+
+/* 🌟 K-Means 액션 버튼 공통 스타일 (텍스트 크기 최적화 및 엣지 유지) */
+.kmeans-btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 0.92em; /* 텍스트 크기를 줄여서 한 줄에 쏙 들어가게 수정! */
+    font-weight: 800;
+    border-radius: 8px;
+    border: none;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+/* 쫀득한 버튼 클릭 타격감 추가 */
+.kmeans-btn:active {
+    transform: scale(0.98); 
+    box-shadow: 0 2px 3px rgba(0,0,0,0.15) !important;
+}
+
+/* 🎯 매칭 버튼 (주황색 테마) */
+.kmeans-val-match {
+    color: #e67e22;
+    font-weight: bold;
+}
+.kmeans-btn-match {
+    background: linear-gradient(145deg, #e67e22, #d35400);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.15), 0 2px 4px rgba(230, 126, 34, 0.3);
+}
+.kmeans-btn-match:hover {
+    background: linear-gradient(145deg, #f39c12, #e67e22);
+}
+
+/* ✨ 추출 버튼 (보라색 테마) */
+.kmeans-val-extract {
+    color: #9b59b6;
+    font-weight: bold;
+}
+.kmeans-btn-extract {
+    background: linear-gradient(145deg, #9b59b6, #8e44ad);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.15), 0 2px 4px rgba(155, 89, 182, 0.3);
+}
+.kmeans-btn-extract:hover {
+    background: linear-gradient(145deg, #a569bd, #9b59b6);
+}

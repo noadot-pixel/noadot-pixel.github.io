@@ -1,0 +1,103 @@
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 100%;
+    padding: 0 20px;
+}
+
+.logo {
+    font-size: 1.2rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.version {
+    font-size: 0.7rem;
+    color: var(--accent-primary);
+    background: #313244;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.icon-btn, .lang-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.icon-btn:hover, .lang-btn:hover {
+    background: var(--bg-surface);
+}
+
+/* ==========================================
+   🌟 외부 링크 아이콘 스타일
+========================================== */
+.external-links img {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    object-fit: contain;
+}
+
+.external-links a:hover img {
+    transform: scale(1.1);
+    opacity: 0.8;
+}
+
+.text-icon-link {
+    text-decoration: none;
+}
+
+.text-icon-link:hover .wdot-icon {
+    transform: scale(1.1);
+    background-color: #000;
+}
+
+.wdot-icon {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 28px;
+    height: 28px;
+    background-color: #333;
+    color: white;
+    font-weight: 900;
+    font-family: 'Verdana', sans-serif;
+    font-size: 16px;
+    border-radius: 50%;
+    transition: transform 0.2s, background-color 0.2s;
+    line-height: 1;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* ==========================================
+   🌟 테마 토글 버튼 스타일
+========================================== */
+.theme-btn {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 1.1em;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.theme-btn:hover {
+    background: var(--border-color);
+    transform: scale(1.1) rotate(15deg);
+}

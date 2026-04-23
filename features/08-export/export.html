@@ -1,0 +1,76 @@
+<section class="sidebar-section" id="export-section">
+    <h2>5. 저장 및 내보내기</h2>
+    
+    <div style="background: var(--bg-surface); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+        
+        <div class="custom-checkbox-wrapper" style="margin-bottom: 10px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em;">
+                <input type="checkbox" id="chkDownloadSeparated">
+                <span>🎨 색상별 레이어 분리 다운로드 (.zip)</span>
+            </label>
+        </div>
+
+        <div class="custom-checkbox-wrapper" style="margin-bottom: 10px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em;">
+                <input type="checkbox" id="chkDownloadSplit">
+                <span>✂️ 도안 분할 다운로드 (.zip)</span>
+            </label>
+        </div>
+
+        <div id="split-options" style="display: none; margin-left: 24px; margin-bottom: 10px; padding: 10px; background: var(--bg-color); border-radius: 6px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                <label style="flex: 1; font-size: 0.85em;">가로 분할 <input type="number" id="splitCols" value="2" min="1" style="width:100%; margin-top:4px;"></label>
+                <label style="flex: 1; font-size: 0.85em;">세로 분할 <input type="number" id="splitRows" value="2" min="1" style="width:100%; margin-top:4px;"></label>
+            </div>
+            <label style="font-size: 0.85em; display: flex; align-items: center; gap: 5px;">
+                <input type="checkbox" id="chkMaintainSize" checked> 원본 크기 유지 (여백 투명)
+            </label>
+        </div>
+
+        <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 15px 0;">
+
+        <div class="custom-checkbox-wrapper" style="margin-bottom: 10px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em; color: #3498db; font-weight: bold;">
+                <input type="checkbox" id="chkDownloadUplace">
+                <span>📘 Uplace 전용 포맷 (.you)</span>
+            </label>
+        </div>
+
+        <div class="custom-checkbox-wrapper" style="margin-bottom: 15px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9em; color: #2ecc71; font-weight: bold;">
+                <input type="checkbox" id="chkDownloadWplace">
+                <span>📗 Wplace 전용 포맷 (.wplace)</span>
+            </label>
+        </div>
+
+        <div id="wplaceCoordSection" style="display: none; margin-left: 24px; margin-bottom: 15px; padding: 10px; background: var(--bg-color); border-radius: 6px;">
+            <p style="font-size: 0.8em; color: var(--text-secondary); margin-bottom: 8px;">* 좌표 텍스트를 복사해서 아무 칸에나 붙여넣기(Ctrl+V) 하세요!</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                <label style="font-size: 0.8em;">Tile X <input type="number" id="wplaceTileX" placeholder="0" style="width:100%;"></label>
+                <label style="font-size: 0.8em;">Tile Y <input type="number" id="wplaceTileY" placeholder="0" style="width:100%;"></label>
+                <label style="font-size: 0.8em;">Local X <input type="number" id="wplaceLocalX" placeholder="0" style="width:100%;"></label>
+                <label style="font-size: 0.8em;">Local Y <input type="number" id="wplaceLocalY" placeholder="0" style="width:100%;"></label>
+            </div>
+            <div style="display: flex; gap: 8px; opacity: 0.7;">
+                <label style="flex: 1; font-size: 0.8em;">가로 픽셀 <input type="number" id="wplacePixelX" readonly style="width:100%; background: transparent; border: none;"></label>
+                <label style="flex: 1; font-size: 0.8em;">세로 픽셀 <input type="number" id="wplacePixelY" readonly style="width:100%; background: transparent; border: none;"></label>
+            </div>
+        </div>
+
+        <button id="downloadBtn" class="action-btn" style="
+            width: 100%; 
+            background: linear-gradient(145deg, #3498db, #2980b9); 
+            color: white; 
+            padding: 14px; 
+            font-size: 1.05em; 
+            font-weight: 800; 
+            border-radius: 8px; 
+            border: none; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15), 0 2px 4px rgba(52, 152, 219, 0.3); 
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            cursor: pointer;
+        ">
+            💾 선택한 옵션으로 다운로드
+        </button>
+    </div>
+</section>

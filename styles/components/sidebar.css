@@ -1,0 +1,71 @@
+/* 사이드바 내부의 각 기능별 패널 (카드 형태) */
+.sidebar-section {
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-section h2 {
+    font-size: 1rem;
+    margin-bottom: 15px;
+    color: var(--text-main);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
+/* 주요 액션 버튼 (업로드 등) */
+.primary-btn {
+    width: 100%;
+    background: var(--accent-success);
+    color: #111;
+    border: none;
+    padding: 12px 0;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.primary-btn:hover { opacity: 0.8; }
+
+/* 폼 컨트롤 요소들 */
+.control-group {
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.control-group label {
+    font-size: 0.85rem;
+    color: var(--text-sub);
+    display: flex;
+    justify-content: space-between;
+}
+.ui-select, .ui-input {
+    background: var(--bg-surface);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    padding: 8px 10px;
+    border-radius: 4px;
+    width: 100%;
+    font-family: inherit;
+}
+input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent-primary);
+    cursor: pointer;
+}
+
+/* 정보 표시 패널 */
+.info-panel {
+    background: var(--bg-surface);
+    padding: 12px;
+    border-radius: 6px;
+    margin-top: 15px;
+    font-size: 0.85rem;
+    color: var(--text-sub);
+    border: 1px solid var(--border-color);
+}

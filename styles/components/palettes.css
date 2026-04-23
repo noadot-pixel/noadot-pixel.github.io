@@ -1,0 +1,112 @@
+/* 팔레트 색상 버튼 격자 */
+.palette-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.color-btn {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.color-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    z-index: 2;
+}
+
+.palette-mode-selector {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 15px;
+}
+
+.palette-mode-selector button {
+    flex: 1;
+    padding: 8px;
+    background: var(--bg-surface);
+    color: var(--text-sub);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.palette-mode-selector button.active {
+    background: var(--accent-success);
+    color: #111;
+    font-weight: bold;
+    border-color: var(--accent-success);
+}
+
+.input-group-row input {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 6px;
+    color: var(--text-primary);
+    font-size: 0.85em;
+    text-align: center;
+}
+
+.input-group-row input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+/* 상단 작은 조작 버튼들 (리스트/타일, 정렬, 저장) */
+.mini-btn {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 0.9em;
+    transition: all 0.2s;
+}
+
+.mini-btn:hover {
+    background: var(--bg-color);
+}
+
+.mini-btn.active {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+}
+
+/* 정렬 셀렉트 박스 */
+#paletteSortSelect {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 4px;
+    padding: 2px 6px;
+    outline: none;
+}
+
+/* 리스트 뷰 삭제 버튼 Hover 효과 */
+.remove-btn {
+    transition: all 0.2s ease;
+}
+.remove-btn:hover {
+    background: #e74c3c !important;
+    color: white !important;
+}
+
+/* 리스트 뷰 픽셀 뱃지 스타일 */
+.pixel-badge {
+    font-size: 0.8em;
+    color: var(--accent-primary);
+    background: var(--bg-surface);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: bold;
+    border: 1px solid var(--border-color);
+}
