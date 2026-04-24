@@ -110,3 +110,76 @@
     font-weight: bold;
     border: 1px solid var(--border-color);
 }
+
+/* ==========================================
+   🌟 커스텀 팔레트 레이아웃 분리 클래스
+========================================== */
+.custom-section-container {
+    border-top: 1px dashed var(--border-color);
+    padding-top: 15px;
+    margin-top: 15px;
+}
+
+.custom-palette-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.custom-palette-label {
+    font-weight: bold;
+}
+
+.view-mode-toggle {
+    display: flex;
+    gap: 5px;
+}
+
+.custom-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 10px;
+    margin-top: 10px;
+}
+
+.hex-input {
+    text-transform: uppercase;
+}
+
+.rgb-input-group {
+    display: flex;
+    gap: 4px; /* 기존 2px에서 살짝 넓혀 쾌적하게 조절 */
+    flex: 2;
+}
+
+.rgb-input {
+    flex: 1;
+}
+
+.btn-add-color {
+    padding: 0 10px;
+}
+
+.palette-action-group {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.btn-toggle-all {
+    font-weight: bold;
+    width: 28px;
+}
+
+.palette-sort-select {
+    flex: 1;
+    font-size: 0.85em;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 4px;
+    padding: 2px 6px;
+    outline: none;
+}

@@ -1,84 +1,79 @@
 <section class="sidebar-section" id="resize-section-group">
-    <h2>크기 조절</h2>
-    <fieldset id="scaleControlsFieldset" style="border: none; padding: 0; margin: 0;">
+    <h2 data-i18n="sec_resizer">크기 조절</h2>
+    <fieldset id="scaleControlsFieldset" class="resizer-fieldset">
         
-        <!-- 이미지 크기 현황판 -->
-        <div id="imageInfoPanel" style="background: var(--bg-surface); padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid var(--border-color); font-size: 0.85em;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                <span style="color: var(--text-secondary);">원본 해상도:</span>
-                <span id="v7-orig-dims" style="font-weight: bold;">-</span>
+        <div id="imageInfoPanel" class="resizer-info-panel">
+            <div class="resizer-info-row">
+                <span class="resizer-label" data-i18n="info_orig_res">원본 해상도:</span>
+                <span id="v7-orig-dims" class="resizer-val-orig">-</span>
             </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                <span style="color: var(--text-secondary);">변환 해상도:</span>
-                <span id="v7-conv-dims" style="color: var(--accent-primary); font-weight: bold;">-</span>
+            <div class="resizer-info-row">
+                <span class="resizer-label" data-i18n="info_conv_res">변환 해상도:</span>
+                <span id="v7-conv-dims" class="resizer-val-conv">-</span>
             </div>
-            <div style="display: flex; justify-content: space-between;">
-                <span style="color: var(--text-secondary);">실제 도트 수 (투명 제외):</span>
-                <span id="v7-pixel-count" style="color: var(--accent-secondary); font-weight: bold;">-</span>
+            <div class="resizer-info-row" style="margin-bottom: 0;">
+                <span class="resizer-label" data-i18n="info_actual_dots">실제 도트 수 (투명 제외):</span>
+                <span id="v7-pixel-count" class="resizer-val-dots">-</span>
             </div>
         </div>
         
-        <!-- 리사이징 알고리즘 -->
-        <div class="control-group" style="margin-bottom: 15px;">
-            <label style="font-weight: bold; margin-bottom: 8px; display: block;">리사이징 알고리즘</label>
+        <div class="control-group resizer-margin-bottom">
+            <label class="resizer-group-title" data-i18n="label_resize_algo">리사이징 알고리즘</label>
             
             <div class="ui-segment-control">
                 <input type="radio" name="resizeAlgo" id="algoAverage" value="average" checked>
-                <label for="algoAverage">Average</label>
+                <label for="algoAverage" data-i18n="algo_average">Average</label>
 
                 <input type="radio" name="resizeAlgo" id="algoCenter" value="center">
-                <label for="algoCenter">Center</label>
+                <label for="algoCenter" data-i18n="algo_center">Center</label>
 
                 <input type="radio" name="resizeAlgo" id="algoNearest" value="nearest">
-                <label for="algoNearest">Nearest</label>
+                <label for="algoNearest" data-i18n="algo_nearest">Nearest</label>
             </div>
         </div>
 
-        <!-- 조절방식 드롭다운 -->
         <div class="control-group">
-            <label for="scaleModeSelect">조절 방식</label>
+            <label for="scaleModeSelect" data-i18n="label_scale_mode">조절 방식</label>
             <select id="scaleModeSelect" class="ui-select">
-                <option value="pixel">픽셀 단위 (직접/슬라이더)</option>
-                <option value="ratio">비율 단위 (배율 슬라이더)</option>
+                <option value="pixel" data-i18n="mode_pixel">픽셀 단위 (직접/슬라이더)</option>
+                <option value="ratio" data-i18n="mode_ratio">비율 단위 (배율 슬라이더)</option>
             </select>
         </div>
 
-        <!-- 크기조절 입력란 -->
         <div id="pixel-scale-controls">
-            <div class="control-group" style="margin-bottom: 15px;">
-                <label style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                    <span>너비 슬라이더</span>
-                    <span id="pixelSliderValue" style="color: var(--accent-primary); font-weight: bold;"></span>
+            <div class="control-group resizer-margin-bottom">
+                <label class="resizer-slider-label">
+                    <span data-i18n="label_width_slider">너비 슬라이더</span>
+                    <span id="pixelSliderValue" class="resizer-val-conv"></span>
                 </label>
-                <input type="range" id="pixelWidthSlider" min="16" max="512" value="512" step="1" style="width: 100%; direction: rtl; cursor: pointer;">
+                <input type="range" id="pixelWidthSlider" min="16" max="512" value="512" step="1" class="resizer-slider resizer-slider-rtl">
             </div>
 
-            <div style="display: flex; gap: 10px;">
+            <div class="resizer-flex-row">
                 <div class="control-group" style="flex: 1;">
-                    <label>너비 (px)</label>
+                    <label data-i18n="label_width_px">너비 (px)</label>
                     <input type="number" id="scaleWidth" min="1" class="ui-input">
                 </div>
                 <div class="control-group" style="flex: 1;">
-                    <label>높이 (px)</label>
+                    <label data-i18n="label_height_px">높이 (px)</label>
                     <input type="number" id="scaleHeight" min="1" class="ui-input">
                 </div>
             </div>
         </div>
 
-        <!-- 배율출력 -->
         <div id="ratio-scale-controls" style="display: none;">
             <div class="control-group">
-                <label>축소 배율 <span id="scaleValue" style="color: var(--accent-primary);">1.00x</span></label>
-                <input type="range" id="scaleSlider" min="1" max="16" value="1" step="1">
+                <label><span data-i18n="label_scale_ratio">축소 배율</span> <span id="scaleValue" class="resizer-val-conv">1.00x</span></label>
+                <input type="range" id="scaleSlider" min="1" max="16" value="1" step="1" class="resizer-slider">
             </div>
         </div>
 
-        <div class="control-group" style="border-top: 1px dashed var(--border-color); padding-top: 15px; margin-top: 15px;">
-            <label style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span style="font-weight: bold;">💾 출력 배율 (다운로드용)</span>
-                <span id="exportScaleValue" style="color: var(--accent-warning); font-weight: bold;">1x</span>
+        <div class="control-group resizer-export-group">
+            <label class="resizer-slider-label">
+                <span style="font-weight: bold;" data-i18n="label_export_scale">💾 출력 배율 (다운로드용)</span>
+                <span id="exportScaleValue" class="resizer-val-export">1x</span>
             </label>
-            <input type="range" id="exportScaleSlider" min="1" max="10" value="1" step="1" style="width: 100%; cursor: pointer;">
+            <input type="range" id="exportScaleSlider" min="1" max="10" value="1" step="1" class="resizer-slider">
         </div>
     </fieldset>
 </section>

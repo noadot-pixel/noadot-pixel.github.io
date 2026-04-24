@@ -1,18 +1,25 @@
-.viewer-wrapper {
-    width: 100%;
+/* features/02-viewer/viewer.css - 중복 제거 클린 버전 */
+
+.viewer-section {
     height: 100%;
+    display: flex;
+    flex-direction: column;
     position: relative;
-    /* (수정됨) 컨테이너가 알아서 꽉 채우므로 flex 관련 속성 삭제 */
 }
 
-/* 🌟 1. 컨테이너가 0x0으로 쪼그라들지 않게 무조건 꽉 채움! */
+/* 🌟 1. 캔버스 컨테이너 설정 */
 .canvas-container {
     width: 100%;
     height: 100%;
-    border: none;
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
 }
 
-/* 🌟 2. 투명도 체크무늬를 캔버스 본체로 이동 */
+/* 🌟 2. 캔버스 본체 (투명도 체크무늬 및 안티앨리어싱 방지) */
 #main-canvas {
     background-image: 
         linear-gradient(45deg, #2a2b3c 25%, transparent 25%), 
@@ -23,111 +30,67 @@
     background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     border: 1px solid var(--border-color);
-    border-radius: 4px; /* 캔버스 모서리 살짝 둥글게 */
+    border-radius: 4px;
 
     image-rendering: -moz-crisp-edges;
     image-rendering: -webkit-crisp-edges;
     image-rendering: pixelated;
 }
 
-.viewer-toolbar {
+/* 🌟 3. UI 컴포넌트 (줌, 안내문구, 로딩) */
+.zoom-display {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 1000;
+    display: none;
+}
+
+.placeholder-ui {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.loading-indicator {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2000;
+}
+
+.loading-indicator p {
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+}
+
+/* ==========================================
+   🌟 4. 플로팅 툴바 및 다운로드 팝업 공통
+========================================== */
+.viewer-bottom-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    padding: 8px 16px;
+    gap: 8px;
     position: absolute;
     bottom: 20px;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    display: flex;
-    gap: 5px;
-    padding: 5px;
-}
-
-.tool-btn {
-    background: transparent;
-    color: var(--text-main);
-    border: none;
-    padding: 8px 12px;
-    cursor: pointer;
-    border-radius: 4px;
-}
-
-.tool-btn:hover { background: var(--bg-surface); }
-
-.viewer-toolbar {
-    position: absolute;
-    bottom: 25px;
     left: 50%;
     transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 8px;
     background: var(--bg-surface);
-    padding: 8px 16px;
-    border-radius: 40px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    border: 1px solid var(--border-color);
-    z-index: 100;
-}
-
-.v-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-primary);
-    font-size: 1.2em;
-    cursor: pointer;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-}
-
-.v-btn:hover {
-    background: var(--bg-color);
-}
-
-.v-btn:active {
-    transform: scale(0.9);
-}
-
-.v-divider {
-    width: 1px;
-    height: 24px;
-    background: var(--border-color);
-    margin: 0 4px;
-}
-
-/* 다운로드 전용 포인트 버튼 */
-.v-btn.primary-btn {
-    background: linear-gradient(145deg, #3498db, #2980b9);
-    color: white;
-    width: auto;
-    padding: 0 20px;
-    border-radius: 20px;
-    font-size: 0.95em;
-    font-weight: bold;
-    box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
-}
-
-.v-btn.primary-btn:hover {
-    background: linear-gradient(145deg, #41a4e6, #3498db);
-}
-
-.viewer-bottom-toolbar {
-    position: absolute;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--bg-surface);
-    padding: 8px 16px;
     border-radius: 40px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.4);
     border: 1px solid var(--border-color);
     z-index: 1000;
+    width: max-content;
+    max-width: 95vw;
 }
 
 .v-btn {
@@ -149,51 +112,15 @@
 .v-btn:active { transform: scale(0.9); }
 
 .v-divider {
-    width: 1px;
-    height: 24px;
-    background: var(--border-color);
-    margin: 0 4px;
-}
-
-/* 다운로드 전용 파란색 버튼 */
-.v-btn.primary-btn {
-    background: linear-gradient(145deg, #3498db, #2980b9);
-    color: white;
-    width: auto;
-    padding: 0 20px;
-    border-radius: 20px;
-    font-size: 0.95em;
-    font-weight: bold;
-}
-.v-btn.primary-btn:hover { background: linear-gradient(145deg, #41a4e6, #3498db); }
-
-.viewer-bottom-toolbar {
-    display: flex;
-    align-items: center;
-    flex-wrap: nowrap;
-    padding: 8px 16px;
-    gap: 8px;
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--bg-surface);
-    border-radius: 40px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    border: 1px solid var(--border-color);
-    z-index: 1000;
-    width: max-content; /* 🌟 툴바가 찌그러지지 않고 자기 크기를 유지하게 함 */
-    max-width: 95vw; /* 단, 화면 밖으로 넘어가진 않게 방어 */
-}
-
-.v-divider {
     margin: 0 4px;
     width: 1px;
     height: 24px;
     background: var(--border-color);
 }
 
-/* 다운로드 체크박스 그룹 */
+/* ==========================================
+   🌟 5. 다운로드 전용 팝업 및 체크박스
+========================================== */
 .dl-checkbox-group {
     display: flex;
     gap: 14px;
@@ -208,21 +135,15 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    white-space: nowrap; /* 🌟 글씨가 위아래로 꺾이는 현상(줄바꿈) 완벽 차단! */
+    white-space: nowrap;
 }
 
-/* Wplace / Uplace 전용 컬러 */
-.dl-label.color-wplace { color: #2ecc71; }
-.dl-label.color-uplace { color: #3498db; }
-
-/* 팝업 껍데기 */
 .dl-popup-wrapper {
     position: relative;
     display: flex;
     align-items: center;
 }
 
-/* 팝업 공통 디자인 */
 .dl-popup {
     display: none;
     position: absolute;
@@ -233,7 +154,7 @@
     border-radius: 10px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.5);
     z-index: 2000;
-    font-weight: normal; /* 팝업 안의 글씨는 얇고 예쁘게 */
+    font-weight: normal;
     color: var(--text-primary);
 }
 
@@ -247,7 +168,6 @@
     color: var(--text-secondary);
 }
 
-/* 숫자 입력칸 그룹 */
 .dl-popup-inputs {
     display: flex;
     gap: 8px;
@@ -276,7 +196,6 @@
     white-space: nowrap;
 }
 
-/* 좌표 입력용 2단 그리드 */
 .dl-grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -292,7 +211,6 @@
     white-space: nowrap;
 }
 
-/* 🌟 팝업 꼬리(화살표) 디자인 */
 .dl-popup-tail {
     position: absolute;
     bottom: -6px;
@@ -306,7 +224,6 @@
 .tail-left { left: 45px; transform: translateX(-50%) rotate(45deg); }
 .tail-right { right: 40px; transform: translateX(50%) rotate(45deg); }
 
-/* 다운로드 전용 파란 버튼 */
 .dl-btn {
     margin-left: 8px;
     background: linear-gradient(145deg, #3498db, #2980b9);
@@ -316,7 +233,7 @@
     border-radius: 20px;
     font-weight: bold;
     cursor: pointer;
-    white-space: nowrap; /* 버튼 글씨 찌그러짐 방지 */
+    white-space: nowrap;
     box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
     transition: all 0.2s ease;
 }

@@ -3,18 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <meta http-equiv="Content-Security-Policy" content="
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.firebase.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net blob:; 
+        worker-src 'self' blob: https://cdn.jsdelivr.net;
+        connect-src 'self' wss://*.firebaseio.com https://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net blob:;
+    ">
+    
     <title>NoaDot v7 - Remake</title>
+    
     <link rel="stylesheet" href="styles/variables.css">
     <link rel="stylesheet" href="styles/reset.css">
     <link rel="stylesheet" href="styles/layout.css">
-    
     <link rel="stylesheet" href="styles/components/header.css">
     <link rel="stylesheet" href="styles/components/viewer.css">
     <link rel="stylesheet" href="styles/components/sidebar.css">
     <link rel="stylesheet" href="styles/components/engine.css">
     <link rel="stylesheet" href="styles/components/palettes.css">
     <link rel="stylesheet" href="styles/components/kmeans.css">
-    </head>
+    <link rel="stylesheet" href="styles/components/resizer.css">
+    <link rel="stylesheet" href="styles/components/comments.css">
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8o-GgPjhBepBUs3HF3cD7XMXP9-haUgI",
+            authDomain: "noadot-commet-system.firebaseapp.com",
+            projectId: "noadot-commet-system",
+            storageBucket: "noadot-commet-system.firebasestorage.app",
+            messagingSenderId: "335432879892",
+            appId: "1:335432879892:web:62197c9dfef7a4bfd17c01"
+        };
+
+        // Firebase 초기화
+        const app = firebase.initializeApp(firebaseConfig);
+        
+        // V7의 모듈(logic.js 등)에서 db를 읽을 수 있도록 window 객체에 쾅! 박아줍니다.
+        window.db = app.firestore();
+    </script>
+</head>
 <body>
     <div id="app-root"></div>
 

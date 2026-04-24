@@ -1,0 +1,106 @@
+/* ==========================================
+   🌟 댓글 시스템 스타일 (유튜브 스타일 모달)
+========================================== */
+
+/* 1. 사이드바 하단 진입 버튼 */
+.comments-launcher {
+    margin-top: 20px;
+    padding-bottom: 30px;
+}
+
+.outline-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    box-shadow: none;
+}
+.outline-btn:hover {
+    background: var(--bg-color);
+}
+
+/* 2. 우측에서 나타나는 슬라이드 서랍 (Drawer) */
+.comments-drawer {
+    position: fixed;
+    top: 60px; /* 헤더 아래부터 시작 */
+    right: -400px; /* 처음엔 화면 우측 밖에 숨김 */
+    width: 380px; /* 사이드바 너비와 동일하게 */
+    height: calc(100vh - 60px);
+    background: var(--bg-main);
+    box-shadow: -5px 0 20px rgba(0,0,0,0.3);
+    z-index: 9000;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* 쫀득한 애니메이션 */
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border-color);
+}
+
+/* JS에서 'open' 클래스를 붙이면 화면 안으로 들어옴! */
+.comments-drawer.open {
+    right: 0;
+}
+
+/* 3. 서랍 내부 레이아웃 */
+.comments-drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.comments-drawer-header h2 {
+    margin: 0;
+    font-size: 1.1em;
+    color: var(--text-primary);
+}
+
+.close-drawer-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 1.2em;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.comments-drawer-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* 모바일 화면 대응 (아래에서 위로 올라오거나 꽉 차게) */
+@media (max-width: 768px) {
+    .comments-drawer {
+        top: 0;
+        height: 100vh;
+        width: 100vw;
+        right: -100vw;
+    }
+}
+
+/* ==========================================
+   🌟 아래는 기존 댓글 컴포넌트 디자인 유지
+========================================== */
+.comment-input-area { display: flex; flex-direction: column; gap: 8px; margin-bottom: 25px; }
+.comment-label { font-weight: bold; font-size: 0.9em; color: var(--text-primary); margin-bottom: 4px; }
+.comment-nick { width: 40%; min-width: 120px; }
+.comment-text { resize: vertical; }
+.comment-submit-btn { padding: 10px; font-size: 0.95em; margin-top: 5px; }
+.comments-container { border-top: 1px dashed var(--border-color); padding-top: 15px; display: flex; flex-direction: column; gap: 12px; }
+.comment-status-msg { text-align: center; color: var(--text-secondary); padding: 20px 0; }
+.comment-item { border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; background: var(--bg-surface); transition: background 0.2s; }
+.comment-item.is-reply { background: var(--bg-color); border-left: 3px solid var(--accent-primary); }
+.comment-header { display: flex; align-items: baseline; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.comment-author { font-weight: bold; color: var(--text-primary); }
+.comment-time { font-size: 0.75em; color: var(--text-secondary); }
+.comment-hash { font-size: 0.85em; color: #3498db; }
+.comment-hash.admin-glow { color: #ff4d4d; font-weight: 900; text-shadow: 0 0 3px rgba(255, 77, 77, 0.8), 0 0 12px rgba(255, 77, 77, 0.5); letter-spacing: 0.5px; }
+.comment-body { font-size: 0.9em; color: var(--text-primary); white-space: pre-wrap; margin-bottom: 10px; line-height: 1.4; }
+.comment-actions { display: flex; justify-content: flex-end; }
+.btn-reply { background: none; border: none; color: var(--accent-primary); font-size: 0.85em; font-weight: bold; cursor: pointer; padding: 0; }
+.btn-reply:hover { text-decoration: underline; }
+.reply-form { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border-color); flex-direction: column; gap: 8px; }
+.reply-actions { display: flex; gap: 8px; justify-content: flex-end; }

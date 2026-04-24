@@ -1,0 +1,77 @@
+/* features/04-resizer/resizer.css */
+
+.resizer-fieldset {
+    border: none; /* 🌟 못생긴 기본 테두리 제거 */
+    padding: 0;
+    margin: 0;
+}
+
+/* ==========================================
+   🌟 1. 크기 정보 현황판
+========================================== */
+.resizer-info-panel {
+    background: var(--bg-surface);
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+    font-size: 0.85em;
+}
+
+.resizer-info-row {
+    display: flex;
+    justify-content: space-between; /* 🌟 텍스트와 숫자를 양끝으로 정렬 */
+    margin-bottom: 6px;
+}
+
+.resizer-label {
+    color: var(--text-secondary);
+}
+
+/* 데이터 강조 색상들 */
+.resizer-val-orig { font-weight: bold; color: var(--text-main); }
+.resizer-val-conv { font-weight: bold; color: var(--accent-primary); }
+.resizer-val-dots { font-weight: bold; color: #e67e22; }
+.resizer-val-export { font-weight: bold; color: #e74c3c; }
+
+/* ==========================================
+   🌟 2. 폼 컨트롤 및 슬라이더 디테일
+========================================== */
+.resizer-group-title {
+    font-weight: bold;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.resizer-margin-bottom {
+    margin-bottom: 15px;
+}
+
+.resizer-flex-row {
+    display: flex;
+    gap: 10px;
+}
+
+.resizer-slider-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px; /* 🌟 텍스트와 슬라이더 바 사이의 간격 확보! */
+}
+
+.resizer-slider {
+    width: 100%;
+    cursor: pointer;
+    accent-color: var(--accent-primary);
+}
+
+/* 너비 조절용 역방향(RTL) 슬라이더 */
+.resizer-slider-rtl {
+    direction: rtl;
+}
+
+/* 하단 다운로드 출력 배율 구분선 */
+.resizer-export-group {
+    border-top: 1px dashed var(--border-color);
+    padding-top: 15px;
+    margin-top: 15px;
+}

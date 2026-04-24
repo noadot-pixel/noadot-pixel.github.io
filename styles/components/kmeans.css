@@ -66,8 +66,35 @@
 .kmeans-label {
     display: flex;
     justify-content: space-between;
+    align-items: flex-end; /* 양쪽 텍스트의 밑단(Base)을 깔끔하게 맞춤 */
     font-weight: bold;
     margin-bottom: 8px;
+    gap: 15px; /* 왼쪽 제목과 오른쪽 숫자 사이의 최소 안전거리 강제 확보 */
+}
+
+.kmeans-label span:first-child {
+    flex: 1; /* 남은 공간을 유연하게 차지함 */
+    line-height: 1.3;
+    word-break: keep-all; /* 영문 텍스트가 단어 중간에 쪼개지지 않도록 보호 */
+}
+
+.kmeans-val-match, 
+.kmeans-val-extract {
+    white-space: nowrap; /* 🌟 '12 Colors'가 위아래로 찢어지는 현상 완벽 방지! */
+    flex-shrink: 0; /* 창이 아무리 좁아져도 내 공간은 절대 양보 안 함 */
+    text-align: right;
+}
+
+/* 🎯 매칭 버튼 수치 컬러 */
+.kmeans-val-match {
+    color: #e67e22;
+    font-weight: bold;
+}
+
+/* ✨ 추출 버튼 수치 컬러 */
+.kmeans-val-extract {
+    color: #9b59b6;
+    font-weight: bold;
 }
 
 .kmeans-slider {
@@ -115,11 +142,6 @@
     background: linear-gradient(145deg, #f39c12, #e67e22);
 }
 
-/* ✨ 추출 버튼 (보라색 테마) */
-.kmeans-val-extract {
-    color: #9b59b6;
-    font-weight: bold;
-}
 .kmeans-btn-extract {
     background: linear-gradient(145deg, #9b59b6, #8e44ad);
     box-shadow: 0 4px 6px rgba(0,0,0,0.15), 0 2px 4px rgba(155, 89, 182, 0.3);

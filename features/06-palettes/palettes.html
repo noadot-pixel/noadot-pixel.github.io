@@ -1,5 +1,5 @@
 <section class="sidebar-section">
-    <h2>4. 팔레트 관리</h2>
+    <h2 data-i18n="sec_palettes">4. 팔레트 관리</h2>
     
     <div class="palette-mode-selector">
         <button class="active" data-mode="geopixels">GeoPixels</button>
@@ -7,42 +7,40 @@
         <button data-mode="uplace">Uplace</button>
     </div>
 
-    
-    
     <div id="palette-container"></div>
 
-    <div id="custom-section" style="border-top: 1px dashed var(--border-color); padding-top: 15px; margin-top: 15px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <label style="font-weight: bold;">🎨 커스텀 팔레트</label>
-            <div class="view-mode-toggle" style="display: flex; gap: 5px;">
-                <button id="viewListBtn" class="mini-btn active">☰</button>
-                <button id="viewGridBtn" class="mini-btn">▦</button>
+    <div id="custom-section" class="custom-section-container">
+        <div class="custom-palette-header">
+            <label class="custom-palette-label" data-i18n="label_custom_palette">🎨 커스텀 팔레트</label>
+            <div class="view-mode-toggle">
+                <button id="viewListBtn" class="mini-btn active" data-i18n-title="title_view_list" title="리스트 보기">☰</button>
+                <button id="viewGridBtn" class="mini-btn" data-i18n-title="title_view_grid" title="그리드 보기">▦</button>
             </div>
         </div>
 
-        <div class="input-group-row" style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; margin-top: 10px;">
-            <input type="text" id="addHex" placeholder="HEX 코드 입력 (예: #FFFFFF)" style="text-transform: uppercase;">
-            <div style="display: flex; gap: 2px; flex: 2;">
-                <input type="number" id="addR" placeholder="R" min="0" max="255" style="flex: 1;">
-                <input type="number" id="addG" placeholder="G" min="0" max="255" style="flex: 1;">
-                <input type="number" id="addB" placeholder="B" min="0" max="255" style="flex: 1;">
-                <button id="addColorBtn" class="action-btn" style="padding: 0 10px;">+</button>
+        <div class="input-group-row custom-input-wrapper">
+            <input type="text" id="addHex" class="hex-input" placeholder="HEX 코드 입력 (예: #FFFFFF)">
+            <div class="rgb-input-group">
+                <input type="number" id="addR" placeholder="R" min="0" max="255" class="rgb-input">
+                <input type="number" id="addG" placeholder="G" min="0" max="255" class="rgb-input">
+                <input type="number" id="addB" placeholder="B" min="0" max="255" class="rgb-input">
+                <button id="addColorBtn" class="action-btn btn-add-color">+</button>
             </div>
         </div>
 
-        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-            <button id="toggleAllCustomBtn" class="mini-btn" title="커스텀 전체 선택/해제" style="font-weight: bold; width: 28px;">A</button>
-            <select id="paletteSortSelect" style="flex: 1; font-size: 0.85em;">
-                <option value="added">추가순</option>
-                <option value="count">사용량순</option>
-                <option value="bright">밝기순</option>
-                <option value="r">R값 높은순</option>
-                <option value="g">G값 높은순</option>
-                <option value="b">B값 높은순</option>
+        <div class="palette-action-group">
+            <button id="toggleAllCustomBtn" class="mini-btn btn-toggle-all" data-i18n-title="title_toggle_all" title="커스텀 전체 선택/해제">A</button>
+            <select id="paletteSortSelect" class="palette-sort-select">
+                <option value="added" data-i18n="opt_sort_added">추가순</option>
+                <option value="count" data-i18n="opt_sort_count">사용량순</option>
+                <option value="bright" data-i18n="opt_sort_bright">밝기순</option>
+                <option value="r" data-i18n="opt_sort_r">R값 높은순</option>
+                <option value="g" data-i18n="opt_sort_g">G값 높은순</option>
+                <option value="b" data-i18n="opt_sort_b">B값 높은순</option>
             </select>
-            <button id="exportPaletteBtn" class="mini-btn" title="팔레트 내보내기">💾</button>
-            <button id="importPaletteBtn" class="mini-btn" title="팔레트 불러오기">📂</button>
-            <button id="resetAddedColorsBtn" class="mini-btn" title="전체 초기화">🔄</button>
+            <button id="exportPaletteBtn" class="mini-btn" data-i18n-title="title_export_palette" title="팔레트 내보내기">💾</button>
+            <button id="importPaletteBtn" class="mini-btn" data-i18n-title="title_import_palette" title="팔레트 불러오기">📂</button>
+            <button id="resetAddedColorsBtn" class="mini-btn" data-i18n-title="title_reset_custom" title="전체 초기화">🔄</button>
             <input type="file" id="paletteUpload" style="display: none;" accept=".json">
         </div>
 

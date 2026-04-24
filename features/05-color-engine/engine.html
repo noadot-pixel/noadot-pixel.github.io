@@ -1,228 +1,231 @@
 <section class="sidebar-section">
-    <h2>5. 변환 옵션</h2>
+    <h2 data-i18n="sec_engine">5. 변환 옵션</h2>
 
     <details class="category-details" open>
-        <summary>🎨 색상 및 톤</summary>
+        <summary><span data-i18n="category_color_tone">🎨 색상 및 톤</span></summary>
         <div class="details-content">
             
             <div class="control-group">
-                <label style="font-weight:bold; margin-bottom: 5px;">색상 계산 엔진</label>
+                <label class="engine-label-bold" data-i18n="label_color_engine">색상 계산 엔진</label>
                 <div class="radio-group" style="margin-bottom: 10px;">
-                    <label><input type="radio" name="algoTrack" value="simple" checked> 기본 (단일)</label>
-                    <label><input type="radio" name="algoTrack" value="advanced"> 전문가 (퓨전)</label>
+                    <label><input type="radio" name="algoTrack" value="simple" checked> <span data-i18n="algo_simple">기본 (단일)</span></label>
+                    <label><input type="radio" name="algoTrack" value="advanced"> <span data-i18n="algo_advanced">전문가 (퓨전)</span></label>
                 </div>
 
                 <div id="simpleAlgoPanel">
                     <select id="simpleAlgoSelect" class="ui-select">
-                        <option value="rgb">RGB (날카로운 매칭)</option>
-                        <option value="oklab" selected>Oklab (자연스러운 색상)</option>
-                        <option value="ciede2000">Wdot (CIEDE2000 D50)</option>
-                        <option value="ciede2000-d65">D65 (웹 표준)</option>
+                        <option value="rgb" data-i18n="opt_rgb">RGB (날카로운 매칭)</option>
+                        <option value="oklab" selected data-i18n="opt_oklab">Oklab (자연스러운 색상)</option>
+                        <option value="ciede2000" data-i18n="opt_ciede2000">Wdot (CIEDE2000 D50)</option>
+                        <option value="ciede2000-d65" data-i18n="opt_d65">D65 (웹 표준)</option>
                     </select>
                 </div>
 
-                <div id="advancedAlgoPanel" style="display: none; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; border: 1px dashed var(--border-color); margin-bottom: 10px;">
+                <div id="advancedAlgoPanel" class="engine-advanced-panel" style="display: none;">
                     
-                    <div class="control-group" style="margin-bottom: 8px;">
-                        <label style="font-size: 0.85em;">모델 A (기본 베이스)</label>
+                    <div class="control-group engine-sub-group">
+                        <label class="engine-label-sm" data-i18n="label_model_a">모델 A (기본 베이스)</label>
                         <select id="advancedModelA" class="ui-select">
-                            <option value="rgb">RGB (날카로운 매칭)</option>
-                            <option value="oklab" selected>Oklab (자연스러운 색상)</option>
-                            <option value="ciede2000">Wdot (CIEDE2000 D50)</option>
-                            <option value="ciede2000-d65">D65 (웹 표준)</option>
+                            <option value="rgb" data-i18n="opt_rgb">RGB (날카로운 매칭)</option>
+                            <option value="oklab" selected data-i18n="opt_oklab">Oklab (자연스러운 색상)</option>
+                            <option value="ciede2000" data-i18n="opt_ciede2000">Wdot (CIEDE2000 D50)</option>
+                            <option value="ciede2000-d65" data-i18n="opt_d65">D65 (웹 표준)</option>
                         </select>
                     </div>
 
-                    <div class="control-group" style="margin-bottom: 8px;">
-                        <label style="font-size: 0.85em;">모델 B (혼합할 특성)</label>
+                    <div class="control-group engine-sub-group">
+                        <label class="engine-label-sm" data-i18n="label_model_b">모델 B (혼합할 특성)</label>
                         <select id="advancedModelB" class="ui-select">
-                            <option value="none">사용 안 함 (None)</option>
-                            <option value="rgb">RGB (날카로운 매칭)</option>
-                            <option value="oklab">Oklab (자연스러운 색상)</option>
-                            <option value="ciede2000">Wdot (CIEDE2000 D50)</option>
-                            <option value="ciede2000-d65" selected>D65 (웹 표준)</option>
+                            <option value="none" data-i18n="opt_none">사용 안 함 (None)</option>
+                            <option value="rgb" data-i18n="opt_rgb">RGB (날카로운 매칭)</option>
+                            <option value="oklab" data-i18n="opt_oklab">Oklab (자연스러운 색상)</option>
+                            <option value="ciede2000" data-i18n="opt_ciede2000">Wdot (CIEDE2000 D50)</option>
+                            <option value="ciede2000-d65" selected data-i18n="opt_d65">D65 (웹 표준)</option>
                         </select>
                     </div>
 
-                    <div class="control-group" style="margin-bottom: 8px;">
-                        <label style="font-size: 0.85em; color: #89b4fa; display: block; margin-bottom: 5px;">
-                            퓨전 비중 (Weight M)
-                        </label>
-                        <input type="range" id="advancedWeightMSlider" min="0" max="1" step="0.05" value="0.8" style="width: 100%; margin-bottom: 4px;">
-                        <div style="display: flex; justify-content: space-between; font-size: 0.8em; font-weight: bold; color: var(--accent-success);">
+                    <div class="control-group engine-sub-group">
+                        <label class="engine-label-highlight" data-i18n="label_weight_m">퓨전 비중 (Weight M)</label>
+                        <input type="range" id="advancedWeightMSlider" min="0" max="1" step="0.05" value="0.8" class="engine-slider-full">
+                        <div class="engine-row-between engine-val-highlight" style="font-size: 0.8em;">
                             <span id="advancedWeightMVal_A">Oklab 0.20</span>
                             <span id="advancedWeightMVal_B">D65 0.80</span>
                         </div>
                     </div>
 
-                    <div class="control-group" style="margin-bottom: 8px;">
-                        <label style="font-size: 0.85em; display: flex; justify-content: space-between;">
-                            <span>탁색 방지 (Anti-Dullness)</span>
-                            <span id="algoChroma_val" style="color: var(--accent-success); font-weight: bold;">10</span>
+                    <div class="control-group engine-sub-group">
+                        <label class="engine-label-sm engine-row-between">
+                            <span data-i18n="label_anti_dullness">탁색 방지 (Anti-Dullness)</span>
+                            <span id="algoChroma_val" class="engine-val-highlight">10</span>
                         </label>
-                        <input type="range" id="algoChromaBoost" min="0" max="100" value="10" style="width: 100%;">
-                        <small style="color: var(--text-secondary); font-size: 0.75em; display: block; margin-top: 4px; line-height: 1.3;">
-                            값이 높을수록 회색조 매칭을 피하고 팔레트의 선명한 색상을 우선적으로 선택합니다.
-                        </small>
+                        <input type="range" id="algoChromaBoost" min="0" max="100" value="10" class="engine-slider-full">
+                        <small class="engine-desc-sm" data-i18n="desc_anti_dullness">값이 높을수록 회색조 매칭을 피하고 팔레트의 선명한 색상을 우선적으로 선택합니다.</small>
                     </div>
                 </div>
             </div>
 
-            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1px 0;">
+            <hr class="engine-divider">
 
-            <div style="display: flex; justify-content: space-between;">
-                <label>채도 
-                    <button class="mini-btn reset-slider-btn" data-target="saturationSlider" data-value-id="saturationValue" data-default="100" style="padding: 0 4px; font-size: 0.8em; margin-left: 5px;" title="초기화">↺</button>
+            <div class="engine-row-between">
+                <label><span data-i18n="label_saturation">채도</span>
+                    <button class="mini-btn reset-slider-btn" data-target="saturationSlider" data-value-id="saturationValue" data-default="100" data-i18n-title="btn_reset_title" title="초기화">↺</button>
                 </label>
-                <span id="saturationValue" style="color: #CBA6F7; font-weight: bold;">100</span>
+                <span id="saturationValue" class="engine-val-purple">100</span>
             </div>
             <input type="range" id="saturationSlider" min="0" max="200" value="100">
 
-            <div style="display: flex; justify-content: space-between;">
-                <label>밝기 
-                    <button class="mini-btn reset-slider-btn" data-target="brightnessSlider" data-value-id="brightnessValue" data-default="0" style="padding: 0 4px; font-size: 0.8em; margin-left: 5px;" title="초기화">↺</button>
+            <div class="engine-row-between">
+                <label><span data-i18n="label_brightness">밝기</span>
+                    <button class="mini-btn reset-slider-btn" data-target="brightnessSlider" data-value-id="brightnessValue" data-default="0" data-i18n-title="btn_reset_title" title="초기화">↺</button>
                 </label>
-                <span id="brightnessValue" style="color: #CBA6F7; font-weight: bold;">0</span>
+                <span id="brightnessValue" class="engine-val-purple">0</span>
             </div>
             <input type="range" id="brightnessSlider" min="-100" max="100" value="0">
 
-            <div style="display: flex; justify-content: space-between;">
-                <label>밝기 
-                    <button class="mini-btn reset-slider-btn" data-target="contrastSlider" data-value-id="brightnessValue" data-default="0" style="padding: 0 4px; font-size: 0.8em; margin-left: 5px;" title="초기화">↺</button>
+            <div class="engine-row-between">
+                <label><span data-i18n="label_contrast">대비</span>
+                    <button class="mini-btn reset-slider-btn" data-target="contrastSlider" data-value-id="contrastValue" data-default="0" data-i18n-title="btn_reset_title" title="초기화">↺</button>
                 </label>
-                <span id="brightnessValue" style="color: #CBA6F7; font-weight: bold;">0</span>
+                <span id="contrastValue" class="engine-val-purple">0</span>
             </div>
             <input type="range" id="contrastSlider" min="-100" max="100" value="0">
         </div>
     </details>
 
     <details class="category-details">
-        <summary>🏁 디더링 및 패턴</summary>
+        <summary><span data-i18n="category_dither">🏁 디더링 및 패턴</span></summary>
         <div class="details-content">
             
             <div class="control-group">
-                <label style="font-weight:bold; margin-bottom: 5px;">디더링 모드 선택</label>
+                <label class="engine-label-bold" data-i18n="label_dither_mode">디더링 모드 선택</label>
                 <select id="ditherModeSelect" class="ui-select" style="margin-bottom: 10px;">
-                    <option value="none" selected>사용 안 함</option>
-                    <option value="basic">기본 디더링 (알고리즘)</option>
-                    <option value="pattern">패턴 디더링 (텍스처)</option>
+                    <option value="none" selected data-i18n="dither_none">사용 안 함</option>
+                    <option value="basic" data-i18n="dither_basic">기본 디더링 (알고리즘)</option>
+                    <option value="pattern" data-i18n="dither_pattern">패턴 디더링 (텍스처)</option>
                 </select>
 
-                <div id="ditherBasicControls" style="display: none; background: var(--bg-color); padding: 8px; border-radius: 4px; margin-bottom: 8px;">
-                    <label style="font-size: 0.85em;">방식 선택</label>
+                <div id="ditherBasicControls" class="engine-sub-panel" style="display: none;">
+                    <label class="engine-label-sm" data-i18n="label_dither_type">방식 선택</label>
                     <select id="basicDitherType" class="ui-select">
-                        <option value="bayer">Bayer (규칙적 점묘화)</option>
-                        <option value="floyd">Floyd-Steinberg (부드러운 확산)</option>
-                        <option value="sierra">Sierra-2 (섬세한 확산)</option>
-                        <option value="atkinson">Atkinson (명암 대비 강화)</option>
+                        <option value="bayer" data-i18n="dither_bayer">Bayer (규칙적 점묘화)</option>
+                        <option value="floyd" data-i18n="dither_floyd">Floyd-Steinberg (부드러운 확산)</option>
+                        <option value="sierra" data-i18n="dither_sierra">Sierra-2 (섬세한 확산)</option>
+                        <option value="atkinson" data-i18n="dither_atkinson">Atkinson (명암 대비 강화)</option>
                     </select>
                 </div>
 
-                <div id="ditherPatternControls" style="display: none; background: var(--bg-color); padding: 8px; border-radius: 4px; margin-bottom: 8px;">
-                    <label style="font-size: 0.85em;">패턴 선택</label>
+                <div id="ditherPatternControls" class="engine-sub-panel" style="display: none;">
+                    <label class="engine-label-sm" data-i18n="label_pattern_type">패턴 선택</label>
                     <select id="patternTypeSelect" class="ui-select" style="margin-bottom: 8px;">
-                        <option value="grid">격자 (Grid)</option>
-                        <option value="vertical">수직선 (Vertical)</option>
-                        <option value="checkerboard">체커보드 (Checkerboard)</option>
-                        <option value="diagonal_r">우하단 대각선 (↘)</option>
-                        <option value="diagonal_l">좌하단 대각선 (↙)</option>
-                        <option value="brick">벽돌 (Brick)</option>
-                        <option value="crt" style="color: var(--accent-success); font-weight: bold;">CRT 서브픽셀 (화면 배열)</option>
-                        <option value="maze" style="color: var(--accent-success); font-weight: bold;">미로형 (Labyrinth)</option>
+                        <option value="grid" data-i18n="pat_grid">격자 (Grid)</option>
+                        <option value="vertical" data-i18n="pat_vertical">수직선 (Vertical)</option>
+                        <option value="checkerboard" data-i18n="pat_checker">체커보드 (Checkerboard)</option>
+                        <option value="diagonal_r" data-i18n="pat_diag_r">우하단 대각선 (↘)</option>
+                        <option value="diagonal_l" data-i18n="pat_diag_l">좌하단 대각선 (↙)</option>
+                        <option value="brick" data-i18n="pat_brick">벽돌 (Brick)</option>
+                        <option value="crt" class="engine-val-highlight" data-i18n="pat_crt">CRT 서브픽셀 (화면 배열)</option>
+                        <option value="maze" class="engine-val-highlight" data-i18n="pat_maze">미로형 (Labyrinth)</option>
                     </select>
 
-                    <label style="font-size: 0.85em;">패턴 크기/비율: <span id="patternSizeValue">4</span></label>
-                    <input type="range" id="patternSizeSlider" min="1" max="10" value="4" style="width: 100%;">
+                    <label class="engine-label-sm"><span data-i18n="label_pattern_size">패턴 크기/비율:</span> <span id="patternSizeValue">4</span></label>
+                    <input type="range" id="patternSizeSlider" min="1" max="10" value="4" class="engine-slider-full">
                 </div>
 
-                <div id="ditherSharedStrength" style="display: none; background: var(--bg-color); padding: 1px; border-radius: 4px;">
-                    <label style="font-size: 0.85em;">디더링 강도: <span id="ditheringValue">50</span></label>
-                    <input type="range" id="ditheringSlider" min="0" max="100" value="50" style="width: 100%;">
+                <div id="ditherSharedStrength" class="engine-sub-panel" style="display: none; padding: 1px; background: transparent;">
+                    <label class="engine-label-sm"><span data-i18n="label_dither_strength">디더링 강도:</span> <span id="ditheringValue">50</span></label>
+                    <input type="range" id="ditheringSlider" min="0" max="100" value="50" class="engine-slider-full">
                 </div>
                 
-                <div id="ditherAspireControls" style="display: none; background: var(--bg-color); padding: 1px; border-radius: 4px;">
-                    <small style="color: var(--text-secondary);">Aspire 디더링은 유기적이고 자연스러운 노이즈 픽셀을 생성합니다. (강도 자동 조절)</small>
+                <div id="ditherAspireControls" class="engine-sub-panel" style="display: none; padding: 1px; background: transparent;">
+                    <small class="engine-desc-sm" data-i18n="desc_aspire">Aspire 디더링은 유기적이고 자연스러운 노이즈 픽셀을 생성합니다. (강도 자동 조절)</small>
                 </div>
             </div>
         </div>
     </details>
 
     <details class="category-details">
-        <summary>✨ 포스트 프로세싱</summary>
+        <summary><span data-i18n="category_post">✨ 후처리 효과</span></summary>
         <div class="details-content">
             
-            <div class="control-group" style="text-align: left;">
-                <label class="checkbox-label" style="display: flex; align-items: center; justify-content: flex-start; gap: 8px;">
+            <div class="control-group">
+                <label class="engine-checkbox-row">
                     <input type="checkbox" id="usePixelioe"> 
-                    <b>Pixelioe</b> <span style="font-size: 0.8em; color: var(--text-secondary);">(픽셀/외곽선 최적화)</span>
+                    <span class="engine-checkbox-text">
+                        <b data-i18n="label_pixelioe">Pixelioe</b> 
+                        <span class="engine-desc-inline" data-i18n="desc_pixelioe">(픽셀/외곽선 최적화)</span>
+                    </span>
                 </label>
-                <div id="pixelioeControls" class="sub-control" style="display: none; margin-left: 28px; margin-top: 8px;">
-                    <label style="font-size: 0.85em;">강도: <span id="pixelioeStrengthVal">50</span></label>
-                    <input type="range" id="pixelioeStrength" min="0" max="100" value="50" style="width: 100%;">
+                <div id="pixelioeControls" class="engine-post-controls" style="display: none;">
+                    <label class="engine-label-sm"><span data-i18n="label_strength">강도:</span> <span id="pixelioeStrengthVal">50</span></label>
+                    <input type="range" id="pixelioeStrength" min="0" max="100" value="50" class="engine-slider-full">
                 </div>
             </div>
 
-            <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 1px 0;">
+            <hr class="engine-divider-dashed">
 
-            <div class="control-group" style="text-align: left;">
-                <label class="checkbox-label" style="display: flex; align-items: center; justify-content: flex-start; gap: 8px;">
+            <div class="control-group">
+                <label class="engine-checkbox-row">
                     <input type="checkbox" id="useSmoothing"> 
-                    <b>면 평탄화</b> <span style="font-size: 0.8em; color: var(--text-secondary);">(Smoothing)</span>
+                    <span class="engine-checkbox-text">
+                        <b data-i18n="label_smoothing">면 평탄화</b> 
+                        <span class="engine-desc-inline" data-i18n="desc_smoothing">(Smoothing)</span>
+                    </span>
                 </label>
-                <div id="smoothingControls" class="sub-control" style="display: none; margin-left: 28px; margin-top: 4px;">
-                    <label style="font-size: 0.85em;">강도: <span id="smoothingLevelVal">1</span></label>
-                    <input type="range" id="smoothingLevel" min="1" max="10" value="1" style="width: 100%;">
-                    <small style="color: var(--text-secondary); display: block; margin-top: 5px; line-height: 1.3;">
-                        노이즈 픽셀을 주변 색으로 뭉개어 애니메이션 톤으로 만듭니다.
-                    </small>
+                <div id="smoothingControls" class="engine-post-controls" style="display: none;">
+                    <label class="engine-label-sm"><span data-i18n="label_strength">강도:</span> <span id="smoothingLevelVal">1</span></label>
+                    <input type="range" id="smoothingLevel" min="1" max="10" value="1" class="engine-slider-full">
+                    <small class="engine-desc-sm" data-i18n="desc_smoothing_detail">노이즈 픽셀을 주변 색으로 뭉개어 애니메이션 톤으로 만듭니다.</small>
                 </div>
             </div>
 
-            <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 1px 0;">
+            <hr class="engine-divider-dashed">
 
-            <div class="control-group" style="text-align: left;">
-                <label class="checkbox-label" style="display: flex; align-items: center; justify-content: flex-start; gap: 8px;">
+            <div class="control-group">
+                <label class="engine-checkbox-row">
                     <input type="checkbox" id="useAlphaGradient"> 
-                    <b>투명도 그라데이션</b>
+                    <span class="engine-checkbox-text">
+                        <b data-i18n="label_alpha_grad">투명도 그라데이션</b>
+                    </span>
                 </label>
-                <div id="alphaGradientControls" class="sub-control" style="display: none; margin-left: 28px; margin-top: 4px; flex-direction: column; gap: 10px;">
+                <div id="alphaGradientControls" class="engine-post-controls" style="display: none; flex-direction: column; gap: 10px;">
                     <div>
-                        <label style="font-size: 0.85em;">디더링 타입</label>
+                        <label class="engine-label-sm" data-i18n="label_dither_type_alpha">디더링 타입</label>
                         <select id="alphaGradientType" class="ui-select" style="margin-bottom: 5px;">
-                            <option value="bayer">Bayer (패턴형)</option>
-                            <option value="floyd">Floyd-Steinberg (유기적)</option>
-                            <option value="sierra">Sierra (부드러움)</option>
-                            <option value="atkinson">Atkinson (명암 대비)</option>
+                            <option value="bayer" data-i18n="alpha_bayer">Bayer (패턴형)</option>
+                            <option value="floyd" data-i18n="alpha_floyd">Floyd-Steinberg (유기적)</option>
+                            <option value="sierra" data-i18n="alpha_sierra">Sierra (부드러움)</option>
+                            <option value="atkinson" data-i18n="alpha_atkinson">Atkinson (명암 대비)</option>
                         </select>
                     </div>
                     <div>
-                        <label style="font-size: 0.85em;">방향 (각도): <span id="alphaGradientAngleVal">0</span>°</label>
-                        <input type="range" id="alphaGradientAngle" min="0" max="360" value="0" style="width: 100%;">
+                        <label class="engine-label-sm"><span data-i18n="label_alpha_angle">방향 (각도):</span> <span id="alphaGradientAngleVal">0</span>°</label>
+                        <input type="range" id="alphaGradientAngle" min="0" max="360" value="0" class="engine-slider-full">
                     </div>
                     <div>
-                        <label style="font-size: 0.85em;">입자 크기: <span id="alphaGradientSizeVal">1</span></label>
-                        <input type="range" id="alphaGradientSize" min="1" max="10" value="1" style="width: 100%;">
+                        <label class="engine-label-sm"><span data-i18n="label_alpha_size">입자 크기:</span> <span id="alphaGradientSizeVal">1</span></label>
+                        <input type="range" id="alphaGradientSize" min="1" max="10" value="1" class="engine-slider-full">
                     </div>
                     <div>
-                        <label style="font-size: 0.85em;">강도: <span id="alphaGradientStrengthVal">50</span></label>
-                        <input type="range" id="alphaGradientStrength" min="0" max="100" value="50" style="width: 100%;">
+                        <label class="engine-label-sm"><span data-i18n="label_strength">강도:</span> <span id="alphaGradientStrengthVal">50</span></label>
+                        <input type="range" id="alphaGradientStrength" min="0" max="100" value="50" class="engine-slider-full">
                     </div>
                 </div>
             </div>
 
-            <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 1px 0;">
+            <hr class="engine-divider-dashed">
 
-            <div class="control-group" style="text-align: left;">
-                <label class="checkbox-label" style="display: flex; align-items: center; justify-content: flex-start; gap: 8px;">
+            <div class="control-group">
+                <label class="engine-checkbox-row">
                     <input type="checkbox" id="useOrganicNoise"> 
-                    <b>유기적 노이즈</b> <span style="font-size: 0.8em; color: var(--text-secondary);">(Pixel Smear)</span>
+                    <span class="engine-checkbox-text">
+                        <b data-i18n="label_organic_noise">유기적 노이즈</b> 
+                        <span class="engine-desc-inline" data-i18n="desc_organic_noise">(Pixel Smear)</span>
+                    </span>
                 </label>
-                <div id="organicNoiseControls" class="sub-control" style="display: none; margin-left: 28px; margin-top: 8px;">
-                    <label style="font-size: 0.85em;">노이즈 확산 강도: <span id="organicNoiseStrengthVal">50</span></label>
-                    <input type="range" id="organicNoiseStrength" min="0" max="100" value="50" style="width: 100%;">
-                    <small style="color: var(--text-secondary); display: block; margin-top: 5px; line-height: 1.3;">
-                        인접한 픽셀의 색상을 무작위로 파먹으며 거칠고 유기적인 텍스처를 생성합니다.
-                    </small>
+                <div id="organicNoiseControls" class="engine-post-controls" style="display: none;">
+                    <label class="engine-label-sm"><span data-i18n="label_organic_strength">노이즈 확산 강도:</span> <span id="organicNoiseStrengthVal">50</span></label>
+                    <input type="range" id="organicNoiseStrength" min="0" max="100" value="50" class="engine-slider-full">
+                    <small class="engine-desc-sm" data-i18n="desc_organic_noise_detail">인접한 픽셀의 색상을 무작위로 파먹으며 거칠고 유기적인 텍스처를 생성합니다.</small>
                 </div>
             </div>
         </div>

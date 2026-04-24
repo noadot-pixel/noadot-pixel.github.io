@@ -1,6 +1,8 @@
 import { ComponentLoader } from './core/ComponentLoader.js';
 import { WorkerBridge } from './core/WorkerBridge.js';
 
+import { setLanguage, currentLang, updateDOMTranslations } from './core/state.js';
+
 import { ImageViewerFeature } from './features/02-viewer/logic.js';
 import { ImageUploaderFeature } from './features/03-uploader/logic.js';
 import { ImageResizerFeature } from './features/04-resizer/logic.js';
@@ -8,6 +10,7 @@ import { ImageResizerFeature } from './features/04-resizer/logic.js';
 import { KMeansFeature } from './features/07-kmeans/logic.js'; 
 import { ConversionOptionsFeature } from './features/05-color-engine/logic.js';
 import { PaletteSelectorFeature } from './features/06-palettes/logic.js';
+import { CommentFeature } from './features/09-comments/logic.js';
 
 class NoaDotApp {
     constructor() {
@@ -29,6 +32,7 @@ class NoaDotApp {
                 <div id="sub-slot-kmeans"></div> 
                 
                 <div id="sub-slot-palettes"></div>
+                <div id="sub-slot-comments"></div>
             </div>
         `;
 
@@ -41,6 +45,7 @@ class NoaDotApp {
         
         await ComponentLoader.load('sub-slot-engine', 'features/05-color-engine/engine.html');
         await ComponentLoader.load('sub-slot-palettes', 'features/06-palettes/palettes.html');
+        await ComponentLoader.load('sub-slot-comments', 'features/09-comments/comments.html');
 
 
         console.log("🧩 HTML UI 조립 완벽 완료! 자바스크립트 뇌를 연결합니다...");
@@ -59,6 +64,7 @@ class NoaDotApp {
             
             this.engineOptions = new ConversionOptionsFeature();
             this.palettes = new PaletteSelectorFeature();
+            this.comments = new CommentFeature();
 
             setTimeout(() => { // 헤더 HTML이 완전히 로드된 직후에 버튼을 찾습니다
                 const themeBtn = document.getElementById('themeToggleBtn');
@@ -80,6 +86,22 @@ class NoaDotApp {
                         console.log(`🎨 테마가 [${newTheme.toUpperCase()}] 모드로 변경되었습니다!`);
                     });
                 }
+            }, 500);
+
+            setTimeout(() => {
+                // 1. 처음 화면 켜질 때 텍스트 싹 번역하기
+                updateDOMTranslations();
+
+                // 2. 라디오 버튼 초기값 맞추기
+                const langRadio = document.querySelector(`input[name="language"][value="${currentLang}"]`);
+                if (langRadio) langRadio.checked = true;
+
+                // 3. 버튼 누르면 언어 변경!
+                document.querySelectorAll('input[name="language"]').forEach(radio => {
+                    radio.addEventListener('change', (e) => {
+                        setLanguage(e.target.value);
+                    });
+                });
             }, 500);
 
             console.log("✅ 모든 로직 및 워커 기동 성공! NoaDot v7.0 정상 작동 중.");

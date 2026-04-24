@@ -1,0 +1,40 @@
+/* features/03-uploader/uploader.css */
+
+/* ==========================================
+   🌟 1. 이미지 정보 패널 (인라인 스타일 분리)
+========================================== */
+.info-row {
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between; /* 텍스트와 숫자를 양쪽으로 정렬 */
+}
+
+.info-row.highlight-row {
+    color: var(--text-main);
+}
+
+.info-row.small-row {
+    font-size: 0.8rem;
+    margin-bottom: 0;
+}
+
+/* ==========================================
+   🌟 2. 모바일 레이아웃 붕괴 방지 (ui.js에서 이관됨!)
+========================================== */
+@media (max-width: 768px) {
+    .canvas-container, 
+    #placeholder-ui {
+        min-height: 250px !important;
+        height: auto !important;
+        flex-shrink: 0 !important;
+        display: flex !important;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .viewer-section {
+        min-height: 250px !important;
+        flex: 1;
+    }
+}

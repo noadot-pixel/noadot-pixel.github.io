@@ -1,50 +1,70 @@
+/* features/01-header/header.css - 중복 제거 클린 버전 */
+
+/* ==========================================
+   🌟 1. 헤더 메인 레이아웃
+========================================== */
 .app-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 100%;
-    padding: 0 20px;
+    padding: 10px 20px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-color);
 }
 
-.logo {
-    font-size: 1.2rem;
-    font-weight: bold;
+.header-logo {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
-.version {
-    font-size: 0.7rem;
+.header-logo h1 {
+    color: var(--text-primary);
+    font-size: 1.5em;
+    font-weight: 900;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.beta-tag {
+    font-size: 0.5em;
+    color: var(--text-secondary);
+    font-weight: normal;
+}
+
+.version-tag {
     color: var(--accent-primary);
-    background: #313244;
-    padding: 2px 6px;
-    border-radius: 10px;
+    font-size: 0.9em;
 }
 
-.icon-btn, .lang-btn {
-    background: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.icon-btn:hover, .lang-btn:hover {
-    background: var(--bg-surface);
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
 }
 
 /* ==========================================
-   🌟 외부 링크 아이콘 스타일
+   🌟 2. 외부 링크 아이콘 스타일
 ========================================== */
+.external-links {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
 .external-links img {
     width: 28px;
     height: 28px;
     border-radius: 4px;
     transition: transform 0.2s ease, opacity 0.2s ease;
     object-fit: contain;
+}
+
+.github-logo {
+    background: white;
+    border-radius: 50% !important; /* 깃허브 로고 동그랗게 강제 */
 }
 
 .external-links a:hover img {
@@ -79,7 +99,7 @@
 }
 
 /* ==========================================
-   🌟 테마 토글 버튼 스타일
+   🌟 3. 테마 토글 버튼 스타일
 ========================================== */
 .theme-btn {
     background: var(--bg-color);
@@ -100,4 +120,38 @@
 .theme-btn:hover {
     background: var(--border-color);
     transform: scale(1.1) rotate(15deg);
+}
+
+/* ==========================================
+   🌟 4. 언어 선택 토글 스위치 디자인
+========================================== */
+.lang-switch {
+    display: flex;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 3px;
+    gap: 2px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.lang-switch input[type="radio"] {
+    display: none;
+}
+
+.lang-switch label {
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 0.85em;
+    font-weight: 800;
+    color: var(--text-secondary);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+}
+
+.lang-switch input[type="radio"]:checked + label {
+    background: var(--bg-surface);
+    color: var(--accent-primary);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }

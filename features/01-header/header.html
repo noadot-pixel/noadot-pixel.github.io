@@ -1,20 +1,28 @@
-<header class="app-header" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: var(--bg-surface); border-bottom: 1px solid var(--border-color);">
+<header class="app-header">
     
-    <div class="header-logo" style="display: flex; align-items: center; gap: 10px;">
-        <h1 style="color: var(--text-primary); font-size: 1.5em; font-weight: 900; margin: 0;">NoaDot (베타테스트)<span style="color: var(--accent-primary);">v7</span></h1>
+    <div class="header-logo">
+        <h1>NoaDot <span class="beta-tag" data-i18n="header_beta">(베타테스트)</span><span class="version-tag">v7</span></h1>
     </div>
     
-    <div class="header-actions" style="display: flex; align-items: center; gap: 20px;">
+    <div class="header-actions">
         
-        <div class="external-links" style="display: flex; gap: 12px; align-items: center;">
+        <div class="external-links">
             <a href="https://www.geopixels.net/" target="_blank" title="GeoPixels"><img src="geopixels-logo.png" alt="GeoPixels Logo"></a>
             <a href="https://wplace.live/" target="_blank" title="Wplace"><img src="wplace-logo.png" alt="Wplace Logo"></a>
             <a href="https://youplace.live/" target="_blank" title="youplace"><img src="youplace-logo.png" alt="youplace Logo"></a>
-            <a href="https://github.com/noadot-pixel/noadot-pixel.github.io" target="_blank" title="GitHub"><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub" style="background: white; border-radius: 50%;"></a>
+            <a href="https://github.com/noadot-pixel/noadot-pixel.github.io" target="_blank" title="GitHub"><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub" class="github-logo"></a>
             <a href="https://noipung.github.io/wdot/" target="_blank" title="Wdot Color Engine" class="text-icon-link"><span class="wdot-icon">W</span></a>
         </div>
 
-        <button id="themeToggleBtn" class="theme-btn" title="다크/라이트 모드 변경">☀️</button>
+        <div class="lang-switch">
+            <input type="radio" id="lang-ko" name="language" value="ko" checked>
+            <label for="lang-ko">KO</label>
+            
+            <input type="radio" id="lang-en" name="language" value="en">
+            <label for="lang-en">EN</label>
+        </div>
+
+        <button id="themeToggleBtn" class="theme-btn" data-i18n-title="theme_toggle">☀️</button>
 
     </div>
 </header>

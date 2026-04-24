@@ -1,4 +1,46 @@
-import { languageData } from '../data/languages.js';
+import { translations } from '../data/languages.js';
+import { eventBus } from './EventBus.js';
+
+export let currentLang = localStorage.getItem('noadot-lang') || 'ko';
+document.documentElement.setAttribute('data-lang', currentLang);
+
+// 🌟 1. 자바스크립트에서 텍스트를 부를 때 사용하는 함수 t()
+export function t(key, params = {}) {
+    let text = translations[currentLang]?.[key] || translations['ko']?.[key] || key;
+    
+    // {변수} 형태로 들어온 값을 치환해주는 로직 포함
+    Object.keys(params).forEach(paramKey => {
+        text = text.replace(new RegExp(`{${paramKey}}`, 'g'), params[paramKey]);
+    });
+    return text;
+}
+window.t = t;
+
+// 🌟 2. 언어 변경 시 실행되는 함수
+export function setLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('noadot-lang', lang);
+    document.documentElement.setAttribute('data-lang', lang);
+    
+    updateDOMTranslations(); // HTML 텍스트 즉시 교체
+    eventBus.emit('LANGUAGE_CHANGED', lang); // 컴포넌트들에게 언어 바뀌었다고 방송!
+}
+
+// 🌟 3. HTML에 있는 글자들을 싹 다 찾아내서 바꿔주는 마법
+export function updateDOMTranslations() {
+    // 텍스트 내용 바꾸기 (예: <span data-i18n="btn_download">다운로드</span>)
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        // 아이콘 등을 보존하기 위해 textContent 대신 innerHTML을 쓸 수도 있습니다.
+        el.innerHTML = t(key); 
+    });
+
+    // 마우스 올렸을 때 뜨는 설명(title) 바꾸기
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const key = el.getAttribute('data-i18n-title');
+        el.title = t(key);
+    });
+}
 
 export const CONFIG = {
     DEBOUNCE_DELAY: 150,
@@ -101,21 +143,6 @@ export const state = {
     recommendedColors: [],
     timeoutId: null
 };
-
-// --- 다국어 및 유틸리티 함수 (기존 유지) ---
-export const t = (key, params = {}) => {
-    const lang = state.language || 'ko';
-    const dict = languageData ? languageData[lang] : null;
-    let text = key;
-    if (dict && dict[key]) {
-        text = dict[key];
-    }
-    Object.keys(params).forEach(paramKey => {
-        text = text.replace(new RegExp(`{${paramKey}}`, 'g'), params[paramKey]);
-    });
-    return text;
-};
-window.t = t;
 
 export const hexToRgb = (hex) => {
     let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
