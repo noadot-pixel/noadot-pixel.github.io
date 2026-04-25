@@ -108,6 +108,16 @@ export class PaletteSelectorFeature {
             btn.addEventListener('click', (e) => this.setMode(e.target.dataset.mode));
         });
 
+        const useWplaceCheckbox = document.getElementById('useWplaceInGeopixels');
+        if (useWplaceCheckbox) {
+            useWplaceCheckbox.checked = state.useWplaceInGeopixels || false;
+            useWplaceCheckbox.addEventListener('change', (e) => {
+                state.useWplaceInGeopixels = e.target.checked;
+                this.refresh();
+                eventBus.emit('PALETTE_UPDATED'); // 엔진아 다시 칠해라!
+            });
+        }
+
         const addHexInput = document.getElementById('addHex');
         if (addHexInput) {
             addHexInput.addEventListener('paste', (e) => {
@@ -313,7 +323,13 @@ export class PaletteSelectorFeature {
                 let targetPalette = [];
                 if (mode === 'wplace') targetPalette = [...wplaceFreeColors, ...wplacePaidColors];
                 else if (mode === 'uplace') targetPalette = uplaceColors;
-                else if (mode === 'geopixels') targetPalette = [...geopixelsColors, ...(state.addedColors || [])];
+                else if (mode === 'geopixels') {
+                    targetPalette = [...geopixelsColors, ...(state.addedColors || [])];
+                    // 🌟 K-Means가 안 쓰는 색을 끌 때, Wplace 색상도 포함해서 검사하도록 추가!
+                    if (state.useWplaceInGeopixels) {
+                        targetPalette = [...targetPalette, ...wplaceFreeColors, ...wplacePaidColors];
+                    }
+                }
 
                 const matchedHexes = new Set(); 
 

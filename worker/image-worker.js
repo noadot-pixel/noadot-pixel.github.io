@@ -37,6 +37,11 @@ function buildActivePalette(options) {
     // 🌟 2. 각 탭에 맞는 팔레트만 엄격하게 분리해서 담습니다!
     if (options.mode === 'geopixels') {
         if (typeof geopixelsColors !== 'undefined') geopixelsColors.forEach(addColor);
+        // 🌟 [추가됨] Wplace 함께 사용하기가 켜져있다면, 엔진 물감통에 Wplace 색상을 같이 부어줍니다!
+        if (options.useWplaceInGeopixels) {
+            if (typeof wplaceFreeColors !== 'undefined') wplaceFreeColors.forEach(addColor);
+            if (typeof wplacePaidColors !== 'undefined') wplacePaidColors.forEach(addColor);
+        }
     } else if (options.mode === 'wplace') {
         if (typeof wplaceFreeColors !== 'undefined') wplaceFreeColors.forEach(addColor);
         if (typeof wplacePaidColors !== 'undefined') wplacePaidColors.forEach(addColor);

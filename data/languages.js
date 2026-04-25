@@ -150,6 +150,7 @@ export const translations = {
         "msg_confirm_reset_custom": "추가한 커스텀 색상을 모두 지우시겠습니까?",
         "msg_invalid_palette_json": "잘못된 팔레트 파일입니다. JSON 형식을 확인해주세요.",
         "msg_custom_only_geo": "커스텀 색상 추가는 GeoPixels 모드에서만 가능합니다.",
+        "label_use_wplace": "Wplace 팔레트 사용하기",
 
         //댓글
         "btn_open_comments": "💬 피드백 및 댓글 보기",
@@ -330,6 +331,7 @@ export const translations = {
         "msg_confirm_reset_custom": "Are you sure you want to clear all custom colors?",
         "msg_invalid_palette_json": "Invalid palette file. Please check the JSON format.",
         "msg_custom_only_geo": "Custom colors can only be added in GeoPixels mode.",
+        "label_use_wplace": "Used Wplace palettes",
 
         // 댓글(comments)
         "btn_open_comments": "💬 View Feedback & Comments",

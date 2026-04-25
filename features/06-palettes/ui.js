@@ -13,6 +13,12 @@ export class PaletteSelectorUI {
             if (btn.dataset.mode === mode) btn.classList.add('active');
             else btn.classList.remove('active');
         });
+        
+        // 🌟 GeoPixels 모드일 때만 체크박스 표시!
+        const wplaceSection = document.getElementById('wplace-inclusion-section');
+        if (wplaceSection) {
+            wplaceSection.style.display = (mode === 'geopixels') ? 'block' : 'none';
+        }
     }
 
     renderPalettes() {
@@ -32,7 +38,13 @@ export class PaletteSelectorUI {
         this.paletteContainer.style.gap = '5px';
 
         let colorsToRender = [];
-        if (mode === 'geopixels') colorsToRender = geopixelsColors;
+        if (mode === 'geopixels') {
+            colorsToRender = [...geopixelsColors];
+            // 🌟 체크박스가 켜져 있다면 화면에 그릴 때 Wplace 색상들도 한 덩어리로 묶어서 그립니다!
+            if (state.useWplaceInGeopixels) {
+                colorsToRender = [...colorsToRender, ...wplaceFreeColors, ...wplacePaidColors];
+            }
+        }
         else if (mode === 'wplace') colorsToRender = [...wplaceFreeColors, ...wplacePaidColors];
         else if (mode === 'uplace') colorsToRender = uplaceColors;
 
