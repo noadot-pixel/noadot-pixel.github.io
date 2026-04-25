@@ -135,7 +135,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    white-space: nowrap;
+    white-space: nowrap; /* 🌟 글씨가 찌그러지거나 줄바꿈되어 슬라이더와 겹치는 현상 완벽 차단! */
 }
 
 .dl-popup-wrapper {

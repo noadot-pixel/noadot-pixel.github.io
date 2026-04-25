@@ -1,4 +1,5 @@
 import { clamp, colorDistanceSq, ColorConverter, findClosestColor, findClosestColorFusion } from './color.js';
+import { DitheringEngine } from './dithering.js';
 
 export function preprocessImageData(sourceImageData, options) {
     const { saturation, brightness, contrast } = options;
@@ -279,121 +280,136 @@ const DitherMaps = {
     ])
 };
 
+const ErrorDiffusion = {
+    floyd: [ {x:1, y:0, w:7/16}, {x:-1, y:1, w:3/16}, {x:0, y:1, w:5/16}, {x:1, y:1, w:1/16} ],
+    sierra: [
+        {x:1, y:0, w:4/16}, {x:2, y:0, w:3/16},
+        {x:-2, y:1, w:1/16}, {x:-1, y:1, w:2/16}, {x:0, y:1, w:3/16}, {x:1, y:1, w:2/16}, {x:2, y:1, w:1/16}
+    ],
+    atkinson: [
+        {x:1, y:0, w:1/8}, {x:2, y:0, w:1/8},
+        {x:-1, y:1, w:1/8}, {x:0, y:1, w:1/8}, {x:1, y:1, w:1/8},
+        {x:0, y:2, w:1/8}
+    ]
+};
+
+// 🌟 2. 수학 엔진 객체 생성
+const ditherEngine = new DitheringEngine();
+
 export function matchColorAndDither(imageData, activePalette, options) {
-    const { width, height, data } = imageData;
+    // 🚨 여기서 가로세로 크기를 가져옵니다! (이게 지워져서 에러가 났던 것입니다)
+    const { width, height, data } = imageData; 
     const result = new Uint8ClampedArray(data);
-
-    const mode = options.ditheringMode || 'none';
-    const strength = (options.ditheringIntensity !== undefined ? options.ditheringIntensity : 50) / 100;
     
-    // 🌟 전문가(퓨전) 모델 파라미터는 안전하게 유지!
-    const fusionParams = options.fusionParams || { modelA: 'oklab', modelB: 'none', weightM: 0, chromaBoost: 0 };
+    // 오차 확산을 정밀하게 기록하기 위한 소수점(Float) 도화지
+    const fData = new Float32Array(data); 
 
+    const fusionParams = options.fusionParams || { modelA: 'oklab', modelB: 'none', weightM: 0, chromaBoost: 0 };
+    
+    // 팔레트 변환 캐싱
     const preparedPalette = activePalette.map(p => {
         const rgb = p.rgb || p; 
-        const oklab = ColorConverter.rgbToOklab(rgb);
         return {
-            rgb: rgb, oklab: oklab,
-            labD50: ColorConverter.rgbToLab(rgb),
-            labD65: ColorConverter.rgbToLabD65(rgb),
-            chroma: Math.sqrt(oklab[1]**2 + oklab[2]**2)
+            rgb: rgb, oklab: ColorConverter.rgbToOklab(rgb),
+            labD50: ColorConverter.rgbToLab(rgb), labD65: ColorConverter.rgbToLabD65(rgb)
         };
     });
 
     const colorCache = new Map();
     const getMatchedColor = (r, g, b) => {
-        const cr = Math.round(r), cg = Math.round(g), cb = Math.round(b);
-        const key = (cr << 16) | (cg << 8) | cb; 
+        const key = (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b); 
         let cached = colorCache.get(key);
         if (!cached) {
-            cached = findClosestColorFusion(cr, cg, cb, preparedPalette, fusionParams).color;
+            cached = findClosestColorFusion(r, g, b, preparedPalette, fusionParams).color;
             colorCache.set(key, cached);
         }
         return cached;
     };
 
-    if (mode === 'none' || strength <= 0.01) {
-        for (let i = 0; i < data.length; i += 4) {
-            if (data[i + 3] === 0) continue;
-            const color = getMatchedColor(data[i], data[i+1], data[i+2]);
-            result[i] = color[0]; result[i+1] = color[1]; result[i+2] = color[2];
+    // 기본 패턴 실시간 번역
+    let activePatternMatrix = null;
+    if (options.useMacroPattern) {
+        if (options.patternType === 'custom' && options.patternMatrix) {
+            activePatternMatrix = options.patternMatrix;
+        } else if (DitherMaps[options.patternType]) {
+            const map = DitherMaps[options.patternType];
+            const m = map.max - 1; 
+            activePatternMatrix = map.data.map(row => row.map(val => (val / m) * 2));
         }
-        return new ImageData(result, width, height);
     }
 
-    if (mode === 'basic' && ['floyd', 'sierra', 'atkinson'].includes(options.basicDitherType)) {
-        const errBuffer = new Float32Array(width * height * 3);
-        for (let i = 0; i < width * height; i++) {
-            errBuffer[i*3] = data[i*4]; errBuffer[i*3+1] = data[i*4+1]; errBuffer[i*3+2] = data[i*4+2];
-        }
-        const type = options.basicDitherType;
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const i = y * width + x;
-                const pIdx = i * 4;
-                if (data[pIdx + 3] === 0) continue;
+    console.log("🛠️ [Worker] 패턴 및 디더링 렌더링 상태:", {
+        패턴사용: options.useMacroPattern,
+        패턴타입: options.patternType,
+        패턴크기: options.patternSize,
+        패턴강도: options.patternStrength,
+        매트릭스: activePatternMatrix ? "정상 장전됨" : "비어있음",
+        미세디더링: options.useMicroDither,
+        디더방식: options.basicDitherType
+    });
 
-                const origR = clamp(errBuffer[i*3], 0, 255);
-                const origG = clamp(errBuffer[i*3+1], 0, 255);
-                const origB = clamp(errBuffer[i*3+2], 0, 255);
-
-                const [cR, cG, cB] = getMatchedColor(origR, origG, origB);
-                result[pIdx] = cR; result[pIdx+1] = cG; result[pIdx+2] = cB;
-
-                const errR = (origR - cR) * strength;
-                const errG = (origG - cG) * strength;
-                const errB = (origB - cB) * strength;
-
-                if (errR === 0 && errG === 0 && errB === 0) continue;
-
-                const distribute = (dx, dy, w) => {
-                    if (x + dx >= 0 && x + dx < width && y + dy < height) {
-                        const idx = ((y + dy) * width + (x + dx)) * 3;
-                        errBuffer[idx] += errR * w; errBuffer[idx+1] += errG * w; errBuffer[idx+2] += errB * w;
-                    }
-                };
-                if (type === 'floyd') { distribute(1, 0, 7/16); distribute(-1, 1, 3/16); distribute(0, 1, 5/16); distribute(1, 1, 1/16); } 
-                else if (type === 'sierra') { distribute(1, 0, 2/4); distribute(-1, 1, 1/4); distribute(0, 1, 1/4); } 
-                else if (type === 'atkinson') {
-                    const w = 1/8; distribute(1, 0, w); distribute(2, 0, w); distribute(-1, 1, w); distribute(0, 1, w); distribute(1, 1, w); distribute(0, 2, w);
-                }
-            }
-        }
-        return new ImageData(result, width, height);
-    }
-
-    const isBayer = mode === 'basic' && options.basicDitherType === 'bayer';
-    let mapName = 'bayer4'; let size = 1;
-
-    if (isBayer) {
-        mapName = `bayer${options.bayerSize || 4}`; size = 1; 
-    } else if (mode === 'pattern') {
-        mapName = options.patternType || 'grid';
-        size = Math.max(1, parseInt(options.patternSize, 10) || 4); 
-    }
-
-    const mapObj = DitherMaps[mapName] || DitherMaps.bayer4;
-    const tMap = mapObj.data; const tMax = mapObj.max;
-    const h = tMap.length; const w = tMap[0].length;
-    const spread = strength * 128; 
+    const isBayer = options.useMicroDither && options.basicDitherType === 'bayer';
+    const isErrorDiffusion = options.useMicroDither && ErrorDiffusion[options.basicDitherType];
+    const diffMap = isErrorDiffusion ? ErrorDiffusion[options.basicDitherType] : null;
+    const safeDitherMultiplier = ((options.ditheringIntensity || 50) / 100) * 0.85;
 
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const i = (y * width + x) * 4;
-            if (data[i + 3] === 0) continue;
+            if (data[i + 3] === 0) continue; 
 
-            const mx = Math.floor(x / size) % w;
-            const my = Math.floor(y / size) % h;
+            // fData에서 오차가 누적된 값을 가져옵니다.
+            let r = fData[i], g = fData[i+1], b = fData[i+2];
+
+            // 🌟 1차 방어막: 이전 픽셀들로부터 오차를 너무 많이 받아 폭주했다면 여기서 잘라냅니다.
+            r = Math.max(0, Math.min(255, r));
+            g = Math.max(0, Math.min(255, g));
+            b = Math.max(0, Math.min(255, b));
+
+            let shiftedR = r, shiftedG = g, shiftedB = b;
             
-            const threshold = (tMap[my][mx] + 0.5) / tMax;
-            const bias = (threshold - 0.5) * spread;
+            // 1. 패턴 & 베이어 변조
+            if (activePatternMatrix || isBayer) {
+                const shifted = ditherEngine.applySuperposition(r, g, b, x, y, {
+                    useBayer: isBayer,
+                    ditherStrength: options.ditheringIntensity,
+                    bayerSize: options.bayerSize || 1, 
+                    patternMatrix: activePatternMatrix,
+                    patternStrength: options.patternStrength,
+                    patternSize: options.patternSize || 2 
+                });
+                shiftedR = shifted.r; shiftedG = shifted.g; shiftedB = shifted.b;
+            }
 
-            const r = clamp(data[i] + bias, 0, 255);
-            const g = clamp(data[i+1] + bias, 0, 255);
-            const b = clamp(data[i+2] + bias, 0, 255);
+            // 🌟 2차 방어막: 엔진이 흔들어놓은 값도 Oklab에 넣기 전에 안전하게 가둬버립니다!
+            const safeR = Math.max(0, Math.min(255, shiftedR));
+            const safeG = Math.max(0, Math.min(255, shiftedG));
+            const safeB = Math.max(0, Math.min(255, shiftedB));
 
-            const color = getMatchedColor(r, g, b);
+            // 안전하게 매칭 수행
+            const color = getMatchedColor(safeR, safeG, safeB);
             result[i] = color[0]; result[i+1] = color[1]; result[i+2] = color[2];
+
+            // 3. 오차 확산 (Floyd, Sierra, Atkinson) 적용
+            if (isErrorDiffusion) {
+                // 오차 계산은 방어막을 거친 1차 안전값(r, g, b) 기준으로 계산해야 폭주하지 않습니다!
+                const errR = r - color[0];
+                const errG = g - color[1];
+                const errB = b - color[2];
+
+                for (let d of diffMap) {
+                    const nx = x + d.x;
+                    const ny = y + d.y;
+                    if (nx >= 0 && nx < width && ny < height) {
+                        const ni = (ny * width + nx) * 4;
+                        if (data[ni + 3] > 0) { 
+                            fData[ni] += errR * d.w * safeDitherMultiplier;
+                            fData[ni+1] += errG * d.w * safeDitherMultiplier;
+                            fData[ni+2] += errB * d.w * safeDitherMultiplier;
+                        }
+                    }
+                }
+            }
         }
     }
     return new ImageData(result, width, height);

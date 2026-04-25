@@ -193,3 +193,160 @@
     margin-left: 28px;
     margin-top: 8px;
 }
+
+.pattern-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+/* 2. 모달 창 본체 (팝업 애니메이션 적용) */
+.pattern-modal-content {
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    width: 420px;
+    max-width: 90vw;
+    max-height: 90vh;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.pattern-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.pattern-modal-header h3 {
+    margin: 0;
+    font-size: 1.1em;
+    color: var(--text-main);
+}
+
+.pattern-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* 3. 브러시 도구 버튼들 */
+.pattern-tools {
+    display: flex;
+    gap: 6px;
+}
+
+.pattern-tool-btn {
+    flex: 1;
+    padding: 10px 5px;
+    background: var(--bg-surface);
+    color: var(--text-sub);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: all 0.2s;
+    font-weight: bold;
+}
+
+.pattern-tool-btn:hover {
+    background: var(--bg-color);
+}
+
+.pattern-tool-btn.active {
+    background: var(--accent-primary);
+    color: #ffffff;
+    border-color: var(--accent-primary);
+    box-shadow: 0 2px 8px rgba(137, 180, 250, 0.3); /* 파란빛 후광 */
+}
+
+/* 4. 그리드 도화지 영역 ( GeoPixels 브러시 에디터 스타일 ) */
+.pattern-editor-workspace {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 10px 0;
+    padding: 20px;
+    background: var(--bg-color); /* 살짝 파인 느낌의 어두운 배경 */
+    border-radius: 8px;
+    border: 1px inset rgba(0, 0, 0, 0.5);
+}
+
+.custom-pattern-grid {
+    display: grid;
+    gap: 2px; /* 셀 사이의 틈 (GeoPixels 감성) */
+    width: 100%;
+    max-width: 280px; 
+    aspect-ratio: 1 / 1;
+}
+
+.pattern-cell {
+    background: var(--bg-surface);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.05s, background-color 0.1s;
+}
+
+.pattern-cell:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.pattern-cell:active {
+    transform: scale(0.9);
+}
+
+/* 🌟 상태별 셀 디자인 (핵심!) */
+.pattern-cell[data-state="0"] {
+    background: #11111b; /* 아주 어두운 검정 (깎아내기) */
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);
+}
+
+.pattern-cell[data-state="1"] {
+    background: var(--bg-surface); /* 기본 회색 (유지) */
+}
+
+.pattern-cell[data-state="2"] {
+    background: var(--accent-success); /* 밝은 초록색 (덧칠하기) */
+    box-shadow: 0 0 10px rgba(166, 227, 161, 0.4);
+}
+
+/* 5. 모달 하단 버튼 그룹 */
+.pattern-modal-footer {
+    display: flex;
+    gap: 8px;
+    padding: 16px 20px;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.pattern-modal-footer #btnApplyCustomPattern {
+    flex: 1; /* 반영 버튼을 가장 눈에 띄고 넓게 */
+    min-width: 100%;
+    margin-top: 5px;
+    padding: 12px;
+    font-size: 1.05em;
+}

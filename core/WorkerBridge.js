@@ -175,12 +175,16 @@ export class WorkerBridge {
                 contrast: state.contrastSlider ?? 0,
                 
                 // 2. 디더링 옵션
-                ditheringMode: state.ditherModeSelect || 'none',
+                useMicroDither: String(state.useMicroDither) === 'true',
+                useMacroPattern: String(state.useMacroPattern) === 'true',
                 basicDitherType: state.basicDitherType || 'bayer',
-                bayerSize: state.bayerSizeSelect || 2,
+                bayerSize: 1,
                 ditheringIntensity: state.ditheringSlider ?? 50,
                 patternType: state.patternTypeSelect || 'grid',
                 patternSize: state.patternSizeSlider ?? 2,
+
+                patternMatrix: state.patternMatrix || null, 
+                patternStrength: state.patternStrengthSlider ?? 10,
 
                 // 3. 포스트 프로세싱 (새로 연결할 옵션들 자리표시자)
                 usePixelioe: state.usePixelioe ?? false,

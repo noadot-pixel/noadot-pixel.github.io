@@ -1,4 +1,4 @@
-// js/features/conversion-options/ui.js
+// js/features/05-color-engine/ui.js
 import { t } from '../../core/state.js';
 
 export class ConversionOptionsUI {

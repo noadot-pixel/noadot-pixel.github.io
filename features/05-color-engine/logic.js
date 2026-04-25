@@ -1,4 +1,4 @@
-// js/features/conversion-options/logic.js
+// js/features/05-color-engine/logic.js
 import { eventBus } from '../../core/EventBus.js';
 import { state, CONFIG, t, rgbToHex } from '../../core/state.js';
 import { ConversionOptionsUI } from './ui.js';
@@ -127,8 +127,7 @@ export class ConversionOptionsFeature {
         const ditherStrength = parseInt(document.getElementById('ditheringSlider')?.value || '0', 10);
         
         // 🌟 [수정됨] V7의 새로운 디더링 모드 ID를 추적합니다!
-        const val = document.getElementById('ditherModeSelect')?.value || state.ditherModeSelect;
-        const isPattern = (val === 'pattern');
+        const isPattern = document.getElementById('useMacroPattern')?.checked || state.useMacroPattern;
 
         const setLock = (elementId, isLocked, reasonMsg) => {
             const el = document.getElementById(elementId);
@@ -314,25 +313,26 @@ export class ConversionOptionsFeature {
             eventBus.emit('OPTION_CHANGED');
         });
         
-        // 🌟 디더링 타입 드롭다운 동기화 (추가됨)
-        const ditherModeSelect = document.getElementById('ditherModeSelect');
         const basicTypeSelect = document.getElementById('basicDitherType');
         const bayerSizeGroup = document.getElementById('bayerSizeGroup');
 
-        const ditherPanels = {
-            basic: document.getElementById('ditherBasicControls'),
-            pattern: document.getElementById('ditherPatternControls'),
-        };
+        // 🌟 디더링 타입 드롭다운 동기화 (추가됨)
+        const checkMicroDither = document.getElementById('useMicroDither');
+        const boxMicroDither = document.getElementById('microDitherControls');
+        checkMicroDither?.addEventListener('change', (e) => {
+            state.useMicroDither = e.target.checked;
+            if(boxMicroDither) boxMicroDither.style.display = e.target.checked ? 'block' : 'none';
+            this.updateUIConflictLocks();
+            eventBus.emit('OPTION_CHANGED');
+        });
 
-        ditherModeSelect?.addEventListener('change', (e) => {
-            const mode = e.target.value;
-            state.ditherModeSelect = mode; // 'none', 'basic', 'pattern', 'aspire'
-            this.updateTextureUI();
-            
-            Object.values(ditherPanels).forEach(panel => { if(panel) panel.style.display = 'none'; });
-            if (ditherPanels[mode]) ditherPanels[mode].style.display = 'block';
-            
-            eventBus.emit('OPTION_CHANGED'); 
+        const checkMacroPattern = document.getElementById('useMacroPattern');
+        const boxMacroPattern = document.getElementById('macroPatternControls');
+        checkMacroPattern?.addEventListener('change', (e) => {
+            state.useMacroPattern = e.target.checked;
+            if(boxMacroPattern) boxMacroPattern.style.display = e.target.checked ? 'block' : 'none';
+            this.updateUIConflictLocks();
+            eventBus.emit('OPTION_CHANGED');
         });
 
         // 🌟 2. 하위 옵션(방식 및 패턴) 동기화
@@ -785,6 +785,9 @@ export class ConversionOptionsFeature {
         const celShadingRetryBtn = document.getElementById('celShadingRetryBtn');
         if (celShadingRetryBtn) celShadingRetryBtn.addEventListener('click', extractAndApplyPalette);
 
+        this.initPatternStrengthSync();
+        this.initCustomPatternEditor();
+
     }
 
     triggerDebouncedUpdate() {
@@ -795,11 +798,18 @@ export class ConversionOptionsFeature {
     }
 
     loadInitialState() {
+        const validPatterns = ['grid', 'vertical', 'checkerboard', 'diagonal_r', 'diagonal_l', 'brick', 'crt', 'maze', 'custom'];
+        if (state.patternTypeSelect && !validPatterns.includes(state.patternTypeSelect)) {
+            state.patternTypeSelect = 'grid'; // 옛날 값이면 강제로 '격자'로 초기화
+        }
+        delete state.bayerSizeSelect; // 🌟 2x2로 뭉개지게 만들던 과거의 원흉 변수 완벽 삭제!
+
+        // 🌟 새로 분리된 디더링 & 패턴 UI의 키값들을 모두 추가해 초기 기동 시 값을 확실히 물고 들어가게 합니다!
         const keys = [
             'applyOutlineExpansion', 'applySmartSampling', 
             'saturationSlider', 'brightnessSlider', 'contrastSlider', 
-            'ditheringAlgorithmSelect', 'ditheringSlider',
-            'patternSizeSlider',
+            'useMicroDither', 'basicDitherType', 'ditheringSlider',
+            'useMacroPattern', 'patternTypeSelect', 'patternSizeSlider', 'patternStrengthSlider',
             'applyGradient', 'gradientTypeSelect', 'gradientDitherSizeSlider', 'gradientAngleSlider', 'gradientStrengthSlider',
             'celShadingApply', 'celShadingAlgorithmSelect', 'celShadingLevelsSlider', 'celShadingColorSpaceSelect', 
             'celShadingOutline', 'celShadingOutlineThresholdSlider', 'celShadingOutlineColorSelect',
@@ -812,18 +822,6 @@ export class ConversionOptionsFeature {
                 this.ui.updateDisplay(key, state[key]);
             }
         });
-
-        const val = state.ditheringAlgorithmSelect;
-        state.dithering = val;
-        
-        const patternValues = ['bayer8x8', 'crosshatch', 'vertical', 'checkerboard', 'diagonal_right', 'diagonal_left', 'brick'];
-        if (patternValues.includes(val)) {
-            state.applyPattern = true;
-            state.patternTypeSelect = val;
-            state.patternType = val;
-        } else {
-            state.applyPattern = false;
-        }
 
         const applyUpscale = document.getElementById('applyUpscale');
         const upscaleSelect = document.getElementById('upscaleSelect');
@@ -914,8 +912,13 @@ export class ConversionOptionsFeature {
             contrastSlider: 0,
             ditheringAlgorithmSelect: 'atkinson', 
             ditheringSlider: 0,
+
+            useMicroDither: false,
+            useMacroPattern: false,
+            basicDitherType: 'bayer',
+
             applyPattern: false,
-            patternTypeSelect: 'bayer8x8',
+            patternTypeSelect: 'grid',
             patternSizeSlider: 1,
             applyGradient: false,
             gradientTypeSelect: 'bayer',
@@ -955,5 +958,147 @@ export class ConversionOptionsFeature {
         this.updateTextureUI();
         this.updateUIConflictLocks();
         eventBus.emit('OPTION_CHANGED');
+    }
+
+    initPatternStrengthSync() {
+        const slider = document.getElementById('patternStrengthSlider');
+        const val = document.getElementById('patternStrengthValue');
+        if (slider) {
+            slider.addEventListener('input', (e) => { if (val) val.textContent = e.target.value; });
+            slider.addEventListener('change', (e) => {
+                state.patternStrengthSlider = parseInt(e.target.value, 10);
+                eventBus.emit('OPTION_CHANGED');
+            });
+        }
+    }
+
+    initCustomPatternEditor() {
+        const modal = document.getElementById('customPatternModal');
+        const openBtn = document.getElementById('btnOpenPatternEditor');
+        const closeBtn = document.getElementById('btnClosePatternEditor');
+        const patternTypeSelect = document.getElementById('patternTypeSelect');
+        const gridContainer = document.getElementById('customPatternGrid');
+        const sizeSelect = document.getElementById('customPatternSize');
+        const toolBtns = document.querySelectorAll('.pattern-tool-btn');
+
+        if (!modal || !gridContainer) return;
+
+        let isDrawing = false;
+        let currentBrush = 0; // 0: 깎기, 1: 유지, 2: 덧칠
+        let currentSize = 5;  // 기본 5x5
+        
+        let matrix = Array(currentSize).fill().map(() => Array(currentSize).fill(1));
+
+        if (patternTypeSelect) {
+            patternTypeSelect.addEventListener('change', (e) => {
+                if (e.target.value === 'custom') {
+                    openBtn.style.display = 'inline-block';
+                    modal.style.display = 'flex';
+                    renderGrid();
+                } else {
+                    openBtn.style.display = 'none';
+                    state.patternMatrix = null;
+                }
+            });
+        }
+
+        if (openBtn) openBtn.addEventListener('click', () => { modal.style.display = 'flex'; renderGrid(); });
+        if (closeBtn) closeBtn.addEventListener('click', () => modal.style.display = 'none');
+
+        toolBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                toolBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentBrush = parseInt(btn.getAttribute('data-state'), 10);
+            });
+        });
+
+        if (sizeSelect) {
+            sizeSelect.addEventListener('change', (e) => {
+                currentSize = parseInt(e.target.value, 10);
+                matrix = Array(currentSize).fill().map(() => Array(currentSize).fill(1));
+                renderGrid();
+            });
+        }
+
+        const renderGrid = () => {
+            gridContainer.innerHTML = '';
+            gridContainer.style.gridTemplateColumns = `repeat(${currentSize}, 1fr)`;
+
+            for (let y = 0; y < currentSize; y++) {
+                for (let x = 0; x < currentSize; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'pattern-cell';
+                    cell.setAttribute('data-state', matrix[y][x]); 
+
+                    const paint = () => {
+                        matrix[y][x] = currentBrush;
+                        cell.setAttribute('data-state', currentBrush);
+                    };
+
+                    cell.addEventListener('mousedown', (e) => {
+                        e.preventDefault(); 
+                        isDrawing = true;
+                        paint();
+                    });
+
+                    cell.addEventListener('mouseenter', () => {
+                        if (isDrawing) paint();
+                    });
+
+                    gridContainer.appendChild(cell);
+                }
+            }
+        };
+
+        document.addEventListener('mouseup', () => { isDrawing = false; });
+
+        const applyBtn = document.getElementById('btnApplyCustomPattern');
+        if (applyBtn) {
+            applyBtn.addEventListener('click', () => {
+                state.patternMatrix = matrix; 
+                modal.style.display = 'none';
+                eventBus.emit('OPTION_CHANGED'); 
+            });
+        }
+
+        const saveBtn = document.getElementById('btnSaveCustomPattern');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                const data = JSON.stringify({ size: currentSize, matrix: matrix });
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `noadot-pattern-${currentSize}x${currentSize}.json`;
+                a.click();
+            });
+        }
+
+        const loadBtn = document.getElementById('btnLoadCustomPattern');
+        const uploadInput = document.getElementById('patternUpload');
+        if (loadBtn && uploadInput) {
+            loadBtn.addEventListener('click', () => uploadInput.click());
+            uploadInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const parsed = JSON.parse(event.target.result);
+                        if (parsed.size && parsed.matrix) {
+                            currentSize = parsed.size;
+                            matrix = parsed.matrix;
+                            if(sizeSelect) sizeSelect.value = currentSize;
+                            renderGrid();
+                        }
+                    } catch (err) {
+                        alert("잘못된 패턴 파일입니다.");
+                    }
+                };
+                reader.readAsText(file);
+                uploadInput.value = '';
+            });
+        }
     }
 }

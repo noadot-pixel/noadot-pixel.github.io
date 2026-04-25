@@ -10,7 +10,7 @@ export const translations = {
         "btn_eyedropper": "💉 스포이드",
         "btn_recenter": "⌖ 화면 중앙 정렬",
         "btn_reset": "🔄 초기화",
-        "header_beta": "(베타테스트)", 
+        "header_beta": ": 리바이브", 
         "theme_toggle": "다크/라이트 모드 변경",
 
         // 팝업 & 다운로드 옵션
@@ -106,6 +106,18 @@ export const translations = {
         "label_organic_strength": "노이즈 확산 강도:",
         "desc_organic_noise_detail": "인접한 픽셀의 색상을 무작위로 파먹으며 거칠고 유기적인 텍스처를 생성합니다.",
 
+        //커스텀 디더링 상세
+        "label_micro_dither": "미세 디더링 (노이즈)",
+        "label_macro_pattern": "텍스처 패턴 (질감)",
+        "label_pattern_strength": "패턴 강도:",
+        "pat_custom": "✨ 커스텀 패턴 (직접 제작)",
+        "title_custom_pattern_editor": "🎨 커스텀 텍스처 에디터",
+        "label_grid_size": "그리드 캔버스 크기",
+        "label_brush_state": "브러시 선택",
+        "btn_save_pattern": "💾 패턴 저장",
+        "btn_load_pattern": "📂 불러오기",
+        "btn_apply_pattern": "🚀 텍스처 반영하기",
+
         //k-means++ 기능
         "sec_kmeans": "스마트 색상 추출 (K-Means)",
         "label_kmeans_match": "🎯 팔레트 색상 매칭 (안 쓰는 색 끄기)",
@@ -120,7 +132,7 @@ export const translations = {
         "msg_extracting": "⌛ 추출 중...",
 
         //팔레트
-        "sec_palettes": "4. 팔레트 관리",
+        "sec_palettes": "팔레트 관리",
         "label_custom_palette": "🎨 커스텀 팔레트",
         "title_view_list": "리스트 보기",
         "title_view_grid": "그리드 보기",
@@ -178,7 +190,7 @@ export const translations = {
         "btn_eyedropper": "💉 Eyedropper",
         "btn_recenter": "⌖ Recenter",
         "btn_reset": "🔄 Reset",
-        "header_beta": "(Beta Test)", 
+        "header_beta": ": Revive", 
         "theme_toggle": "Dark/Light mode switch",
 
         // 팝업 & 다운로드 옵션(Popups & Download Options)
@@ -274,6 +286,18 @@ export const translations = {
         "label_organic_strength": "Spread Strength:",
         "desc_organic_noise_detail": "Randomly eats into adjacent pixels to create a rough, organic texture.",
 
+        //커스텀 디더링 상세
+        "label_micro_dither": "Micro Dithering (Noise)", 
+        "label_macro_pattern": "Texture Pattern", 
+        "label_pattern_strength": "Pattern Strength:",
+        "pat_custom": "✨ Custom Pattern (Create Your Own)",
+        "title_custom_pattern_editor": "🎨 Custom Texture Editor",
+        "label_grid_size": "Canvas Grid Size",
+        "label_brush_state": "Selected Brush",
+        "btn_save_pattern": "💾 Save Pattern",
+        "btn_load_pattern": "📂 Load Pattern",
+        "btn_apply_pattern": "🚀 Apply Texture",
+
         //k-means++ 기능(k-means++)
         "sec_kmeans": "Smart Color Extraction (K-Means)",
         "label_kmeans_match": "🎯 Palette Match (Disable Unused)",
@@ -288,7 +312,7 @@ export const translations = {
         "msg_extracting": "⌛ Extracting...",
 
         //팔레트 (palette)
-        "sec_palettes": "4. Palette Management",
+        "sec_palettes": "Palette Management",
         "label_custom_palette": "🎨 Custom Palette",
         "title_view_list": "List View",
         "title_view_grid": "Grid View",

@@ -24,6 +24,43 @@ export class PaletteSelectorFeature {
         if (addHex) addHex.placeholder = t('ph_hex');
     }
 
+    extractColorsFromMessyText(text) {
+        const extracted = [];
+        let processingText = text;
+
+        // ① HEX 싹쓸이 (#이 있든 없든, 6자리 영문/숫자 추출)
+        const hexRegex = /(?:#|0x)?([a-fA-F0-9]{6})\b/g;
+        let match;
+        while ((match = hexRegex.exec(processingText)) !== null) {
+            const hex = match[1];
+            extracted.push([
+                parseInt(hex.substring(0, 2), 16),
+                parseInt(hex.substring(2, 4), 16),
+                parseInt(hex.substring(4, 6), 16)
+            ]);
+        }
+
+        // HEX로 빨아들인 부분은 공백으로 지워서 아래 RGB 숫자와 안 겹치게 만듭니다.
+        processingText = processingText.replace(hexRegex, ' ');
+
+        // ② 남은 텍스트에서 숫자만 싹쓸이해서 RGB(3개 1세트)로 묶기
+        const numRegex = /\d+/g;
+        const nums = [];
+        while ((match = numRegex.exec(processingText)) !== null) {
+            nums.push(parseInt(match[0], 10));
+        }
+
+        for (let i = 0; i < nums.length - 2; i += 3) {
+            // 과거 매뉴얼의 345 같은 오타를 방지하기 위해 0~255로 가둬버립니다.
+            const r = Math.max(0, Math.min(255, nums[i]));
+            const g = Math.max(0, Math.min(255, nums[i+1]));
+            const b = Math.max(0, Math.min(255, nums[i+2]));
+            extracted.push([r, g, b]);
+        }
+
+        return extracted;
+    }
+
     initEvents() {
         const toggleAllCustomBtn = document.getElementById('toggleAllCustomBtn');
         if (toggleAllCustomBtn) {
@@ -70,6 +107,38 @@ export class PaletteSelectorFeature {
         this.ui.modeButtons.forEach(btn => {
             btn.addEventListener('click', (e) => this.setMode(e.target.dataset.mode));
         });
+
+        const addHexInput = document.getElementById('addHex');
+        if (addHexInput) {
+            addHexInput.addEventListener('paste', (e) => {
+                // 클립보드에서 유저가 복사한 지저분한 텍스트 원본 가져오기
+                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                
+                // 청소기 가동!
+                const colors = this.extractColorsFromMessyText(pastedText);
+                
+                if (colors.length > 0) {
+                    e.preventDefault(); // 글자가 입력칸에 그대로 복사되는 것을 막음 (깔끔!)
+                    
+                    let addedCount = 0;
+                    colors.forEach(rgb => {
+                        const hex = this.ui.rgbToHex(...rgb).toUpperCase();
+                        const exists = state.addedColors.some(c => this.ui.rgbToHex(...c.rgb).toUpperCase() === hex);
+                        // 중복이 아니면 팔레트에 쏙쏙 집어넣기
+                        if (!exists) {
+                            state.addedColors.push({ id: Date.now() + Math.random(), rgb: rgb, count: 0 });
+                            addedCount++;
+                        }
+                    });
+
+                    if (addedCount > 0) {
+                        console.log(`🧹 스마트 붙여넣기로 ${addedCount}개의 색상을 추가했습니다!`);
+                        this.sortAndRefresh();
+                        eventBus.emit('PALETTE_UPDATED');
+                    }
+                }
+            });
+        }
 
         const addColorBtn = document.getElementById('addColorBtn');
         if (addColorBtn) {

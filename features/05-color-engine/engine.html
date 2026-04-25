@@ -22,7 +22,6 @@
                 </div>
 
                 <div id="advancedAlgoPanel" class="engine-advanced-panel" style="display: none;">
-                    
                     <div class="control-group engine-sub-group">
                         <label class="engine-label-sm" data-i18n="label_model_a">모델 A (기본 베이스)</label>
                         <select id="advancedModelA" class="ui-select">
@@ -68,7 +67,7 @@
 
             <div class="engine-row-between">
                 <label><span data-i18n="label_saturation">채도</span>
-                    <button class="mini-btn reset-slider-btn" data-target="saturationSlider" data-value-id="saturationValue" data-default="100" data-i18n-title="btn_reset_title" title="초기화">↺</button>
+                    <button class="mini-btn reset-slider-btn" data-target="saturationSlider" data-value-id="saturationValue" data-default="100" title="초기화">↺</button>
                 </label>
                 <span id="saturationValue" class="engine-val-purple">100</span>
             </div>
@@ -76,7 +75,7 @@
 
             <div class="engine-row-between">
                 <label><span data-i18n="label_brightness">밝기</span>
-                    <button class="mini-btn reset-slider-btn" data-target="brightnessSlider" data-value-id="brightnessValue" data-default="0" data-i18n-title="btn_reset_title" title="초기화">↺</button>
+                    <button class="mini-btn reset-slider-btn" data-target="brightnessSlider" data-value-id="brightnessValue" data-default="0" title="초기화">↺</button>
                 </label>
                 <span id="brightnessValue" class="engine-val-purple">0</span>
             </div>
@@ -84,7 +83,7 @@
 
             <div class="engine-row-between">
                 <label><span data-i18n="label_contrast">대비</span>
-                    <button class="mini-btn reset-slider-btn" data-target="contrastSlider" data-value-id="contrastValue" data-default="0" data-i18n-title="btn_reset_title" title="초기화">↺</button>
+                    <button class="mini-btn reset-slider-btn" data-target="contrastSlider" data-value-id="contrastValue" data-default="0" title="초기화">↺</button>
                 </label>
                 <span id="contrastValue" class="engine-val-purple">0</span>
             </div>
@@ -93,53 +92,65 @@
     </details>
 
     <details class="category-details">
-        <summary><span data-i18n="category_dither">🏁 디더링 및 패턴</span></summary>
+        <summary><span data-i18n="category_dither">🏁 디더링 및 텍스처 패턴</span></summary>
         <div class="details-content">
             
             <div class="control-group">
-                <label class="engine-label-bold" data-i18n="label_dither_mode">디더링 모드 선택</label>
-                <select id="ditherModeSelect" class="ui-select" style="margin-bottom: 10px;">
-                    <option value="none" selected data-i18n="dither_none">사용 안 함</option>
-                    <option value="basic" data-i18n="dither_basic">기본 디더링 (알고리즘)</option>
-                    <option value="pattern" data-i18n="dither_pattern">패턴 디더링 (텍스처)</option>
-                </select>
-
-                <div id="ditherBasicControls" class="engine-sub-panel" style="display: none;">
+                <label class="engine-checkbox-row">
+                    <input type="checkbox" id="useMicroDither"> 
+                    <span class="engine-checkbox-text">
+                        <b data-i18n="label_micro_dither">미세 디더링 (노이즈)</b>
+                    </span>
+                </label>
+                <div id="microDitherControls" class="engine-post-controls" style="display: none;">
                     <label class="engine-label-sm" data-i18n="label_dither_type">방식 선택</label>
-                    <select id="basicDitherType" class="ui-select">
+                    <select id="basicDitherType" class="ui-select" style="margin-bottom: 8px;">
                         <option value="bayer" data-i18n="dither_bayer">Bayer (규칙적 점묘화)</option>
                         <option value="floyd" data-i18n="dither_floyd">Floyd-Steinberg (부드러운 확산)</option>
                         <option value="sierra" data-i18n="dither_sierra">Sierra-2 (섬세한 확산)</option>
                         <option value="atkinson" data-i18n="dither_atkinson">Atkinson (명암 대비 강화)</option>
                     </select>
-                </div>
 
-                <div id="ditherPatternControls" class="engine-sub-panel" style="display: none;">
-                    <label class="engine-label-sm" data-i18n="label_pattern_type">패턴 선택</label>
-                    <select id="patternTypeSelect" class="ui-select" style="margin-bottom: 8px;">
-                        <option value="grid" data-i18n="pat_grid">격자 (Grid)</option>
-                        <option value="vertical" data-i18n="pat_vertical">수직선 (Vertical)</option>
-                        <option value="checkerboard" data-i18n="pat_checker">체커보드 (Checkerboard)</option>
-                        <option value="diagonal_r" data-i18n="pat_diag_r">우하단 대각선 (↘)</option>
-                        <option value="diagonal_l" data-i18n="pat_diag_l">좌하단 대각선 (↙)</option>
-                        <option value="brick" data-i18n="pat_brick">벽돌 (Brick)</option>
-                        <option value="crt" class="engine-val-highlight" data-i18n="pat_crt">CRT 서브픽셀 (화면 배열)</option>
-                        <option value="maze" class="engine-val-highlight" data-i18n="pat_maze">미로형 (Labyrinth)</option>
-                    </select>
-
-                    <label class="engine-label-sm"><span data-i18n="label_pattern_size">패턴 크기/비율:</span> <span id="patternSizeValue">4</span></label>
-                    <input type="range" id="patternSizeSlider" min="1" max="10" value="4" class="engine-slider-full">
-                </div>
-
-                <div id="ditherSharedStrength" class="engine-sub-panel" style="display: none; padding: 1px; background: transparent;">
                     <label class="engine-label-sm"><span data-i18n="label_dither_strength">디더링 강도:</span> <span id="ditheringValue">50</span></label>
                     <input type="range" id="ditheringSlider" min="0" max="100" value="50" class="engine-slider-full">
                 </div>
-                
-                <div id="ditherAspireControls" class="engine-sub-panel" style="display: none; padding: 1px; background: transparent;">
-                    <small class="engine-desc-sm" data-i18n="desc_aspire">Aspire 디더링은 유기적이고 자연스러운 노이즈 픽셀을 생성합니다. (강도 자동 조절)</small>
+            </div>
+
+            <hr class="engine-divider-dashed">
+
+            <div class="control-group">
+                <label class="engine-checkbox-row">
+                    <input type="checkbox" id="useMacroPattern"> 
+                    <span class="engine-checkbox-text">
+                        <b data-i18n="label_macro_pattern">텍스처 패턴 (질감)</b>
+                    </span>
+                </label>
+                <div id="macroPatternControls" class="engine-post-controls" style="display: none;">
+                    <label class="engine-label-sm" data-i18n="label_pattern_type">패턴 선택</label>
+                    
+                    <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+                        <select id="patternTypeSelect" class="ui-select" style="flex: 1;">
+                            <option value="grid" selected data-i18n="pat_grid">격자 (Grid)</option>
+                            <option value="vertical" data-i18n="pat_vertical">수직선 (Vertical)</option>
+                            <option value="checkerboard" data-i18n="pat_checker">체커보드 (Checkerboard)</option>
+                            <option value="diagonal_r" data-i18n="pat_diag_r">우하단 대각선 (↘)</option>
+                            <option value="diagonal_l" data-i18n="pat_diag_l">좌하단 대각선 (↙)</option>
+                            <option value="brick" data-i18n="pat_brick">벽돌 (Brick)</option>
+                            <option value="crt" class="engine-val-highlight" data-i18n="pat_crt">CRT 서브픽셀 (화면 배열)</option>
+                            <option value="maze" class="engine-val-highlight" data-i18n="pat_maze">미로형 (Labyrinth)</option>
+                            <option value="custom" class="engine-val-purple" style="font-weight: bold;" data-i18n="pat_custom">✨ 커스텀 패턴 (직접 제작)</option>
+                        </select>
+                        <button id="btnOpenPatternEditor" class="mini-btn" style="display: none;" title="패턴 에디터 열기">✏️</button>
+                    </div>
+
+                    <label class="engine-label-sm"><span data-i18n="label_pattern_size">패턴 크기/비율:</span> <span id="patternSizeValue">4</span></label>
+                    <input type="range" id="patternSizeSlider" min="1" max="10" value="4" class="engine-slider-full" style="margin-bottom: 8px;">
+
+                    <label class="engine-label-sm"><span data-i18n="label_pattern_strength">패턴 강도:</span> <span id="patternStrengthValue">50</span></label>
+                    <input type="range" id="patternStrengthSlider" min="0" max="100" value="10" class="engine-slider-full">
                 </div>
             </div>
+
         </div>
     </details>
 
@@ -230,4 +241,47 @@
             </div>
         </div>
     </details>
+
 </section>
+
+<div id="customPatternModal" class="pattern-modal-overlay" style="display: none;">
+    <div class="pattern-modal-content">
+        <div class="pattern-modal-header">
+            <h3 data-i18n="title_custom_pattern_editor">🎨 커스텀 텍스처 에디터</h3>
+            <button id="btnClosePatternEditor" class="mini-btn" title="닫기">✕</button>
+        </div>
+        
+        <div class="pattern-modal-body">
+            
+            <div class="pattern-editor-controls">
+                <label class="engine-label-sm" data-i18n="label_grid_size">그리드 캔버스 크기</label>
+                <select id="customPatternSize" class="ui-select" style="margin-bottom: 15px;">
+                    <option value="3">3 x 3</option>
+                    <option value="4">4 x 4</option>
+                    <option value="5" selected>5 x 5 (기본)</option>
+                    <option value="7">7 x 7</option>
+                    <option value="11">11 x 11 (거대 텍스처)</option>
+                </select>
+                
+                <label class="engine-label-sm" data-i18n="label_brush_state">브러시 선택</label>
+                <div class="pattern-tools">
+                    <button class="pattern-tool-btn active" data-state="0" title="어둡게 깎아내기">⬛ 깎기 (-)</button>
+                    <button class="pattern-tool-btn" data-state="1" title="변화 없음">⬜ 유지</button>
+                    <button class="pattern-tool-btn" data-state="2" title="밝게 덧칠하기">🟩 덧칠 (+)</button>
+                </div>
+            </div>
+            
+            <div class="pattern-editor-workspace">
+                <div id="customPatternGrid" class="custom-pattern-grid"></div>
+            </div>
+            
+            <div class="pattern-modal-footer">
+                <button id="btnSaveCustomPattern" class="mini-btn" data-i18n="btn_save_pattern">💾 패턴 저장</button>
+                <button id="btnLoadCustomPattern" class="mini-btn" data-i18n="btn_load_pattern">📂 불러오기</button>
+                <input type="file" id="patternUpload" style="display: none;" accept=".json">
+                
+                <button id="btnApplyCustomPattern" class="primary-btn" data-i18n="btn_apply_pattern">🚀 텍스처 반영하기</button>
+            </div>
+        </div>
+    </div>
+</div>
