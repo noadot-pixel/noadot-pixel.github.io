@@ -179,7 +179,14 @@ export const translations = {
         "msg_no_image": "다운로드할 이미지가 없습니다!",
         "msg_processing": "⌛ 처리 중...",
         "msg_eyedropper_only_geo": "⚠️ 스포이드 색상 추가는 GeoPixels 모드에서만 가능합니다.",
-        "msg_color_exists": "⚠️ 이미 존재하는 색상입니다."
+        "msg_color_exists": "⚠️ 이미 존재하는 색상입니다.",
+
+        // 모바일 번역 변경
+        "nav_upload": "업로드",
+        "nav_resize": "크기 변경",
+        "nav_engine": "색상 편집",
+        "nav_palette": "팔레트",
+        "nav_download" : "다운로드"
     },
     en: {
         // 공통 헤더 & UI(Common Header & UI)
@@ -360,6 +367,13 @@ export const translations = {
         "msg_no_image": "No image to download!",
         "msg_processing": "⌛ Processing...",
         "msg_eyedropper_only_geo": "⚠️ Eyedropper is only available in GeoPixels mode.",
-        "msg_color_exists": "⚠️ Color already exists."
+        "msg_color_exists": "⚠️ Color already exists.",
+
+        // 모바일 번역 변경
+        "nav_upload": "Upload",
+        "nav_resize": "Resize",
+        "nav_engine": "Color edit",
+        "nav_palette": "Palette",
+        "nav_download" : "Download"
     }
 };

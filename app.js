@@ -3,6 +3,8 @@ import { WorkerBridge } from './core/WorkerBridge.js';
 
 import { setLanguage, currentLang, updateDOMTranslations } from './core/state.js';
 
+import { MobileManager } from './core/mobile/mobile.js';
+
 import { ImageViewerFeature } from './features/02-viewer/logic.js';
 import { ImageUploaderFeature } from './features/03-uploader/logic.js';
 import { ImageResizerFeature } from './features/04-resizer/logic.js';
@@ -51,6 +53,9 @@ class NoaDotApp {
 
         console.log("🧩 HTML UI 조립 완벽 완료! 자바스크립트 뇌를 연결합니다...");
         this.initLogic();
+
+        const mobileManager = new MobileManager();
+        await mobileManager.init();
     }
 
     initLogic() {
