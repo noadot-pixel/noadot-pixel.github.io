@@ -209,40 +209,12 @@ export class ImageViewerFeature {
                     return;
                 }
 
-                // UI에 입력된 상세 파라미터 긁어오기
-                const options = {
-                    currentMode: state.currentMode,
-                    
-                    isSeparated: document.getElementById('chkDlSeparated')?.checked || false,
-                    
-                    // 도안 분할 옵션
-                    isSplit: document.getElementById('chkDlSplit')?.checked || false,
-                    splitCols: parseInt(document.getElementById('splitCols')?.value || 2),
-                    splitRows: parseInt(document.getElementById('splitRows')?.value || 2),
-                    maintainSize: document.getElementById('chkMaintainSize')?.checked || false,
-                    
-                    // Wplace 옵션 (좌표)
-                    isWplace: document.getElementById('chkDlWplace')?.checked || false,
-                    wplaceTX: parseInt(document.getElementById('wplaceTileX')?.value || 0),
-                    wplaceTY: parseInt(document.getElementById('wplaceTileY')?.value || 0),
-                    wplacePX: parseInt(document.getElementById('wplacePixelX')?.value || 0),
-                    wplacePY: parseInt(document.getElementById('wplacePixelY')?.value || 0),
-
-                    isUplace: document.getElementById('chkDlUplace')?.checked || false
-                };
-
-                const now = new Date();
-                const timestamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
-
-                // 워커로 전송
-                eventBus.emit('REQUEST_DOWNLOAD_WORKER', {
-                    imageData: targetData,
-                    options: options,
-                    timestamp: timestamp
-                });
-                
                 const originalText = btnDownload.innerHTML;
                 btnDownload.innerHTML = "⌛ 처리 중...";
+                
+                // 🚨 기존의 무거운 options 수집 로직 싹 지우고, 신호만 쏩니다!
+                eventBus.emit('TRIGGER_MASTER_DOWNLOAD');
+                
                 setTimeout(() => btnDownload.innerHTML = originalText, 1500);
             });
         }

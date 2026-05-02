@@ -6,10 +6,10 @@ import { setLanguage, currentLang, updateDOMTranslations } from './core/state.js
 import { ImageViewerFeature } from './features/02-viewer/logic.js';
 import { ImageUploaderFeature } from './features/03-uploader/logic.js';
 import { ImageResizerFeature } from './features/04-resizer/logic.js';
-// 🌟 1. K-Means 정찰대 두뇌 수입!
-import { KMeansFeature } from './features/07-kmeans/logic.js'; 
 import { ConversionOptionsFeature } from './features/05-color-engine/logic.js';
 import { PaletteSelectorFeature } from './features/06-palettes/logic.js';
+import { KMeansFeature } from './features/07-kmeans/logic.js'; 
+import { ExportFeature } from './features/08-export/logic.js';
 import { CommentFeature } from './features/09-comments/logic.js';
 
 class NoaDotApp {
@@ -45,6 +45,7 @@ class NoaDotApp {
         
         await ComponentLoader.load('sub-slot-engine', 'features/05-color-engine/engine.html');
         await ComponentLoader.load('sub-slot-palettes', 'features/06-palettes/palettes.html');
+        await ComponentLoader.load('sub-slot-export', 'features/08-export/export.html');
         await ComponentLoader.load('sub-slot-comments', 'features/09-comments/comments.html');
 
 
@@ -61,6 +62,7 @@ class NoaDotApp {
             this.resizer = new ImageResizerFeature();
             
             this.kmeans = new KMeansFeature(); 
+            this.exportFeature = new ExportFeature();
             
             this.engineOptions = new ConversionOptionsFeature();
             this.palettes = new PaletteSelectorFeature();

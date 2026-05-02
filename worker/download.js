@@ -28,8 +28,44 @@ const uplaceIds = [
 
 const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
 
+function scaleImageData(imgData, scale) {
+    if (!scale || scale <= 1) return imgData;
+
+    const targetW = imgData.width * scale;
+    const targetH = imgData.height * scale;
+
+    const srcCanvas = new OffscreenCanvas(imgData.width, imgData.height);
+    srcCanvas.getContext('2d').putImageData(imgData, 0, 0);
+
+    const dstCanvas = new OffscreenCanvas(targetW, targetH);
+    const ctx = dstCanvas.getContext('2d');
+    
+    // 🌟 픽셀 아트 확대의 핵심: 테두리가 흐려지지 않도록 안티앨리어싱 끄기
+    ctx.imageSmoothingEnabled = false; 
+    ctx.drawImage(srcCanvas, 0, 0, targetW, targetH);
+
+    return ctx.getImageData(0, 0, targetW, targetH);
+}
+
 self.onmessage = async (e) => {
-    const { imageData, options, timestamp } = e.data;
+    let { imageData, options, timestamp } = e.data;
+
+    // 🚨 [핵심 방어 코드] 워커로 넘어오면서 ImageData 껍데기가 벗겨진 경우, 진짜 객체로 심폐소생!
+    if (!(imageData instanceof ImageData)) {
+        imageData = new ImageData(
+            new Uint8ClampedArray(imageData.data), 
+            imageData.width, 
+            imageData.height
+        );
+    }
+
+    // 🌟 작업 시작 전, 배율이 있다면 원본 이미지를 먼저 뻥튀기합니다!
+    const scale = parseInt(options.exportScale, 10) || 1;
+    if (scale > 1) {
+        imageData = scaleImageData(imageData, scale);
+    }
+
+    // 이제 뻥튀기되고 안전해진 이미지 데이터가 아래 로직들로 흘러갑니다.
     const { width, height, data } = imageData;
     const zip = new JSZip();
     let useZip = false;

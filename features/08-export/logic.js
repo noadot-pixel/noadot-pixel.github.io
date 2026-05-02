@@ -92,28 +92,9 @@ export class ExportFeature {
     }
 
     initBusListeners() {
-        eventBus.on('CONVERSION_START', () => {
-            if (this.ui.downloadBtn) this.ui.downloadBtn.disabled = true;
-        });
-
-        eventBus.on('CONVERSION_COMPLETE', (data) => {
-            if (data && data.imageData) {
-                state.finalDownloadableData = data.imageData;
-                if (this.ui.downloadBtn) this.ui.downloadBtn.disabled = false;
-                this.updateSplitInputLimits();
-                
-                // 만약 Wplace 체크된 상태에서 이미지가 새로 변환되면 픽셀 크기 자동 갱신
-                if (this.ui.chkWplace && this.ui.chkWplace.checked) {
-                    if (this.ui.wplacePixelX) this.ui.wplacePixelX.value = data.imageData.width;
-                    if (this.ui.wplacePixelY) this.ui.wplacePixelY.value = data.imageData.height;
-                }
-            }
-        });
-
+        // 🌟 뷰어나 사이드바에서 신호가 오면, 묻지도 따지지도 않고 다운로드 실행!
         eventBus.on('TRIGGER_MASTER_DOWNLOAD', () => {
-            if (this.ui.downloadBtn && !this.ui.downloadBtn.disabled) {
-                this.handleDownload();
-            }
+            this.handleDownload();
         });
     }
 
@@ -353,19 +334,41 @@ export class ExportFeature {
         ], { type: 'image/png' });
     }
 
+    getScaledCanvas(imageData) {
+        // 안전하게 숫자로 변환 (값이 이상하면 기본값 1)
+        const scale = parseInt(state.exportScale, 10) || 1;
+        
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = imageData.width;
+        tempCanvas.height = imageData.height;
+        tempCanvas.getContext('2d').putImageData(imageData, 0, 0);
+
+        // 배율이 1 이하면 원본 캔버스 그대로 반환
+        if (scale <= 1) return tempCanvas;
+
+        // 배율이 적용된 최종 캔버스 생성
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = imageData.width * scale;
+        finalCanvas.height = imageData.height * scale;
+        const ctx = finalCanvas.getContext('2d');
+        
+        // 🌟 픽셀 아트 확대의 핵심: 안티앨리어싱 끄기 (테두리 흐려짐 방지)
+        ctx.imageSmoothingEnabled = false;
+        
+        // 원본 캔버스를 배율만큼 확대해서 복사
+        ctx.drawImage(tempCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
+        
+        return finalCanvas;
+    }
+
     // 🌟 [신규] .wplace 파일 생성을 위한 데이터 조립 함수
     // 🌟 [최종 완성판] Wplace 크기 불일치 오류 해결 및 1:1 선형 좌표계 적용
     createWplaceFileBlob() {
-        const canvas = document.createElement('canvas');
-        if (state.finalDownloadableData) {
-            canvas.width = state.finalDownloadableData.width;
-            canvas.height = state.finalDownloadableData.height;
-            canvas.getContext('2d').putImageData(state.finalDownloadableData, 0, 0);
-        } else {
-            return null;
-        }
+        // 🚨 [여기 수정!] 기존 1:1 캔버스 생성 로직 대신, 헬퍼 함수로 뻥튀기된 캔버스를 바로 가져옵니다.
+        const finalCanvas = this.getScaledCanvas(state.finalDownloadableData);
+        if (!finalCanvas) return null;
 
-        const dataUrl = canvas.toDataURL('image/png');
+        const dataUrl = finalCanvas.toDataURL('image/png');
         
         // 1. 유저가 입력한 2중 좌표계 (타일 0~2047, 픽셀 0~999)
         const tileX = parseInt(this.ui.wplaceTileX?.value, 10) || 0;
@@ -373,9 +376,9 @@ export class ExportFeature {
         const localX = parseInt(this.ui.wplaceLocalX?.value, 10) || 0;
         const localY = parseInt(this.ui.wplaceLocalY?.value, 10) || 0;
         
-        // 2. 캔버스의 실제 크기로 고정 (서버 튕김 방지)
-        const targetW = canvas.width;
-        const targetH = canvas.height;
+        // 2. 🚨 [여기 수정!] 캔버스의 실제 크기를 1x1 원본이 아니라, 뻥튀기된 finalCanvas 크기로 고정합니다!
+        const targetW = finalCanvas.width;
+        const targetH = finalCanvas.height;
 
         // 3. 전체 지도 기준 절대 픽셀 좌표
         const globalStartX = (tileX * 1000) + localX;
@@ -383,7 +386,7 @@ export class ExportFeature {
         const globalEndX = globalStartX + targetW;
         const globalEndY = globalStartY + targetH;
 
-        // 4. 🌟 증명된 Web Mercator 수학 공식 적용
+        // 4. Web Mercator 수학 공식 적용
         const MAP_SIZE = 2048000;
         const pixelToLng = (x) => (x / MAP_SIZE) * 360 - 180;
         const pixelToLat = (y) => {
@@ -398,7 +401,7 @@ export class ExportFeature {
             east: pixelToLng(globalEndX)
         };
 
-        // 5. 🌟 업로드해주신 texsss.png 파일과 100% 완벽하게 일치하는 구조로 조립
+        // 5. 업로드해주신 texsss.png 파일과 100% 완벽하게 일치하는 구조로 조립
         const wplaceData = {
             id: crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now(),
             schemaVersion: "1",
@@ -422,80 +425,43 @@ export class ExportFeature {
         return new Blob([jsonString], { type: 'application/octet-stream' });
     }
 
-    async handleDownload() {
-        if (!state.finalDownloadableData) {
-            alert(t('alert_no_data_to_download')); 
+    handleDownload() {
+        const targetData = state.finalDownloadableData || state.latestConversionData || state.originalImageData;
+        if (!targetData) {
+            alert(t('alert_no_data_to_download') || "다운로드할 이미지가 없습니다!"); 
             return;
         }
 
-        const imageData = state.finalDownloadableData;
-        const isSeparated = this.ui.chkSeparated && this.ui.chkSeparated.checked;
-        const isSplit = this.ui.chkSplit && this.ui.chkSplit.checked;
-        
-        const isUplaceMode = state.currentMode === 'uplace';
-        const isYouFileRequested = isUplaceMode && this.ui.chkUplace && this.ui.chkUplace.checked;
-        
-        // 🌟 Wplace 체크 여부 확인
-        const isWplaceRequested = this.ui.chkWplace && this.ui.chkWplace.checked;
+        const options = {
+            currentMode: state.currentMode,
+            isSeparated: this.ui.chkSeparated?.checked || false,
+            isSplit: this.ui.chkSplit?.checked || false,
+            splitCols: parseInt(this.ui.splitCols?.value || 2),
+            splitRows: parseInt(this.ui.splitRows?.value || 2),
+            maintainSize: this.ui.chkMaintainSize?.checked || false,
+            isWplace: this.ui.chkWplace?.checked || false,
+            wplaceTX: parseInt(this.ui.wplaceTileX?.value || 0),
+            wplaceTY: parseInt(this.ui.wplaceTileY?.value || 0),
+            wplacePX: parseInt(this.ui.wplacePixelX?.value || 0),
+            wplacePY: parseInt(this.ui.wplacePixelY?.value || 0),
+            isUplace: this.ui.chkUplace?.checked || false,
+            // 🌟 리사이저의 배율을 챙깁니다
+            exportScale: state.exportScale || 1 
+        };
 
-        const timestamp = this.getTimestamp();
-
-        if (!isSeparated && !isSplit) {
-            if (isWplaceRequested) {
-                // 🌟 Wplace 다운로드 실행
-                const blob = this.createWplaceFileBlob();
-                if (blob) saveAs(blob, `NOADOT_Export_${timestamp}.wplace`);
-            } else if (isYouFileRequested) {
-                const blob = this.createYouFileBlob(imageData, `NoaDot Export ${timestamp}`);
-                saveAs(blob, `NOADOT_Uplace_${timestamp}.you`);
-            } else {
-                const fileName = `NOADOT_Export_${timestamp}.png`;
-                await this.downloadCanvasAsPng(imageData, fileName);
-            }
-            return;
-        }
-
-        if (!window.JSZip) {
-            alert(t('alert_jszip_missing'));
-            return;
-        }
-
-        const zip = new JSZip();
-
-        if (isSeparated) await this.addSeparatedColorsToZip(zip, imageData, isYouFileRequested);
-        if (isSplit) await this.addSplitImagesToZip(zip, imageData, isYouFileRequested);
-
-        const content = await zip.generateAsync({ type: "blob" });
-        saveAs(content, `NOADOT_Export_${timestamp}.zip`);
+        // 워커로 전송!
+        eventBus.emit('REQUEST_DOWNLOAD_WORKER', {
+            imageData: targetData,
+            options: options,
+            timestamp: this.getTimestamp() 
+        });
     }
 
     async downloadCanvasAsPng(imageData, fileName) {
-        // 1. 🌟 ImageResizer가 얌전히 저장해둔 전역 변수를 그대로 가져옵니다! (DOM을 뒤질 필요가 없습니다)
-        const scale = state.exportScale || 1;
-
-        // 2. 원본(1:1) 크기의 임시 캔버스 생성 및 픽셀 데이터 삽입
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = imageData.width;
-        tempCanvas.height = imageData.height;
-        tempCanvas.getContext('2d').putImageData(imageData, 0, 0);
-
-        let finalCanvas = tempCanvas;
-
-        // 3. 배율이 1보다 크면, 뻥튀기용 캔버스를 새로 만들어 확대해서 그리기
-        if (scale > 1) {
-            finalCanvas = document.createElement('canvas');
-            finalCanvas.width = imageData.width * scale;
-            finalCanvas.height = imageData.height * scale;
-            const ctx = finalCanvas.getContext('2d');
-            
-            // 🌟 픽셀 아트 확대의 핵심: 안티앨리어싱 끄기 (테두리가 흐려지는 현상 방지)
-            ctx.imageSmoothingEnabled = false;
-            
-            // 원본 캔버스를 배율만큼 확대해서 최종 캔버스에 복사
-            ctx.drawImage(tempCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
-        }
+        // 1. 🌟 공통 헬퍼 함수를 통해 배율이 적용된 캔버스를 바로 가져옵니다.
+        const finalCanvas = this.getScaledCanvas(imageData);
         
-        // 4. 메타데이터 주입 및 다운로드 실행
+        // 2. 메타데이터 주입 및 다운로드 실행
         const blob = await new Promise(resolve => finalCanvas.toBlob(resolve, 'image/png'));
         const arrayBuffer = await blob.arrayBuffer();
         const secureBlob = this.injectMetadataToPng(arrayBuffer, "Comment", createSecureStamp());
@@ -577,13 +543,10 @@ export class ExportFeature {
         const rows = parseInt(this.ui.splitRows.value) || 2;
         const maintainSize = this.ui.chkMaintainSize.checked;
 
-        const width = imageData.width;
-        const height = imageData.height;
-
-        const masterCanvas = document.createElement('canvas');
-        masterCanvas.width = width;
-        masterCanvas.height = height;
-        masterCanvas.getContext('2d').putImageData(imageData, 0, 0);
+        // 🌟 기존 1:1 imageData 대신 배율이 뻥튀기된 마스터 캔버스를 가져옵니다!
+        const masterCanvas = this.getScaledCanvas(imageData);
+        const width = masterCanvas.width;
+        const height = masterCanvas.height;
 
         const folderName = isYouRequested ? "split_drafts_you" : "split_drafts";
         const folder = zip.folder(folderName);
@@ -681,12 +644,7 @@ export class ExportFeature {
                     folder.file(fileName, blob);
                     resolve();
                 } else {
-                    const layerCanvas = document.createElement('canvas');
-                    layerCanvas.width = width;
-                    layerCanvas.height = height;
-                    const ctx = layerCanvas.getContext('2d');
-                    
-                    ctx.putImageData(imgData, 0, 0);
+                    const layerCanvas = this.getScaledCanvas(imgData);
 
                     const fileName = `${safeName} - ${layerInfo.count}.png`;
                     layerCanvas.toBlob(async (blob) => {

@@ -1,0 +1,165 @@
+/* =========================================
+   📱 V7 모바일 반응형 (스크린샷 기반 Rework)
+   ========================================= */
+
+@media (min-width: 769px) {
+    .mobile-only { display: none !important; }
+}
+
+/* 화면 가로폭이 768px 이하이거나, 세로로 긴(모바일) 비율일 때 작동 */
+@media (max-width: 768px), (max-aspect-ratio: 4/5) {
+    .desktop-only { display: none !important; }
+    body { overflow: hidden; height: 100dvh; }
+
+    /* 캔버스 뷰어 공간 확보 */
+    #slot-viewer {
+        height: calc(100dvh - 65px - 55px);
+        margin-bottom: 65px;
+    }
+
+    /* 1. 하단 5탭 네비게이션 바 */
+    #mobile-bottom-nav {
+        position: fixed;
+        bottom: 0; left: 0;
+        width: 100%; height: 65px;
+        background: #ffffff;
+        border-top: 1px solid #e0e0e0;
+        display: flex; justify-content: space-around; align-items: center;
+        z-index: 1000;
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    body.dark-theme #mobile-bottom-nav { background: #16213e; border-top: 1px solid #0f3460; }
+
+    .nav-btn {
+        flex: 1; height: 100%;
+        background: none; border: none; cursor: pointer;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        gap: 4px; color: #888;
+        transition: color 0.2s;
+    }
+    .nav-icon { font-size: 20px; }
+    .nav-text { font-size: 11px; font-weight: 700; letter-spacing: -0.5px; }
+    
+    .nav-btn.active { color: var(--accent-primary); }
+
+    /* 2. 사이드바 -> 바텀 시트로 변신! (팝업 애니메이션) */
+    #slot-sidebar {
+        position: fixed !important;
+        bottom: calc(65px + env(safe-area-inset-bottom)) !important; 
+        left: 0 !important;
+        width: 100% !important;
+        height: 60vh !important; 
+        background: var(--bg-main) !important;
+        border-radius: 20px 20px 0 0; /* 위쪽 모서리 둥글게 */
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.15);
+        z-index: 999;
+        overflow-y: auto;
+        padding: 0 15px 20px 15px;
+        
+        /* 🔥 숨어있다가 스르륵 올라오는 마법 */
+        transform: translateY(120%);
+        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    
+    #slot-sidebar.sheet-open { transform: translateY(0); }
+
+    /* 3. 시트 상단 손잡이 (Pull Bar) */
+    #mobile-drag-handle {
+        position: sticky; top: 0;
+        width: 100%; height: 35px;
+        background: var(--bg-main);
+        display: flex; justify-content: center; align-items: center;
+        z-index: 10; cursor: pointer;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 10px;
+    }
+    #mobile-drag-handle::after {
+        content: ""; width: 45px; height: 5px;
+        background: #ccc; border-radius: 10px;
+    }
+}
+
+/* =========================================
+   📱 V7 모바일 반응형 (화면 폭 768px 이하 OR 세로 비율 4:5 이하)
+   ========================================= */
+
+/* 🖥️ PC 전용 (가로가 넓고 비율도 가로형일 때만 모바일 요소 숨김) */
+@media (min-width: 769px) and (min-aspect-ratio: 4/5) {
+    .mobile-only { display: none !important; }
+}
+
+/* 📱 모바일 전용 (가로가 좁거나 세로형 화면일 때 발동) */
+@media (max-width: 768px), (max-aspect-ratio: 4/5) {
+    .desktop-only { display: none !important; }
+    body { overflow: hidden; height: 100dvh; }
+
+    /* 캔버스 뷰어 공간 (하단 탭바만큼 올려줌) */
+    #slot-viewer {
+        height: calc(100dvh - 65px - 55px);
+        margin-bottom: 65px;
+    }
+
+    /* 1. 하단 5탭 네비게이션 바 */
+    #mobile-bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0; left: 0;
+        width: 100%; height: 65px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid var(--border-color);
+        justify-content: space-around; align-items: center;
+        z-index: 1000;
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    body.dark-theme #mobile-bottom-nav { background: rgba(26, 26, 46, 0.95); }
+
+    .nav-btn {
+        flex: 1; height: 100%;
+        background: none; border: none; cursor: pointer;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        gap: 4px; color: var(--text-secondary);
+        transition: color 0.2s;
+    }
+    .nav-icon { font-size: 20px; }
+    .nav-text { font-size: 11px; font-weight: 700; letter-spacing: -0.5px; }
+    .nav-btn.active { color: var(--accent-primary); }
+
+    /* 2. 사이드바 -> 팝업 바텀 시트로 변신! */
+    #slot-sidebar {
+        position: fixed !important;
+        bottom: calc(65px + env(safe-area-inset-bottom)) !important; 
+        left: 0 !important;
+        width: 100% !important;
+        height: 60vh !important; 
+        background: var(--bg-main) !important;
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
+        z-index: 999;
+        overflow-y: auto;
+        padding: 0 15px 20px 15px;
+        
+        /* 🚨 밑으로 숨어있다가 올라오는 애니메이션 */
+        transform: translateY(120%);
+        transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    
+    /* JS에서 active 탭을 누르면 이 클래스가 붙어서 팝업됨 */
+    #slot-sidebar.sheet-open { transform: translateY(0); }
+
+    /* 3. 시트 닫기용 상단 손잡이 */
+    #mobile-drag-handle {
+        position: sticky; top: 0;
+        width: calc(100% + 30px); margin-left: -15px;
+        height: 40px;
+        background: var(--bg-main);
+        display: flex; justify-content: center; align-items: center;
+        z-index: 10; cursor: pointer;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 15px;
+    }
+    #mobile-drag-handle::after {
+        content: ""; width: 40px; height: 5px;
+        background: #bbb; border-radius: 10px;
+    }
+}
