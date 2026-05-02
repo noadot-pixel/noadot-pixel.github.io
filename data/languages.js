@@ -21,6 +21,7 @@ export const translations = {
         "dl_wplace": "*wplace 버전(*.wplace)",
         "dl_uplace": "*youplace 버전(*.you)",
         "viewer_converting": "⌛ 변환 중...",
+        "viewer_upload_guide": "이곳을 클릭 혹은 이미지를 화면으로 드래그",
 
         // 이미지 업로드
         "sec_upload": "이미지 업로드",
@@ -209,6 +210,7 @@ export const translations = {
         "dl_wplace": "wplace Version(*.wplace)",
         "dl_uplace": "*youplace Version(*.you)",
         "viewer_converting": "⌛ converting...",
+        "viewer_upload_guide": "Click here or drag an image onto the screen",
 
         // 이미지 업로드(Uploader)
         "sec_upload": "Image Upload",

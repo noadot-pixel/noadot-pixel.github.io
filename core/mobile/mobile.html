@@ -1,22 +1,16 @@
 <!-- 모바일 하단 네비게이션 바 -->
 <nav id="mobile-bottom-nav" class="mobile-only">
-    <!-- 업로드(파일) 탭은 제거하고 크기 탭부터 시작합니다 -->
     <button class="nav-btn" data-target="sub-slot-resizer">
         <span class="nav-icon">📐</span><span class="nav-text" data-i18n="nav_resize">크기 변경</span>
+    </button>
+    <button class="nav-btn active" data-target="sub-slot-engine">
+        <span class="nav-icon">🎛️</span><span class="nav-text" data-i18n="nav_engine">색상 편집</span>
     </button>
     <button class="nav-btn" data-target="sub-slot-palettes">
         <span class="nav-icon">🎨</span><span class="nav-text" data-i18n="nav_palette">팔레트</span>
     </button>
-    <!-- 변환(색상 편집) 탭을 기본 활성화 상태로 둡니다 -->
-    <button class="nav-btn active" data-target="sub-slot-engine">
-        <span class="nav-icon">🎛️</span><span class="nav-text" data-i18n="nav_engine">색상 편집</span>
-    </button>
-    <!-- 🌟 새로 추가된 프리셋 탭 (아직 내용은 없지만 껍데기는 타겟팅) -->
     <button class="nav-btn" data-target="sub-slot-presets">
         <span class="nav-icon">✨</span><span class="nav-text" data-i18n="nav_preset">프리셋</span>
-    </button>
-    <button class="nav-btn" data-target="sub-slot-export">
-        <span class="nav-icon">📥</span><span class="nav-text" data-i18n="nav_download">다운로드</span>
     </button>
 </nav>
 

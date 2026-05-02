@@ -62,6 +62,11 @@ export class MobileManager {
             btn.addEventListener('click', () => {
                 const targetId = btn.getAttribute('data-target');
                 
+                if (btn.classList.contains('active') && sidebar.classList.contains('sheet-open')) {
+                    closeSheet();
+                    return;
+                }
+                
                 // 버튼 시각적 활성화
                 navBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');

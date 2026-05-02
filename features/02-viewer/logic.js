@@ -209,11 +209,37 @@ export class ImageViewerFeature {
                     return;
                 }
 
+                // 🚨 지워졌던 다운로드 옵션 수집 로직 원상 복구 & 스케일 적용!
+                const options = {
+                    currentMode: state.currentMode,
+                    isSeparated: document.getElementById('chkDlSeparated')?.checked || false,
+                    isSplit: document.getElementById('chkDlSplit')?.checked || false,
+                    splitCols: parseInt(document.getElementById('splitCols')?.value || 2),
+                    splitRows: parseInt(document.getElementById('splitRows')?.value || 2),
+                    maintainSize: document.getElementById('chkMaintainSize')?.checked || false,
+                    isWplace: document.getElementById('chkDlWplace')?.checked || false,
+                    wplaceTX: parseInt(document.getElementById('wplaceTileX')?.value || 0),
+                    wplaceTY: parseInt(document.getElementById('wplaceTileY')?.value || 0),
+                    wplacePX: parseInt(document.getElementById('wplacePixelX')?.value || 0),
+                    wplacePY: parseInt(document.getElementById('wplacePixelY')?.value || 0),
+                    isUplace: document.getElementById('chkDlUplace')?.checked || false,
+                    
+                    // 🌟🌟 핵심: 리사이저에서 설정한 배율 값을 가져옵니다! 🌟🌟
+                    exportScale: state.exportScale || 1
+                };
+
+                const now = new Date();
+                const timestamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+
                 const originalText = btnDownload.innerHTML;
                 btnDownload.innerHTML = "⌛ 처리 중...";
                 
-                // 🚨 기존의 무거운 options 수집 로직 싹 지우고, 신호만 쏩니다!
-                eventBus.emit('TRIGGER_MASTER_DOWNLOAD');
+                // 🚨 TRIGGER_MASTER_DOWNLOAD 이벤트 대신, 옵션을 담아 워커로 직접 발사하도록 원상 복구!
+                eventBus.emit('REQUEST_DOWNLOAD_WORKER', {
+                    imageData: targetData,
+                    options: options,
+                    timestamp: timestamp
+                });
                 
                 setTimeout(() => btnDownload.innerHTML = originalText, 1500);
             });

@@ -1,19 +1,48 @@
-/* 화면 가로폭이 768px 이하이거나, 스마트폰 세로 모드(비율)일 때 적용 */
+/* ==========================================
+   📱 PC 화면에서는 모바일 전용 요소 숨김
+========================================== */
+@media (min-width: 769px) and (min-aspect-ratio: 4/5) {
+    .mobile-only { display: none !important; }
+}
+
+/* ==========================================
+   📱 모바일 환경 (화면폭 768px 이하 OR 세로 모드)
+========================================== */
 @media (max-width: 768px), (max-aspect-ratio: 4/5) {
+    
+    /* 1. 레이아웃 1칸으로 통일 및 스크롤 고정 */
     body { 
         overflow: hidden; 
         height: 100dvh; 
     }
 
-    /* 1. 이비스 페인트 스타일: 뷰어(캔버스) 공간을 화면 전체로 확장! */
+    #app-root {
+        grid-template-areas: 
+            "header"
+            "viewer";
+        grid-template-columns: 1fr; 
+    }
+
+    /* 2. 헤더 다이어트 */
+    .app-header {
+        padding: 8px 12px; 
+    }
+    .header-logo h1 {
+        font-size: 1.2em; 
+    }
+    .external-links {
+        display: none !important;
+    }
+
+    /* 3. 뷰어(캔버스) 영역 확장 */
     #slot-viewer {
-        height: calc(100dvh - 65px - 60px); /* 헤더와 하단 바 제외 꽉 채움 */
+        height: calc(100dvh - 65px - 60px); 
         margin-bottom: 65px;
         border-radius: 0;
         border: none;
     }
 
-    /* 2. 하단 5탭 네비게이션 바 고정 */
+    /* 4. 하단 네비게이션 바 */
     #mobile-bottom-nav {
         display: flex;
         position: fixed;
@@ -26,7 +55,6 @@
         z-index: 1000;
         padding-bottom: env(safe-area-inset-bottom);
     }
-
     .nav-btn {
         flex: 1; height: 100%;
         background: none; border: none; cursor: pointer;
@@ -37,31 +65,47 @@
     .nav-icon { font-size: 20px; }
     .nav-text { font-size: 11px; font-weight: bold; }
 
-    /* 3. 우측 사이드바 -> 화면 하단에서 올라오는 바텀 시트로 변신! */
+    /* 5. 바텀 시트 (글래스모피즘 적용 및 z-index 최상단) */
     #slot-sidebar {
         position: fixed !important;
         bottom: calc(65px + env(safe-area-inset-bottom)) !important; 
         left: 0 !important;
         width: 100% !important;
         height: 65vh !important; 
-        background: var(--bg-main) !important;
+        
+        /* 글래스모피즘 */
+        background: rgba(244, 245, 247, 0.75) !important;
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        
         border-radius: 20px 20px 0 0;
         box-shadow: 0 -5px 20px rgba(0,0,0,0.4);
-        z-index: 999;
+        z-index: 1005 !important; /* 🚨 툴바보다 높게 덮기 위해 1005 부여 */
         overflow-y: auto;
         padding: 0 15px 20px 15px;
         
-        /* 밑에 숨어있다가 .sheet-open 클래스가 붙으면 올라옴 */
         transform: translateY(120%);
         transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
     #slot-sidebar.sheet-open { transform: translateY(0); }
 
-    /* 4. 시트 닫기용 손잡이 디자인 */
+    /* 글래스모피즘 다크모드 대응 */
+    html[data-theme="dark"] #slot-sidebar {
+        background: rgba(30, 30, 46, 0.75) !important; 
+    }
+    #slot-sidebar .sidebar-section {
+        background: rgba(255, 255, 255, 0.45) !important; 
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05) !important; 
+    }
+    html[data-theme="dark"] #slot-sidebar .sidebar-section {
+        background: rgba(0, 0, 0, 0.35) !important;
+    }
+
+    /* 6. 바텀 시트 손잡이 */
     #mobile-drag-handle {
         position: sticky; top: 0;
         width: calc(100% + 30px); margin-left: -15px; height: 40px;
-        background: var(--bg-main);
+        background: transparent !important; /* 투명화 적용 */
         display: flex; justify-content: center; align-items: center;
         z-index: 10; cursor: pointer;
         border-bottom: 1px solid var(--border-color);
@@ -72,63 +116,38 @@
         background: #bbb; border-radius: 10px;
     }
 
-    /* 5. PC용 뷰어 툴바(다운로드, 체크박스 등) 숨기기 (모바일은 바텀 시트에서 해결) */
+    /* 7. 뷰어 하단 툴바 모바일 최적화 (가로 스크롤 및 겹침 방지) */
     .viewer-bottom-toolbar {
-        display: none !important;
+        display: flex !important;
+        bottom: 75px; 
+        z-index: 990; /* 🚨 바텀시트(1005)보다 낮춰서 뒤로 숨게 함 */
+        
+        width: 95vw;
+        max-width: 100%;
+        padding: 8px 10px;
+        gap: 6px;
+        overflow-x: auto; /* 내용이 길면 가로 스크롤 */
+        white-space: nowrap;
+        
+        scrollbar-width: none; 
+        -ms-overflow-style: none; 
     }
-}
-
-/* PC 화면에서는 모바일 UI를 아예 숨김 */
-@media (min-width: 769px) and (min-aspect-ratio: 4/5) {
-    .mobile-only { display: none !important; }
-}
-
-/* 화면 가로폭이 768px 이하이거나, 스마트폰 세로 모드(비율)일 때 작동 */
-@media (max-width: 768px), (max-aspect-ratio: 4/5) {
-
-    /* ==========================================
-       🌟 1. 레이아웃 1칸으로 통일 (빈 땅 없애기)
-    ========================================== */
-    #app-root {
-        /* PC의 "viewer sidebar" 구조를 "viewer" 하나로 덮어씁니다! */
-        grid-template-areas: 
-            "header"
-            "viewer";
-        /* 우측 380px 고정 영역을 없애고 화면 전체(1fr)를 쓰게 합니다 */
-        grid-template-columns: 1fr; 
+    .viewer-bottom-toolbar::-webkit-scrollbar {
+        display: none;
     }
-
-    /* ==========================================
-       🌟 2. 헤더(상단바) 다이어트
-    ========================================== */
-    .app-header {
-        padding: 8px 12px; /* 좌우 여백을 줄여서 공간 확보 */
+    .viewer-bottom-toolbar > * {
+        flex-shrink: 0;
     }
-    
-    .header-logo h1 {
-        font-size: 1.2em; /* 로고 글씨 크기를 살짝 줄임 */
+    .viewer-bottom-toolbar .v-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 1.1em;
     }
-
-    /* 깃허브, 지오픽셀 등 외부 링크 아이콘은 
-       모바일에서 너무 좁으므로 과감하게 숨겨줍니다 */
-    .external-links {
-        display: none !important;
+    .viewer-bottom-toolbar .dl-label {
+        font-size: 0.8em;
     }
-
-
-    /* ... (이전 답변에서 작성했던 바텀 네비게이션, 바텀 시트 CSS 코드는 이 아래에 그대로 두시면 됩니다!) ... */
-
-    body { 
-        overflow: hidden; 
-        height: 100dvh; 
+    .viewer-bottom-toolbar .dl-btn {
+        padding: 8px 12px;
+        font-size: 0.9em;
     }
-    
-    #slot-viewer {
-        height: calc(100dvh - 65px - 60px); 
-        margin-bottom: 65px;
-        border-radius: 0;
-        border: none;
-    }
-
-    /* ... 이하 생략 ... */
 }
