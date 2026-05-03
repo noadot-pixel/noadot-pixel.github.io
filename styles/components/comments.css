@@ -86,7 +86,7 @@
 ========================================== */
 .comment-input-area { display: flex; flex-direction: column; gap: 8px; margin-bottom: 25px; }
 .comment-label { font-weight: bold; font-size: 0.9em; color: var(--text-primary); margin-bottom: 4px; }
-.comment-nick { width: 40%; min-width: 120px; }
+.comment-nick { width: 70%; min-width: 120px; }
 .comment-text { resize: vertical; }
 .comment-submit-btn { padding: 10px; font-size: 0.95em; margin-top: 5px; }
 .comments-container { border-top: 1px dashed var(--border-color); padding-top: 15px; display: flex; flex-direction: column; gap: 12px; }
