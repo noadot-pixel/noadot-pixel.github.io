@@ -111,6 +111,27 @@ export class ImageResizerFeature {
             this.updateStateAndConvert();
         });
 
+        this.heightInput.addEventListener('change', () => {
+            let val = parseInt(this.heightInput.value, 10);
+            if (state.originalImageData && val > state.originalImageData.height) {
+                val = state.originalImageData.height; // 원본보다 크게 입력 방지
+            }
+            this.heightInput.value = val;
+            
+            if (state.originalImageData) {
+                // 이번에는 높이를 기준으로 너비를 역산합니다.
+                const ratio = state.originalImageData.width / state.originalImageData.height;
+                const calculatedWidth = Math.floor(val * ratio);
+                
+                this.widthInput.value = calculatedWidth;
+                
+                // 너비 슬라이더와 텍스트도 계산된 너비값으로 동기화!
+                this.pixelSlider.value = calculatedWidth;
+                this.pixelSliderVal.textContent = `${calculatedWidth}px`;
+            }
+            this.updateStateAndConvert();
+        });
+
         // 비율 단위 슬라이더 이벤트 1:N 방식
         if (this.ratioSlider) {
             this.ratioSlider.addEventListener('input', (e) => {
