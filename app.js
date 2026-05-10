@@ -34,6 +34,7 @@ class NoaDotApp {
                 <div id="sub-slot-comments"></div>
                 
                 <div id="sub-slot-download" style="display: none;"></div>
+                <div id="sub-slot-comments" style="display: none;"></div>
             </div>
         `;
 

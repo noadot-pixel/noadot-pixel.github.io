@@ -111,6 +111,11 @@ export class MobileManager {
         if (targetId === 'sub-slot-palettes') {
             slotsToShow.push('sub-slot-kmeans');
         }
+
+        if (targetId === 'sub-slot-download') {
+            slotsToShow.push('sub-slot-comments');
+        }
+
         // 저장 탭을 누르면 댓글 같이 켜기
         if (targetId === 'sub-slot-export') {
             slotsToShow.push('sub-slot-comments');
@@ -136,6 +141,7 @@ export class MobileManager {
             'sub-slot-kmeans', 
             'sub-slot-export',
             'sub-slot-comments',
+            'sub-slot-download',
             'sub-slot-presets'
         ];
 
