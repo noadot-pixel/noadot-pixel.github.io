@@ -96,7 +96,7 @@ export class MobileManager {
             'sub-slot-kmeans',
             'sub-slot-export',
             'sub-slot-comments',
-            'sub-slot-presets'
+            'sub-slot-download'
         ];
 
         // 🌟 2. 켜야 할 패널들을 담을 장바구니 (기본적으로 누른 탭 1개)

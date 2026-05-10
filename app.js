@@ -28,13 +28,12 @@ class NoaDotApp {
             <div id="slot-sidebar">
                 <div id="sub-slot-uploader"></div>
                 <div id="sub-slot-resizer"></div>
-                
                 <div id="sub-slot-engine"></div>
-                
                 <div id="sub-slot-kmeans"></div> 
-                
                 <div id="sub-slot-palettes"></div>
                 <div id="sub-slot-comments"></div>
+                
+                <div id="sub-slot-download" style="display: none;"></div>
             </div>
         `;
 
@@ -47,8 +46,9 @@ class NoaDotApp {
         
         await ComponentLoader.load('sub-slot-engine', 'features/05-color-engine/engine.html');
         await ComponentLoader.load('sub-slot-palettes', 'features/06-palettes/palettes.html');
-        await ComponentLoader.load('sub-slot-export', 'features/08-export/export.html');
+        // await ComponentLoader.load('sub-slot-export', 'features/08-export/export.html');
         await ComponentLoader.load('sub-slot-comments', 'features/09-comments/comments.html');
+        await ComponentLoader.load('sub-slot-download', 'core/mobile/m-download.html');
 
 
         console.log("🧩 HTML UI 조립 완벽 완료! 자바스크립트 뇌를 연결합니다...");
@@ -67,7 +67,7 @@ class NoaDotApp {
             this.resizer = new ImageResizerFeature();
             
             this.kmeans = new KMeansFeature(); 
-            this.exportFeature = new ExportFeature();
+            //[AI가 주석하래]this.exportFeature = new ExportFeature();
             
             this.engineOptions = new ConversionOptionsFeature();
             this.palettes = new PaletteSelectorFeature();

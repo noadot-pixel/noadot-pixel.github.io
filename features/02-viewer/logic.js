@@ -74,25 +74,41 @@ export class ImageViewerFeature {
         });
 
         eventBus.on('PALETTE_MODE_CHANGED', () => {
+            // PC 버전 요소
             const wrapW = document.getElementById('wrapDlWplace');
             const wrapU = document.getElementById('wrapDlUplace');
             const chkW = document.getElementById('chkDlWplace');
             const chkU = document.getElementById('chkDlUplace');
-            const popupW = document.getElementById('popupDlWplace'); // 🌟 팝업창 요소 가져오기
+            const popupW = document.getElementById('popupDlWplace'); 
 
-            if (wrapW && wrapU) {
-                wrapW.style.display = state.currentMode === 'wplace' ? 'flex' : 'none';
-                wrapU.style.display = state.currentMode === 'uplace' ? 'flex' : 'none';
-                
-                // 🌟 Wplace 모드가 아닐 때, 체크 해제 및 팝업창 강제 닫기!
-                if (state.currentMode !== 'wplace' && chkW) {
-                    chkW.checked = false;
-                    if (popupW) popupW.style.display = 'none'; // 잔상 제거 핵심 코드!
-                }
-                
-                if (state.currentMode !== 'uplace' && chkU) {
-                    chkU.checked = false;
-                }
+            // 모바일 버전 요소
+            const mChkW = document.getElementById('m-chkDlWplace');
+            const mChkU = document.getElementById('m-chkDlUplace');
+            const mWrapW = mChkW ? mChkW.closest('.m-dl-group') : null;
+            const mWrapU = mChkU ? mChkU.closest('.m-dl-item') : null;
+            const mPopupW = document.getElementById('m-popupDlWplace');
+
+            const isWplace = state.currentMode === 'wplace';
+            const isUplace = state.currentMode === 'uplace';
+
+            // 1. 표시/숨김 처리 (PC)
+            if (wrapW) wrapW.style.display = isWplace ? 'flex' : 'none';
+            if (wrapU) wrapU.style.display = isUplace ? 'flex' : 'none';
+
+            // 2. 표시/숨김 처리 (Mobile)
+            if (mWrapW) mWrapW.style.display = isWplace ? 'block' : 'none';
+            if (mWrapU) mWrapU.style.display = isUplace ? 'flex' : 'none';
+            
+            // 3. 다른 모드로 넘어갈 때, 남아있는 체크 속성과 팝업창 잔상 강제 해제!
+            if (!isWplace) {
+                if (chkW) chkW.checked = false;
+                if (mChkW) mChkW.checked = false;
+                if (popupW) popupW.style.display = 'none';
+                if (mPopupW) mPopupW.style.display = 'none';
+            }
+            if (!isUplace) {
+                if (chkU) chkU.checked = false;
+                if (mChkU) mChkU.checked = false;
             }
         });
 
@@ -181,69 +197,86 @@ export class ImageViewerFeature {
     }
 
     initInteractions() {
+
+        // ==========================================
+        // 🌟 1. 다운로드 통합 로직 (PC & Mobile)
+        // ==========================================
+        const desktopBtn = document.getElementById('btnDownload');
+        const mobileBtn = document.getElementById('m-btnDownload');
+
+        const handleDownloadClick = () => {
+            // 현재 화면에 모바일 버튼(m-btnDownload)이 보인다면 모바일 UI로 간주
+            const isMobileUI = mobileBtn && mobileBtn.offsetParent !== null;
+            const prefix = isMobileUI ? 'm-' : '';
+
+            const targetData = state.latestConversionData || state.originalImageData;
+            if (!targetData) {
+                alert("다운로드할 이미지가 없습니다!");
+                return;
+            }
+
+            // prefix('m-')를 활용해 PC/모바일 중 현재 켜진 UI의 값을 수집!
+            const options = {
+                currentMode: state.currentMode,
+                isSeparated: document.getElementById(`${prefix}chkDlSeparated`)?.checked || false,
+                isSplit: document.getElementById(`${prefix}chkDlSplit`)?.checked || false,
+                splitCols: parseInt(document.getElementById(`${prefix}splitCols`)?.value || 2),
+                splitRows: parseInt(document.getElementById(`${prefix}splitRows`)?.value || 2),
+                maintainSize: document.getElementById(`${prefix}chkMaintainSize`)?.checked || false,
+                isWplace: document.getElementById(`${prefix}chkDlWplace`)?.checked || false,
+                wplaceTX: parseInt(document.getElementById(`${prefix}wplaceTileX`)?.value || 0),
+                wplaceTY: parseInt(document.getElementById(`${prefix}wplaceTileY`)?.value || 0),
+                wplacePX: parseInt(document.getElementById(`${prefix}wplacePixelX`)?.value || 0),
+                wplacePY: parseInt(document.getElementById(`${prefix}wplacePixelY`)?.value || 0),
+                isUplace: document.getElementById(`${prefix}chkDlUplace`)?.checked || false,
+                
+                exportScale: state.exportScale || 1
+            };
+
+            const now = new Date();
+            const timestamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+
+            // 워커로 다운로드 요청 발사!
+            eventBus.emit('REQUEST_DOWNLOAD_WORKER', {
+                imageData: targetData,
+                options: options,
+                timestamp: timestamp
+            });
+            
+            // 누른 버튼에 시각적 피드백 주기
+            const clickedBtn = isMobileUI ? mobileBtn : desktopBtn;
+            if (clickedBtn) {
+                const originalText = clickedBtn.innerHTML;
+                clickedBtn.innerHTML = "⌛ 처리 중...";
+                setTimeout(() => clickedBtn.innerHTML = originalText, 1500);
+            }
+        };
+
+        if (desktopBtn) desktopBtn.addEventListener('click', handleDownloadClick);
+        if (mobileBtn) mobileBtn.addEventListener('click', handleDownloadClick);
+
+        // ==========================================
+        // 🌟 2. 하위 옵션 팝업 토글 통합 로직
+        // ==========================================
+        const setupToggle = (chkId, popupId) => {
+            const chk = document.getElementById(chkId);
+            const popup = document.getElementById(popupId);
+            if(chk && popup) {
+                chk.addEventListener('change', (e) => {
+                    popup.style.display = e.target.checked ? 'block' : 'none';
+                });
+            }
+        };
+
+        // PC 팝업 연결
+        setupToggle('chkDlSplit', 'popupDlSplit');
+        setupToggle('chkDlWplace', 'popupDlWplace');
+        // 모바일 바텀시트 팝업 연결
+        setupToggle('m-chkDlSplit', 'm-popupDlSplit');
+        setupToggle('m-chkDlWplace', 'm-popupDlWplace');
+
         const container = this.ui.container;
         if (!container) return;
-
-        const chkDlSplit = document.getElementById('chkDlSplit');
-        const popupDlSplit = document.getElementById('popupDlSplit');
-        if(chkDlSplit && popupDlSplit) {
-            chkDlSplit.addEventListener('change', (e) => {
-                popupDlSplit.style.display = e.target.checked ? 'block' : 'none';
-            });
-        }
-
-        const chkDlWplace = document.getElementById('chkDlWplace');
-        const popupDlWplace = document.getElementById('popupDlWplace');
-        if(chkDlWplace && popupDlWplace) {
-            chkDlWplace.addEventListener('change', (e) => {
-                popupDlWplace.style.display = e.target.checked ? 'block' : 'none';
-            });
-        }
-
-        const btnDownload = document.getElementById('btnDownload');
-        if (btnDownload) {
-            btnDownload.addEventListener('click', () => {
-                const targetData = state.latestConversionData || state.originalImageData;
-                if (!targetData) {
-                    alert("다운로드할 이미지가 없습니다!");
-                    return;
-                }
-
-                // 🚨 지워졌던 다운로드 옵션 수집 로직 원상 복구 & 스케일 적용!
-                const options = {
-                    currentMode: state.currentMode,
-                    isSeparated: document.getElementById('chkDlSeparated')?.checked || false,
-                    isSplit: document.getElementById('chkDlSplit')?.checked || false,
-                    splitCols: parseInt(document.getElementById('splitCols')?.value || 2),
-                    splitRows: parseInt(document.getElementById('splitRows')?.value || 2),
-                    maintainSize: document.getElementById('chkMaintainSize')?.checked || false,
-                    isWplace: document.getElementById('chkDlWplace')?.checked || false,
-                    wplaceTX: parseInt(document.getElementById('wplaceTileX')?.value || 0),
-                    wplaceTY: parseInt(document.getElementById('wplaceTileY')?.value || 0),
-                    wplacePX: parseInt(document.getElementById('wplacePixelX')?.value || 0),
-                    wplacePY: parseInt(document.getElementById('wplacePixelY')?.value || 0),
-                    isUplace: document.getElementById('chkDlUplace')?.checked || false,
-                    
-                    // 🌟🌟 핵심: 리사이저에서 설정한 배율 값을 가져옵니다! 🌟🌟
-                    exportScale: state.exportScale || 1
-                };
-
-                const now = new Date();
-                const timestamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
-
-                const originalText = btnDownload.innerHTML;
-                btnDownload.innerHTML = "⌛ 처리 중...";
-                
-                // 🚨 TRIGGER_MASTER_DOWNLOAD 이벤트 대신, 옵션을 담아 워커로 직접 발사하도록 원상 복구!
-                eventBus.emit('REQUEST_DOWNLOAD_WORKER', {
-                    imageData: targetData,
-                    options: options,
-                    timestamp: timestamp
-                });
-                
-                setTimeout(() => btnDownload.innerHTML = originalText, 1500);
-            });
-        }
 
         if (this.ui.chkSharpResizing) {
             this.ui.chkSharpResizing.addEventListener('change', (e) => {

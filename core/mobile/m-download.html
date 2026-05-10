@@ -1,0 +1,49 @@
+<section class="sidebar-section" id="mobile-download-section">
+    <h2 data-i18n="nav_download">저장 및 내보내기</h2>
+    
+    <div class="m-download-container">
+        <label class="m-dl-item">
+            <input type="checkbox" id="m-chkDlSeparated"> <span data-i18n="dl_separated">🎨 색상별 레이어 분리 (.zip)</span>
+        </label>
+
+        <div class="m-dl-group">
+            <label class="m-dl-item">
+                <input type="checkbox" id="m-chkDlSplit"> <span data-i18n="dl_split">✂️ 도안 분할 다운로드 (.zip)</span>
+            </label>
+            <div id="m-popupDlSplit" class="m-sub-options" style="display: none;">
+                <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                    <label style="flex: 1; font-size: 0.9em;">가로 <input type="number" id="m-splitCols" value="2" min="1" class="ui-input" style="width:100%;"></label>
+                    <label style="flex: 1; font-size: 0.9em;">세로 <input type="number" id="m-splitRows" value="2" min="1" class="ui-input" style="width:100%;"></label>
+                </div>
+                <label style="font-size: 0.9em; display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="m-chkMaintainSize" checked> 원본 크기 유지 (투명화)
+                </label>
+            </div>
+        </div>
+
+        <hr style="border-top: 1px dashed var(--border-color); margin: 10px 0;">
+
+        <label class="m-dl-item color-uplace">
+            <input type="checkbox" id="m-chkDlUplace"> <span data-i18n="dl_uplace">📘 Uplace 포맷 (.you)</span>
+        </label>
+
+        <div class="m-dl-group">
+            <label class="m-dl-item color-wplace">
+                <input type="checkbox" id="m-chkDlWplace"> <span data-i18n="dl_wplace">📗 Wplace 포맷 (.wplace)</span>
+            </label>
+            <div id="m-popupDlWplace" class="m-sub-options" style="display: none;">
+                <p style="font-size: 0.8em; color: var(--text-secondary); margin-bottom: 5px;">* 좌표 복사 후 붙여넣기 (Ctrl+V)</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <label style="font-size: 0.8em;">TX <input type="number" id="m-wplaceTileX" class="ui-input" placeholder="0"></label>
+                    <label style="font-size: 0.8em;">TY <input type="number" id="m-wplaceTileY" class="ui-input" placeholder="0"></label>
+                    <label style="font-size: 0.8em;">PX <input type="number" id="m-wplacePixelX" class="ui-input" placeholder="0"></label>
+                    <label style="font-size: 0.8em;">PY <input type="number" id="m-wplacePixelY" class="ui-input" placeholder="0"></label>
+                </div>
+            </div>
+        </div>
+
+        <button id="m-btnDownload" class="m-primary-btn" data-i18n="btn_download">
+            💾 이미지 다운로드
+        </button>
+    </div>
+</section>
