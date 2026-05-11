@@ -89,6 +89,7 @@ export class ExportFeature {
         this.initEvents();
         this.initBusListeners();
         this.updateDownloadConflictLocks(); 
+        this.updateUplaceOptionVisibility();
     }
 
     initBusListeners() {
@@ -96,11 +97,15 @@ export class ExportFeature {
         eventBus.on('TRIGGER_MASTER_DOWNLOAD', () => {
             this.handleDownload();
         });
+
+        eventBus.on('PALETTE_MODE_CHANGED', () => {
+            this.updateUplaceOptionVisibility();
+        });
     }
 
-    // 🌟 [수정] Wplace 다운로드까지 고려한 체크박스 양방향 잠금 로직
+    // 🌟 다운로드 체크박스 양방향 잠금 로직
     updateDownloadConflictLocks() {
-        const isSeparatedChecked = this.ui.chkSeparated?.checked;
+        /*const isSeparatedChecked = this.ui.chkSeparated?.checked;
         const isSplitChecked = this.ui.chkSplit?.checked;
         const isWplaceChecked = this.ui.chkWplace?.checked;
         const isUplaceChecked = this.ui.chkUplace?.checked;
@@ -143,40 +148,57 @@ export class ExportFeature {
             setLock(this.ui.chkSeparated, false);
             setLock(this.ui.chkUplace, false);
             setLock(this.ui.chkWplace, false);
-        }
+        }*/
     }
 
     updateUplaceOptionVisibility() {
-        // [기존] Uplace 표시 로직
-        if (this.ui.uplaceWrapper) {
-            if (state.currentMode === 'uplace') {
-                this.ui.uplaceWrapper.style.display = 'block'; 
-            } else {
-                this.ui.uplaceWrapper.style.display = 'none';  
-                if (this.ui.chkUplace) this.ui.chkUplace.checked = false; 
-            }
-        }
+        const isWplace = state.currentMode === 'wplace';
+        const isUplace = state.currentMode === 'uplace';
 
-        // 🌟 [신규 추가] Wplace 표시 로직
-        if (this.ui.wplaceWrapper) {
-            // 현재 팔레트 모드가 'wplace'일 때만 보여줍니다
-            if (state.currentMode === 'wplace') {
-                this.ui.wplaceWrapper.style.display = 'block';
-            } else {
-                this.ui.wplaceWrapper.style.display = 'none';
-                
-                // 안 보일 때는 체크도 풀고, 밑에 열려있을지 모르는 좌표 입력란도 강제로 닫아줍니다.
-                if (this.ui.chkWplace) {
-                    this.ui.chkWplace.checked = false;
-                    if (this.ui.wplaceCoordSection) {
-                        this.ui.wplaceCoordSection.style.display = 'none';
+        // PC 사이드바, 뷰어 툴바, 모바일 바텀시트 어디에 있든 관련된 껍데기를 모두 찾아서 제어합니다!
+        const setDisplay = (ids, isVisible) => {
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    const wrapper = el.closest('.custom-checkbox-wrapper, .dl-popup-wrapper, .m-dl-group, .m-dl-item, .dl-label');
+                    if (wrapper) {
+                        if (isVisible) {
+                            wrapper.style.display = wrapper.classList.contains('dl-popup-wrapper') || wrapper.classList.contains('m-dl-group') ? 'block' : 'flex';
+                        } else {
+                            wrapper.style.display = 'none';
+                        }
                     }
+                    if (!isVisible) el.checked = false; // 안 보일 때는 강제 체크 해제
                 }
-            }
+            });
+        };
+
+        setDisplay(['chkDownloadWplace', 'chkDlWplace', 'm-chkDlWplace'], isWplace);
+        setDisplay(['chkDownloadUplace', 'chkDlUplace', 'm-chkDlUplace'], isUplace);
+        
+        // 팝업창 잔상 제거
+        if (!isWplace) {
+            ['wplaceCoordSection', 'popupDlWplace', 'm-popupDlWplace'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
         }
     }
 
     initEvents() {
+        // 🌟 공통 다운로드 실행 함수
+        const triggerDownload = () => this.handleDownload();
+        
+        if (this.ui.downloadBtn) {
+            this.ui.downloadBtn.addEventListener('click', triggerDownload);
+        }
+
+        // 🌟 [누락됐던 부분] 모바일 바텀시트에 있는 다운로드 버튼도 연결해 줍니다!
+        const mBtnDownload = document.getElementById('m-btnDownload');
+        if (mBtnDownload) {
+            mBtnDownload.addEventListener('click', triggerDownload);
+        }
+        
         if (this.ui.downloadBtn) {
             this.ui.downloadBtn.addEventListener('click', () => {
                 this.handleDownload();
@@ -432,24 +454,33 @@ export class ExportFeature {
             return;
         }
 
+        // 🚨 [슈퍼 수집기] PC, 뷰어, 모바일 중 "단 하나라도" 체크되어 있다면 true로 인식!
+        const getChecked = (ids) => ids.some(id => document.getElementById(id)?.checked);
+        const getVal = (ids, defaultVal) => {
+            for (const id of ids) {
+                const el = document.getElementById(id);
+                if (el && el.value) return parseInt(el.value, 10);
+            }
+            return defaultVal;
+        };
+
+        // 이제 어디서 체크했든 놓치지 않고 완벽하게 수집합니다!
         const options = {
             currentMode: state.currentMode,
-            isSeparated: this.ui.chkSeparated?.checked || false,
-            isSplit: this.ui.chkSplit?.checked || false,
-            splitCols: parseInt(this.ui.splitCols?.value || 2),
-            splitRows: parseInt(this.ui.splitRows?.value || 2),
-            maintainSize: this.ui.chkMaintainSize?.checked || false,
-            isWplace: this.ui.chkWplace?.checked || false,
-            wplaceTX: parseInt(this.ui.wplaceTileX?.value || 0),
-            wplaceTY: parseInt(this.ui.wplaceTileY?.value || 0),
-            wplacePX: parseInt(this.ui.wplacePixelX?.value || 0),
-            wplacePY: parseInt(this.ui.wplacePixelY?.value || 0),
-            isUplace: this.ui.chkUplace?.checked || false,
-            // 🌟 리사이저의 배율을 챙깁니다
+            isSeparated: getChecked(['chkDownloadSeparated', 'chkDlSeparated', 'm-chkDlSeparated']),
+            isSplit: getChecked(['chkDownloadSplit', 'chkDlSplit', 'm-chkDlSplit']),
+            splitCols: getVal(['splitCols', 'm-splitCols'], 2),
+            splitRows: getVal(['splitRows', 'm-splitRows'], 2),
+            maintainSize: getChecked(['chkMaintainSize', 'm-chkMaintainSize']),
+            isWplace: getChecked(['chkDownloadWplace', 'chkDlWplace', 'm-chkDlWplace']),
+            wplaceTX: getVal(['wplaceTileX', 'm-wplaceTileX'], 0),
+            wplaceTY: getVal(['wplaceTileY', 'm-wplaceTileY'], 0),
+            wplacePX: getVal(['wplacePixelX', 'm-wplacePixelX'], 0),
+            wplacePY: getVal(['wplacePixelY', 'm-wplacePixelY'], 0),
+            isUplace: getChecked(['chkDownloadUplace', 'chkDlUplace', 'm-chkDlUplace']),
             exportScale: state.exportScale || 1 
         };
 
-        // 워커로 전송!
         eventBus.emit('REQUEST_DOWNLOAD_WORKER', {
             imageData: targetData,
             options: options,

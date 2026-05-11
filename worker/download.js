@@ -47,6 +47,80 @@ function scaleImageData(imgData, scale) {
     return ctx.getImageData(0, 0, targetW, targetH);
 }
 
+function generateUplaceBlob(width, height, data, timestamp, nameSuffix = "") {
+    const pixels = new Uint8Array(width * height);
+    const colorMap = new Map();
+    uplacePaletteOrder.forEach((rgb, idx) => colorMap.set(rgbToHex(rgb[0], rgb[1], rgb[2]), uplaceIds[idx]));
+
+    const getNearestId = (r, g, b) => {
+        let minDist = Infinity; let bestId = 0;
+        for (let i = 0; i < uplacePaletteOrder.length; i++) {
+            const c = uplacePaletteOrder[i];
+            const d = (c[0]-r)**2 + (c[1]-g)**2 + (c[2]-b)**2;
+            if (d < minDist) { minDist = d; bestId = uplaceIds[i]; }
+        }
+        return bestId;
+    };
+
+    let pIdx = 0;
+    for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+        if (a === 0) pixels[pIdx++] = 0;
+        else {
+            const hex = rgbToHex(r, g, b);
+            pixels[pIdx++] = colorMap.has(hex) ? colorMap.get(hex) : getNearestId(r, g, b);
+        }
+    }
+
+    let base64Pixels = '';
+    const CHUNK_SIZE = 0x8000;
+    for (let i = 0; i < pixels.length; i += CHUNK_SIZE) {
+        const chunk = pixels.subarray(i, Math.min(i + CHUNK_SIZE, pixels.length));
+        base64Pixels += String.fromCharCode.apply(null, chunk);
+    }
+    base64Pixels = btoa(base64Pixels);
+
+    const payload = {
+        "version": "2.0",
+        "guide": {
+            "id": `id-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            "name": `NOADOT_${timestamp}${nameSuffix}`,
+            "pixels": base64Pixels,
+            "originTileX": 0, "originTileY": 0, "originLocalX": 0, "originLocalY": 0,
+            "width": width, "height": height, "createdAt": new Date().toISOString()
+        },
+        "exportedAt": new Date().toISOString()
+    };
+    return new Blob([JSON.stringify(payload, null, 2)], { type: 'application/octet-stream' });
+}
+
+function generateWplaceBlob(width, height, dataUrl, gStartX, gStartY, timestamp, nameSuffix = "") {
+    const globalEndX = gStartX + width;
+    const globalEndY = gStartY + height;
+    const MAP_SIZE = 2048000;
+    const pixelToLng = (x) => (x / MAP_SIZE) * 360 - 180;
+    const pixelToLat = (y) => {
+        const n = Math.PI - (2 * Math.PI * y) / MAP_SIZE;
+        return (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+    };
+
+    const wplaceData = {
+        id: `id-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        schemaVersion: "1",
+        name: `NOADOT_${timestamp}${nameSuffix}.png`,
+        opacity: 1,
+        image: { dataUrl, width, height },
+        bounds: {
+            north: pixelToLat(gStartY),
+            south: pixelToLat(globalEndY),
+            west: pixelToLng(gStartX),
+            east: pixelToLng(globalEndX)
+        },
+        colorMetric: "lab", dithering: false, order: 0, locked: false, hasPlaced: true, visible: true
+    };
+    return new Blob([JSON.stringify(wplaceData, null, 2)], { type: 'application/octet-stream' });
+}
+
 self.onmessage = async (e) => {
     let { imageData, options, timestamp } = e.data;
 
@@ -97,11 +171,25 @@ self.onmessage = async (e) => {
                 ctx.putImageData(layerData, 0, 0);
                 const blob = await canvas.convertToBlob({ type: 'image/png' });
                 zip.file(`layers/layer_${hex}.png`, blob);
+
+                // 🌟 [추가] 옵션이 켜져있다면, 현재 색상 레이어도 해당 확장자로 변환해서 ZIP에 쏙!
+                if (options.isUplace) {
+                    const uBlob = generateUplaceBlob(width, height, layerData.data, timestamp, `_layer_${hex}`);
+                    zip.file(`layers/layer_${hex}.you`, uBlob);
+                }
+                if (options.isWplace) {
+                    const reader = new FileReaderSync();
+                    const dataUrl = reader.readAsDataURL(blob);
+                    const gX = (options.wplaceTX * 1000) + options.wplacePX;
+                    const gY = (options.wplaceTY * 1000) + options.wplacePY;
+                    const wBlob = generateWplaceBlob(width, height, dataUrl, gX, gY, timestamp, `_layer_${hex}`);
+                    zip.file(`layers/layer_${hex}.wplace`, wBlob);
+                }
             }
         }
 
         // ==========================================
-        // 2. 도안 분할 (여백 투명화 옵션 포함)
+        // 2. 도안 분할 (특수 포맷 & 좌표계 계산 포함)
         // ==========================================
         if (options.isSplit) {
             useZip = true;
@@ -130,6 +218,26 @@ self.onmessage = async (e) => {
                     tileCanvas.getContext('2d').drawImage(sourceCanvas, sx, sy, sw, sh, dx, dy, sw, sh);
                     const blob = await tileCanvas.convertToBlob({ type: 'image/png' });
                     zip.file(`splits/split_${r + 1}x${c + 1}.png`, blob);
+
+                    // 🌟 [추가] 분할된 각 조각들도 특수 포맷으로 변환!
+                    if (options.isUplace || options.isWplace) {
+                        const tileImageData = tileCanvas.getContext('2d').getImageData(0, 0, exportW, exportH);
+                        const suffix = `_split_${r + 1}x${c + 1}`;
+                        
+                        if (options.isUplace) {
+                            const uBlob = generateUplaceBlob(exportW, exportH, tileImageData.data, timestamp, suffix);
+                            zip.file(`splits/split_${r + 1}x${c + 1}.you`, uBlob);
+                        }
+                        if (options.isWplace) {
+                            const reader = new FileReaderSync();
+                            const dataUrl = reader.readAsDataURL(blob);
+                            // 분할된 조각의 좌표계를 원래 이미지 기준 절대 좌표로 계산!
+                            const trueGX = (options.wplaceTX * 1000) + options.wplacePX + sx;
+                            const trueGY = (options.wplaceTY * 1000) + options.wplacePY + sy;
+                            const wBlob = generateWplaceBlob(exportW, exportH, dataUrl, trueGX, trueGY, timestamp, suffix);
+                            zip.file(`splits/split_${r + 1}x${c + 1}.wplace`, wBlob);
+                        }
+                    }
                 }
             }
         }

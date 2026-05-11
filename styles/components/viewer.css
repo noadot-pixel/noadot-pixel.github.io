@@ -216,7 +216,7 @@
     width: 50px;
     text-align: center;
     background: var(--bg-color);
-    color: white;
+    color: var(--text-primary);
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 6px 4px;
