@@ -187,7 +187,11 @@ export const translations = {
         "nav_resize": "크기 변경",
         "nav_engine": "색상 편집",
         "nav_palette": "팔레트",
-        "nav_download" : "다운로드"
+        "nav_download" : "다운로드",
+
+        // 이스터애그
+        "easter_title": "👾 앗! 숨겨진 픽셀을 찾으셨군요?",
+        "easter_desc": "☕값.. 혹시 내주실 수 있으실까요..?",
     },
     en: {
         // 공통 헤더 & UI(Common Header & UI)
@@ -376,6 +380,10 @@ export const translations = {
         "nav_resize": "Resize",
         "nav_engine": "Color edit",
         "nav_palette": "Palette",
-        "nav_download" : "Download"
+        "nav_download" : "Download",
+
+        // 이스터애그
+        "easter_title": "👾 You found a hidden pixel!",
+        "easter_desc": "Could you perhaps... spare some ☕?",
     }
 };

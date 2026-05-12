@@ -26,3 +26,53 @@
 
     </div>
 </header>
+
+<div class="secret-pixel-zone">
+    <a href="https://www.patreon.com/c/SAGQ" target="_blank" class="secret-patreon-btn">
+        <span data-i18n="easter_title">👾 앗! 숨겨진 픽셀을 찾으셨군요?</span><br>
+        <span style="font-size: 0.85em; font-weight: normal; opacity: 0.9;" data-i18n="easter_desc">☕ 밤낮으로 일하는 핫산에게 커피 수혈하기</span>
+    </a>
+</div>
+
+<style>
+    /* 1. 마우스를 감지하는 투명한 함정 구역 (화면 좌측 상단 모서리) */
+    .secret-pixel-zone {
+        position: fixed;
+        top: 0;   /* 🚨 헤더 위치에 맞춰 맨 위로! */
+        left: 0;
+        width: 10px;  /* 🚨 인식 범위를 100px -> 20px로 좁쌀만하게 축소! */
+        height: 10px; /* 🚨 진짜 구석을 찔러야만 나오게 설정 */
+        z-index: 9999;
+        display: flex;
+        align-items: flex-start; /* 위에서 아래로 내려오도록 설정 */
+    }
+
+    /* 2. 평소엔 위로 쏙 숨어있는 패트리온 버튼 */
+    .secret-patreon-btn {
+        margin-top: 25px; /* 함정 구역 바로 아래에서 스르륵 나타나게 설정 */
+        margin-left: 15px;
+        padding: 12px 18px;
+        background: linear-gradient(145deg, #FF424D, #ff6b73);
+        color: white !important;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 13px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(255, 66, 77, 0.4);
+        line-height: 1.5;
+        white-space: nowrap;
+        
+        /* 헤더 위쪽으로 숨겨둠 (-20px) */
+        opacity: 0;
+        transform: translateY(-20px) scale(0.9); 
+        pointer-events: none;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    /* 3. 마우스가 좌측 상단 끝에 닿으면 밑으로 뿅! */
+    .secret-pixel-zone:hover .secret-patreon-btn {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+    }
+</style>
