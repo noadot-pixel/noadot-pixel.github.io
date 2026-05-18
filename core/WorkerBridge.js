@@ -173,6 +173,9 @@ export class WorkerBridge {
                 saturation: state.saturationSlider ?? 100,
                 brightness: state.brightnessSlider ?? 0,
                 contrast: state.contrastSlider ?? 0,
+
+                useDitherDenoise: state.useDitherDenoise ?? false,
+                ditherDenoiseStrength: state.ditherDenoiseStrength ?? 50,
                 
                 // 2. 디더링 옵션
                 useMicroDither: String(state.useMicroDither) === 'true',

@@ -170,20 +170,22 @@ self.onmessage = async (e) => {
                 }
                 ctx.putImageData(layerData, 0, 0);
                 const blob = await canvas.convertToBlob({ type: 'image/png' });
-                zip.file(`layers/layer_${hex}.png`, blob);
+                const layerName = (options.colorNameMap && options.colorNameMap[hex]) ? options.colorNameMap[hex] : hex;
+                const safeLayerName = layerName.replace(/[\/\\?%*:|"<>]/g, '_'); // 특수문자가 폴더를 망가뜨리지 않게 치환
 
-                // 🌟 [추가] 옵션이 켜져있다면, 현재 색상 레이어도 해당 확장자로 변환해서 ZIP에 쏙!
+                zip.file(`layers/layer_${safeLayerName}.png`, blob);
+
                 if (options.isUplace) {
-                    const uBlob = generateUplaceBlob(width, height, layerData.data, timestamp, `_layer_${hex}`);
-                    zip.file(`layers/layer_${hex}.you`, uBlob);
+                    const uBlob = generateUplaceBlob(width, height, layerData.data, timestamp, `_layer_${safeLayerName}`);
+                    zip.file(`layers/layer_${safeLayerName}.you`, uBlob);
                 }
                 if (options.isWplace) {
                     const reader = new FileReaderSync();
                     const dataUrl = reader.readAsDataURL(blob);
                     const gX = (options.wplaceTX * 1000) + options.wplacePX;
                     const gY = (options.wplaceTY * 1000) + options.wplacePY;
-                    const wBlob = generateWplaceBlob(width, height, dataUrl, gX, gY, timestamp, `_layer_${hex}`);
-                    zip.file(`layers/layer_${hex}.wplace`, wBlob);
+                    const wBlob = generateWplaceBlob(width, height, dataUrl, gX, gY, timestamp, `_layer_${safeLayerName}`);
+                    zip.file(`layers/layer_${safeLayerName}.wplace`, wBlob);
                 }
             }
         }

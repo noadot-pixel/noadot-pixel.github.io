@@ -1,7 +1,7 @@
 // js/features/export-utils/logic.js
 import { eventBus } from '../../core/EventBus.js';
 import { state, rgbToHex, t } from '../../core/state.js';
-import { wplaceFreeColors, wplacePaidColors } from '../../../data/palettes.js';
+import { wplaceFreeColors, wplacePaidColors, uplaceColors } from '../../../data/palettes.js';
 import { ExportUI } from './ui.js';
 
 // ==========================================
@@ -464,9 +464,29 @@ export class ExportFeature {
             return defaultVal;
         };
 
+        const colorNameMap = {};
+        if (state.currentMode === 'wplace' || (state.currentMode === 'geopixels' && state.useWplaceInGeopixels)) {
+            const palette = [...wplaceFreeColors, ...wplacePaidColors];
+            palette.forEach(c => {
+                if (c.rgb) {
+                    const hex = '#' + c.rgb.map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+                    colorNameMap[hex] = c.name;
+                }
+            });
+        } else if (state.currentMode === 'uplace') {
+            const palette = uplaceColors || [];
+            palette.forEach(c => {
+                if (c.rgb) {
+                    const hex = '#' + c.rgb.map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+                    colorNameMap[hex] = c.name;
+                }
+            });
+        }
+
         // 이제 어디서 체크했든 놓치지 않고 완벽하게 수집합니다!
         const options = {
             currentMode: state.currentMode,
+            colorNameMap: colorNameMap,
             isSeparated: getChecked(['chkDownloadSeparated', 'chkDlSeparated', 'm-chkDlSeparated']),
             isSplit: getChecked(['chkDownloadSplit', 'chkDlSplit', 'm-chkDlSplit']),
             splitCols: getVal(['splitCols', 'm-splitCols'], 2),

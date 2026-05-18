@@ -274,6 +274,28 @@ export class ConversionOptionsFeature {
             });
         });
 
+        if (this.ui.chkDitherDenoise) {
+            this.ui.chkDitherDenoise.addEventListener('change', (e) => {
+                state.useDitherDenoise = e.target.checked;
+                if (this.ui.ditherDenoiseOptions) {
+                    this.ui.ditherDenoiseOptions.style.display = e.target.checked ? 'block' : 'none';
+                }
+                eventBus.emit('OPTION_CHANGED'); // 뇌 가동!
+            });
+        }
+
+        // 🌟 디노이징 강도 조절 슬라이더 이벤트
+        if (this.ui.ditherDenoiseStrengthSlider) {
+            this.ui.ditherDenoiseStrengthSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                state.ditherDenoiseStrength = val;
+                if (this.ui.ditherDenoiseStrengthVal) {
+                    this.ui.ditherDenoiseStrengthVal.textContent = val;
+                }
+                eventBus.emit('OPTION_CHANGED'); // 실시간 렌더링 갱신
+            });
+        }
+
         //노이징(유기적 노이즈) 파트
         const checkNoise = document.getElementById('useOrganicNoise');
         const boxNoise = document.getElementById('organicNoiseControls');
@@ -804,6 +826,20 @@ export class ConversionOptionsFeature {
         }
         delete state.bayerSizeSelect; // 🌟 2x2로 뭉개지게 만들던 과거의 원흉 변수 완벽 삭제!
 
+        if (this.ui.chkDitherDenoise) {
+            this.ui.chkDitherDenoise.checked = state.useDitherDenoise || false;
+            if (this.ui.ditherDenoiseOptions) {
+                this.ui.ditherDenoiseOptions.style.display = this.ui.chkDitherDenoise.checked ? 'block' : 'none';
+            }
+        }
+        if (this.ui.ditherDenoiseStrengthSlider) {
+            const savedStrength = state.ditherDenoiseStrength ?? 50;
+            this.ui.ditherDenoiseStrengthSlider.value = savedStrength;
+            if (this.ui.ditherDenoiseStrengthVal) {
+                this.ui.ditherDenoiseStrengthVal.textContent = savedStrength;
+            }
+        }
+        
         // 🌟 새로 분리된 디더링 & 패턴 UI의 키값들을 모두 추가해 초기 기동 시 값을 확실히 물고 들어가게 합니다!
         const keys = [
             'applyOutlineExpansion', 'applySmartSampling', 

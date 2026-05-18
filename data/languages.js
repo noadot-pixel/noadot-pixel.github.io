@@ -189,6 +189,11 @@ export const translations = {
         "nav_palette": "팔레트",
         "nav_download" : "다운로드",
 
+        // 디노이징
+        "label_use_dither_denoise": "✨ 디더링 추론 디노이징", 
+        "label_denoise_strength": "강도",
+        "desc_dither_denoise_detail": "가상의 디더링 패턴을 역추산하여 노이즈를 부드러운 중간색 면으로 자연스럽게 융합합니다.",
+
         // 이스터애그
         "easter_title": "👾 앗! 숨겨진 픽셀을 찾으셨군요?",
         "easter_desc": "☕값.. 혹시 내주실 수 있으실까요..?",
@@ -381,6 +386,11 @@ export const translations = {
         "nav_engine": "Color edit",
         "nav_palette": "Palette",
         "nav_download" : "Download",
+
+        // 디노이징
+        "label_use_dither_denoise": "✨ Dither-Inference Denoise", 
+        "label_denoise_strength": "Strength",
+        "desc_dither_denoise_detail": "Reconstructs the underlying dithering pattern and smoothly blends noisy pixels into natural midtone areas.",
 
         // 이스터애그
         "easter_title": "👾 You found a hidden pixel!",

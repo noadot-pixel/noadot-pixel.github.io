@@ -2,7 +2,7 @@
 import { eventBus } from '../../core/EventBus.js';
 import { state } from '../../core/state.js';
 import { ImageViewerUI } from './ui.js';
-import { geopixelsColors } from '../../data/palettes.js';
+import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors } from '../../data/palettes.js';
 
 export class ImageViewerFeature {
     constructor() {
@@ -197,38 +197,62 @@ export class ImageViewerFeature {
     }
 
     initInteractions() {
-
-        // ==========================================
-        // 🌟 1. 다운로드 통합 로직 (PC & Mobile)
-        // ==========================================
         const desktopBtn = document.getElementById('btnDownload');
         const mobileBtn = document.getElementById('m-btnDownload');
 
         const handleDownloadClick = () => {
-            // 현재 화면에 모바일 버튼(m-btnDownload)이 보인다면 모바일 UI로 간주
-            const isMobileUI = mobileBtn && mobileBtn.offsetParent !== null;
-            const prefix = isMobileUI ? 'm-' : '';
-
             const targetData = state.latestConversionData || state.originalImageData;
             if (!targetData) {
                 alert("다운로드할 이미지가 없습니다!");
                 return;
             }
 
-            // prefix('m-')를 활용해 PC/모바일 중 현재 켜진 UI의 값을 수집!
+            // 🚨 해결 1: 변수명 오타 완벽 방어! (GeoMode와 Geopixels 둘 다 검사)
+            const colorNameMap = {};
+            if (state.currentMode === 'wplace' || (state.currentMode === 'geopixels' && (state.useWplaceInGeopixels || state.useWplaceInGeoMode))) {
+                const palette = [...wplaceFreeColors, ...wplacePaidColors];
+                palette.forEach(c => {
+                    if (c.rgb) {
+                        const hex = '#' + c.rgb.map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+                        colorNameMap[hex] = c.name;
+                    }
+                });
+            } else if (state.currentMode === 'uplace') {
+                const palette = uplaceColors || [];
+                palette.forEach(c => {
+                    if (c.rgb) {
+                        const hex = '#' + c.rgb.map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+                        colorNameMap[hex] = c.name;
+                    }
+                });
+            }
+
+            // 🚨 해결 2: prefix 방식 폐기! PC와 모바일 체크박스 중 '하나라도' 켜져 있으면 작동하는 슈퍼 수집기
+            const getChecked = (ids) => ids.some(id => document.getElementById(id)?.checked);
+            const getVal = (ids, defaultVal) => {
+                for (const id of ids) {
+                    const el = document.getElementById(id);
+                    if (el && el.value) return parseInt(el.value, 10);
+                }
+                return defaultVal;
+            };
+
             const options = {
                 currentMode: state.currentMode,
-                isSeparated: document.getElementById(`${prefix}chkDlSeparated`)?.checked || false,
-                isSplit: document.getElementById(`${prefix}chkDlSplit`)?.checked || false,
-                splitCols: parseInt(document.getElementById(`${prefix}splitCols`)?.value || 2),
-                splitRows: parseInt(document.getElementById(`${prefix}splitRows`)?.value || 2),
-                maintainSize: document.getElementById(`${prefix}chkMaintainSize`)?.checked || false,
-                isWplace: document.getElementById(`${prefix}chkDlWplace`)?.checked || false,
-                wplaceTX: parseInt(document.getElementById(`${prefix}wplaceTileX`)?.value || 0),
-                wplaceTY: parseInt(document.getElementById(`${prefix}wplaceTileY`)?.value || 0),
-                wplacePX: parseInt(document.getElementById(`${prefix}wplacePixelX`)?.value || 0),
-                wplacePY: parseInt(document.getElementById(`${prefix}wplacePixelY`)?.value || 0),
-                isUplace: document.getElementById(`${prefix}chkDlUplace`)?.checked || false,
+                colorNameMap: colorNameMap, // 🌟 이름 지도 탑재 완료
+                
+                // 배열 안에 PC 툴바 ID와 모바일 ID를 같이 넣어서 싹 긁어옵니다.
+                isSeparated: getChecked(['chkDlSeparated', 'm-chkDlSeparated']),
+                isSplit: getChecked(['chkDlSplit', 'm-chkDlSplit']),
+                splitCols: getVal(['splitCols', 'm-splitCols'], 2),
+                splitRows: getVal(['splitRows', 'm-splitRows'], 2),
+                maintainSize: getChecked(['chkMaintainSize', 'm-chkMaintainSize']),
+                isWplace: getChecked(['chkDlWplace', 'm-chkDlWplace']),
+                wplaceTX: getVal(['wplaceTileX', 'm-wplaceTileX'], 0),
+                wplaceTY: getVal(['wplaceTileY', 'm-wplaceTileY'], 0),
+                wplacePX: getVal(['wplacePixelX', 'm-wplacePixelX'], 0),
+                wplacePY: getVal(['wplacePixelY', 'm-wplacePixelY'], 0),
+                isUplace: getChecked(['chkDlUplace', 'm-chkDlUplace']),
                 
                 exportScale: state.exportScale || 1
             };
@@ -243,8 +267,8 @@ export class ImageViewerFeature {
                 timestamp: timestamp
             });
             
-            // 누른 버튼에 시각적 피드백 주기
-            const clickedBtn = isMobileUI ? mobileBtn : desktopBtn;
+            // 🌟 PC/모바일 중 클릭된 버튼에 정확히 피드백 주기
+            const clickedBtn = (mobileBtn && mobileBtn.offsetParent !== null) ? mobileBtn : desktopBtn;
             if (clickedBtn) {
                 const originalText = clickedBtn.innerHTML;
                 clickedBtn.innerHTML = "⌛ 처리 중...";
@@ -252,6 +276,7 @@ export class ImageViewerFeature {
             }
         };
 
+        // 이벤트 리스너 바인딩 유지
         if (desktopBtn) desktopBtn.addEventListener('click', handleDownloadClick);
         if (mobileBtn) mobileBtn.addEventListener('click', handleDownloadClick);
 

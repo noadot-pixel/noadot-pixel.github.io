@@ -12,7 +12,10 @@ export class ConversionOptionsUI {
         this.rgbGInput = null;
         this.rgbBInput = null;
 
-        
+        this.chkDitherDenoise = document.getElementById('chkDitherDenoise');
+        this.ditherDenoiseOptions = document.getElementById('ditherDenoiseOptions');
+        this.ditherDenoiseStrengthSlider = document.getElementById('ditherDenoiseStrengthSlider');
+        this.ditherDenoiseStrengthVal = document.getElementById('ditherDenoiseStrengthVal');
 
         this.ditheringSelect = document.getElementById('ditheringAlgorithmSelect');
         this.ditheringIntensity = document.getElementById('ditheringSlider');

@@ -239,6 +239,26 @@
                     <small class="engine-desc-sm" data-i18n="desc_organic_noise_detail">인접한 픽셀의 색상을 무작위로 파먹으며 거칠고 유기적인 텍스처를 생성합니다.</small>
                 </div>
             </div>
+
+            <hr class="engine-divider-dashed">
+
+            <div class="control-group">
+                <label class="engine-checkbox-row">
+                    <input type="checkbox" id="chkDitherDenoise"> 
+                    <span class="engine-checkbox-text">
+                        <b data-i18n="label_use_dither_denoise">✨ 디더링 추론 디노이징</b>
+                    </span>
+                </label>
+                
+                <div id="ditherDenoiseOptions" class="engine-post-controls" style="display: none;">
+                    <label class="engine-label-sm">
+                        <span data-i18n="label_denoise_strength">강도:</span> 
+                        <span id="ditherDenoiseStrengthVal">50</span>
+                    </label>
+                    <input type="range" id="ditherDenoiseStrengthSlider" min="1" max="100" value="50" class="engine-slider-full">
+                    <small class="engine-desc-sm" data-i18n="desc_dither_denoise_detail">가상의 디더링 패턴을 역추산하여 노이즈를 부드러운 중간색 면으로 자연스럽게 융합합니다.</small>
+                </div>
+            </div>
         </div>
     </details>
 

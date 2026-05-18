@@ -23,6 +23,61 @@ function flattenAlpha(imageData, threshold = 128) {
     return imageData;
 }
 
+function applyDitherDenoise(imageData, strength) {
+    if (strength <= 0) return imageData;
+
+    const width = imageData.width;
+    const height = imageData.height;
+    const src = imageData.data;
+    const dst = new Uint8ClampedArray(src.length);
+    
+    // 강도(0~100)에 따라 반경과 허용치 계산
+    const radius = Math.ceil(strength / 30); 
+    const colorSigma = strength * 1.5;       
+    const spaceSigma = radius;               
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 4;
+            const r = src[i], g = src[i+1], b = src[i+2], a = src[i+3];
+
+            if (a === 0) { dst[i+3] = 0; continue; }
+
+            let sumR = 0, sumG = 0, sumB = 0, weightSum = 0;
+
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    const nx = x + dx, ny = y + dy;
+                    
+                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                        const ni = (ny * width + nx) * 4;
+                        if (src[ni+3] === 0) continue;
+
+                        const nr = src[ni], ng = src[ni+1], nb = src[ni+2];
+                        const colorDist = Math.abs(r - nr) + Math.abs(g - ng) + Math.abs(b - nb);
+                        const spaceDist = Math.abs(dx) + Math.abs(dy);
+
+                        // 외곽선은 살리고, 노이즈만 섞는 마법의 가중치 공식!
+                        const weight = Math.exp(-(colorDist * colorDist) / (2 * colorSigma * colorSigma)) *
+                                       Math.exp(-(spaceDist * spaceDist) / (2 * spaceSigma * spaceSigma));
+
+                        sumR += nr * weight;
+                        sumG += ng * weight;
+                        sumB += nb * weight;
+                        weightSum += weight;
+                    }
+                }
+            }
+
+            dst[i] = sumR / weightSum;
+            dst[i+1] = sumG / weightSum;
+            dst[i+2] = sumB / weightSum;
+            dst[i+3] = a;
+        }
+    }
+    return new ImageData(dst, width, height);
+}
+
 function buildActivePalette(options) {
     const active = [];
     const disabled = new Set(options.disabledHexes || []);
@@ -75,6 +130,10 @@ self.onmessage = (e) => {
 
             // 🌟 [Step 2] 투명도 컷오프 (핵심!): 리사이징으로 형태가 잡힌 직후 찌꺼기를 날려버립니다.
             currentImage = flattenAlpha(currentImage, 128);
+
+            if (options.useDitherDenoise && options.ditherDenoiseStrength > 0) {
+                currentImage = applyDitherDenoise(currentImage, options.ditherDenoiseStrength);
+            }
 
             currentImage = preprocessImageData(currentImage, options);
 
