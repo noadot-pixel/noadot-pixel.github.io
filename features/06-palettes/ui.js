@@ -1,4 +1,4 @@
-import { state } from '../../core/state.js';
+import { state, t } from '../../core/state.js';
 import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors } from '../../data/palettes.js';
 
 export class PaletteSelectorUI {
@@ -33,75 +33,105 @@ export class PaletteSelectorUI {
         
         this.paletteContainer.innerHTML = '';
         this.paletteContainer.style.display = 'grid';
-        // 🌟 1. 6열 배치(6*n)로 넓게 변경!
         this.paletteContainer.style.gridTemplateColumns = 'repeat(6, 1fr)';
         this.paletteContainer.style.gap = '5px';
 
+        // ==========================================
+        // 🌟 [그룹화 설계] 플랫폼 및 상품 등급별 분리 배정
+        // ==========================================
+        let groups = [];
         let colorsToRender = [];
+
         if (mode === 'geopixels') {
+            groups.push({ label: 'GeoPixels', colors: geopixelsColors });
             colorsToRender = [...geopixelsColors];
-            // 🌟 체크박스가 켜져 있다면 화면에 그릴 때 Wplace 색상들도 한 덩어리로 묶어서 그립니다!
             if (state.useWplaceInGeopixels) {
+                groups.push({ label: t('palette_wplace_free') || 'Wplace 기본색', colors: wplaceFreeColors });
+                groups.push({ label: t('palette_wplace_paid') || 'Wplace 유료색', colors: wplacePaidColors });
                 colorsToRender = [...colorsToRender, ...wplaceFreeColors, ...wplacePaidColors];
             }
+        } else if (mode === 'wplace') {
+            groups.push({ label: t('palette_wplace_free') || 'Wplace 기본색', colors: wplaceFreeColors });
+            groups.push({ label: t('palette_wplace_paid') || 'Wplace 유료색', colors: wplacePaidColors });
+            colorsToRender = [...wplaceFreeColors, ...wplacePaidColors];
+        } else if (mode === 'uplace') {
+            groups.push({ label: 'Uplace', colors: uplaceColors });
+            colorsToRender = uplaceColors;
         }
-        else if (mode === 'wplace') colorsToRender = [...wplaceFreeColors, ...wplacePaidColors];
-        else if (mode === 'uplace') colorsToRender = uplaceColors;
-
-        const allBtn = document.createElement('button');
-        allBtn.className = 'color-btn';
-        allBtn.textContent = 'ALL';
-        const hasDisabled = colorsToRender.some(c => state.disabledHexes?.includes(this.rgbToHex(...c.rgb)));
-        
-        Object.assign(allBtn.style, {
-            backgroundColor: hasDisabled ? '#444' : '#fff',
-            color: hasDisabled ? '#fff' : '#111',
-            fontWeight: '900',
-            border: '2px solid var(--accent-primary)',
-        });
-
-        allBtn.addEventListener('click', () => {
-            this.paletteContainer.dispatchEvent(new CustomEvent('toggleAllColors', { detail: colorsToRender }));
-        });
-        this.paletteContainer.appendChild(allBtn);
 
         const globalCounts = state.latestColorCounts || {};
 
-        colorsToRender.forEach(colorObj => {
-            const btn = document.createElement('button');
-            const hex = this.rgbToHex(...colorObj.rgb);
-            const isDisabled = state.disabledHexes?.includes(hex);
-            const textColor = this.getContrastYIQ(...colorObj.rgb); // 🌟 글자색 자동 계산
-
-            const count = globalCounts[hex] || 0;
-            const countText = count > 0 ? (count >= 1000 ? (count / 1000).toFixed(1) + 'k' : count) : '';
-
-            btn.className = 'color-btn';
-            btn.style.backgroundColor = hex;
-            btn.style.color = textColor;
-            btn.style.position = 'relative';
-            btn.style.display = 'flex';
-            btn.style.alignItems = 'center';
-            btn.style.justifyContent = 'center';
-            
-            if (isDisabled) {
-                btn.style.opacity = '0.2';
-                btn.style.filter = 'grayscale(80%)';
-                btn.innerHTML = ''; // 꺼지면 V 표시 제거
-            } else {
-                btn.style.opacity = '1';
-                btn.style.filter = 'none';
-                // 🌟 2. 켜져 있으면 중앙에 V 표시!
-                const checkMark = `<span style="font-size: 1.0em; font-weight: bold;">✓</span>`;
-                const countBadge = count > 0 ? `<span style="position:absolute; bottom:1px; right:2px; color:${textColor}; font-size:0.65em; font-weight:900; letter-spacing:-0.5px; text-shadow: 0px 0px 2px rgba(255,255,255,0.8), 0px 0px 2px rgba(0,0,0,0.8);">${countText}</span>` : '';
-                
-                btn.innerHTML = checkMark + countBadge;
+        groups.forEach(group => {
+            // 섹션이 쪼개져 있거나 Wplace 모드 단독일 때 서브 타이틀 증명 바 삽입
+            if (groups.length > 1 || mode === 'wplace') {
+                const titleEl = document.createElement('div');
+                titleEl.className = 'palette-group-title';
+                titleEl.textContent = group.label;
+                this.paletteContainer.appendChild(titleEl);
             }
 
-            btn.addEventListener('click', () => {
-                this.paletteContainer.dispatchEvent(new CustomEvent('toggleSingleColor', { detail: hex }));
+            // ==========================================
+            // 🌟 [신규] 각 그룹별 전용 'A (전체 선택/해제)' 버튼 생성!
+            // ==========================================
+            const groupAllBtn = document.createElement('button');
+            groupAllBtn.className = 'color-btn'; // 기존 네모난 버튼 스타일 상속
+            groupAllBtn.textContent = 'A';
+            
+            // 해당 그룹 내에 하나라도 꺼져있는 색이 있는지 확인
+            const groupHexes = group.colors.map(c => this.rgbToHex(...c.rgb).toUpperCase());
+            const hasDisabled = groupHexes.some(hex => state.disabledHexes?.includes(hex));
+            
+            Object.assign(groupAllBtn.style, {
+                backgroundColor: hasDisabled ? '#444' : '#fff',
+                color: hasDisabled ? '#fff' : '#111',
+                fontWeight: '900',
+                border: '2px solid var(--accent-primary)',
             });
-            this.paletteContainer.appendChild(btn);
+
+            groupAllBtn.addEventListener('click', () => {
+                // 클릭 시 전체 색상이 아니라 '해당 그룹의 색상들(group.colors)'만 전달하여 토글!
+                this.paletteContainer.dispatchEvent(new CustomEvent('toggleAllColors', { detail: group.colors }));
+            });
+            this.paletteContainer.appendChild(groupAllBtn);
+
+            // ==========================================
+            // 개별 색상 버튼 생성
+            // ==========================================
+            group.colors.forEach(colorObj => {
+                const btn = document.createElement('button');
+                const hex = this.rgbToHex(...colorObj.rgb);
+                const isDisabled = state.disabledHexes?.includes(hex);
+                const textColor = this.getContrastYIQ(...colorObj.rgb);
+
+                const count = globalCounts[hex] || 0;
+                const countText = count > 0 ? (count >= 1000 ? (count / 1000).toFixed(1) + 'k' : count) : '';
+
+                btn.className = 'color-btn';
+                btn.style.backgroundColor = hex;
+                btn.style.color = textColor;
+                btn.style.position = 'relative';
+                btn.style.display = 'flex';
+                btn.style.alignItems = 'center';
+                btn.style.justifyContent = 'center';
+                
+                if (isDisabled) {
+                    btn.style.opacity = '0.2';
+                    btn.style.filter = 'grayscale(80%)';
+                    btn.innerHTML = '';
+                } else {
+                    btn.style.opacity = '1';
+                    btn.style.filter = 'none';
+                    const checkMark = `<span style="font-size: 1.0em; font-weight: bold;">✓</span>`;
+                    const countBadge = count > 0 ? `<span style="position:absolute; bottom:1px; right:2px; color:${textColor}; font-size:0.65em; font-weight:900; letter-spacing:-0.5px; text-shadow: 0px 0px 2px rgba(255,255,255,0.8), 0px 0px 2px rgba(0,0,0,0.8);">${countText}</span>` : '';
+                    
+                    btn.innerHTML = checkMark + countBadge;
+                }
+
+                btn.addEventListener('click', () => {
+                    this.paletteContainer.dispatchEvent(new CustomEvent('toggleSingleColor', { detail: hex }));
+                });
+                this.paletteContainer.appendChild(btn);
+            });
         });
     }
 

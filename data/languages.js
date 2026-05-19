@@ -152,6 +152,8 @@ export const translations = {
         "msg_invalid_palette_json": "잘못된 팔레트 파일입니다. JSON 형식을 확인해주세요.",
         "msg_custom_only_geo": "커스텀 색상 추가는 GeoPixels 모드에서만 가능합니다.",
         "label_use_wplace": "Wplace 팔레트 사용하기",
+        "palette_wplace_free":"무료 팔레트",
+        "palette_wplace_paid":"유료 팔레트",
 
         //댓글
         "btn_open_comments": "💬 피드백 및 댓글 보기",
@@ -350,6 +352,8 @@ export const translations = {
         "msg_invalid_palette_json": "Invalid palette file. Please check the JSON format.",
         "msg_custom_only_geo": "Custom colors can only be added in GeoPixels mode.",
         "label_use_wplace": "Used Wplace palettes",
+        "palette_wplace_free":"free Palette",
+        "palette_wplace_paid":"paid Palette",
 
         // 댓글(comments)
         "btn_open_comments": "💬 View Feedback & Comments",
