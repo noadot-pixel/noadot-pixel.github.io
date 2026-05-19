@@ -190,7 +190,7 @@ export const translations = {
         "nav_download" : "다운로드",
 
         // 디노이징
-        "label_use_dither_denoise": "✨ 디더링 추론 디노이징", 
+        "label_use_dither_denoise": "✨ 잡티 제거", 
         "label_denoise_strength": "강도",
         "desc_dither_denoise_detail": "가상의 디더링 패턴을 역추산하여 노이즈를 부드러운 중간색 면으로 자연스럽게 융합합니다.",
 
@@ -388,7 +388,7 @@ export const translations = {
         "nav_download" : "Download",
 
         // 디노이징
-        "label_use_dither_denoise": "✨ Dither-Inference Denoise", 
+        "label_use_dither_denoise": "✨ Clean Up Speckles", 
         "label_denoise_strength": "Strength",
         "desc_dither_denoise_detail": "Reconstructs the underlying dithering pattern and smoothly blends noisy pixels into natural midtone areas.",
 
