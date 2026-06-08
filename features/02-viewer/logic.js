@@ -200,6 +200,13 @@ export class ImageViewerFeature {
         const desktopBtn = document.getElementById('btnDownload');
         const mobileBtn = document.getElementById('m-btnDownload');
 
+        const chkEditorMode = document.getElementById('chkEditorMode');
+        if (chkEditorMode) {
+            chkEditorMode.addEventListener('change', (e) => {
+                eventBus.emit('TOGGLE_EDITOR_MODE', e.target.checked);
+            });
+        }
+
         const handleDownloadClick = () => {
             const targetData = state.latestConversionData || state.originalImageData;
             if (!targetData) {

@@ -3,35 +3,62 @@
     
     <div class="kmeans-panel">
         
-        <div id="kmeans-track-1" class="kmeans-track">
+        <div id="kmeans-track-extract" class="kmeans-track">
             <div class="control-group kmeans-control">
                 <label class="kmeans-label">
-                    <span data-i18n="label_kmeans_match">🎯 팔레트 색상 매칭 (안 쓰는 색 끄기)</span>
-                    <span id="matchSliderVal" class="kmeans-val-match">16색</span>
-                </label>
-                <input type="range" id="matchSlider" class="kmeans-slider" min="2" max="127" value="16" step="1">
-                <small class="kmeans-desc" data-i18n="desc_kmeans_match">
-                    추출된 색상과 원본 팔레트를 대조하여 사용량이 0인 색상의 체크(✓)를 해제합니다.
-                </small>
-            </div>
-            <button id="btnKmeansMatch" class="action-btn kmeans-btn kmeans-btn-match" data-i18n="btn_kmeans_match">
-                🎯 이미지와 매칭하여 팔레트 최적화
-            </button>
-        </div>
-
-        <div id="kmeans-track-2" class="kmeans-track track-divider">
-            <div class="control-group kmeans-control">
-                <label class="kmeans-label">
-                    <span data-i18n="label_kmeans_extract">✨ 커스텀 색상 자동 추출</span>
+                    <span data-i18n="label_kmeans_extract">✨ 커스텀 색상 자동 추가</span>
                     <span id="addSliderVal" class="kmeans-val-extract">16색</span>
                 </label>
                 <input type="range" id="addSlider" class="kmeans-slider" min="1" max="256" value="16" step="1">
+                
+                <div class="kmeans-adjust-btns">
+                    <button class="mini-btn adjust-btn" data-target="addSlider" data-val="-100">-100</button>
+                    <button class="mini-btn adjust-btn" data-target="addSlider" data-val="-10">-10</button>
+                    <button class="mini-btn adjust-btn" data-target="addSlider" data-val="-1">-1</button>
+                    <button class="mini-btn adjust-btn" data-target="addSlider" data-val="1">+1</button>
+                    <button class="mini-btn adjust-btn" data-target="addSlider" data-val="10">+10</button>
+                    <button class="mini-btn adjust-btn" data-target="addSlider" data-val="100">+100</button>
+                </div>
+
                 <small class="kmeans-desc" data-i18n="desc_kmeans_extract">
-                    이미지에서 색을 뽑아 커스텀 팔레트에 자동으로 추가합니다.
+                    이미지에서 색을 뽑아 커스텀 팔레트에 추가합니다.
                 </small>
             </div>
-            <button id="btnKmeansExtract" class="action-btn kmeans-btn kmeans-btn-extract" data-i18n="btn_kmeans_extract">
-                ✨ 추출한 색상을 커스텀에 추가
+            <div style="display: flex; gap: 8px;">
+                <button id="btnKmeansExtract" class="action-btn kmeans-btn kmeans-btn-extract" data-i18n="btn_kmeans_extract">
+                    ✨ 알고리즘 추출
+                </button>
+                <button id="btnUsageExtract" class="action-btn kmeans-btn kmeans-btn-usage" data-i18n="btn_usage_extract">
+                    📊 사용량 랭킹 추출
+                </button>
+            </div>
+        </div>
+
+        <div class="kmeans-track track-divider"></div>
+
+        <div id="kmeans-track-match" class="kmeans-track" style="margin-bottom: 0;">
+            <div class="control-group kmeans-control">
+                <label class="kmeans-label">
+                    <span data-i18n="label_kmeans_match">🎯 팔레트 매칭 최적화</span>
+                    <span id="matchSliderVal" class="kmeans-val-match">16색</span>
+                </label>
+                <input type="range" id="matchSlider" class="kmeans-slider" min="2" max="127" value="16" step="1">
+                
+                <div class="kmeans-adjust-btns">
+                    <button class="mini-btn adjust-btn" data-target="matchSlider" data-val="-100">-100</button>
+                    <button class="mini-btn adjust-btn" data-target="matchSlider" data-val="-10">-10</button>
+                    <button class="mini-btn adjust-btn" data-target="matchSlider" data-val="-1">-1</button>
+                    <button class="mini-btn adjust-btn" data-target="matchSlider" data-val="1">+1</button>
+                    <button class="mini-btn adjust-btn" data-target="matchSlider" data-val="10">+10</button>
+                    <button class="mini-btn adjust-btn" data-target="matchSlider" data-val="100">+100</button>
+                </div>
+
+                <small class="kmeans-desc" data-i18n="desc_kmeans_match">
+                    추출된 색상과 원본 팔레트를 대조하여 쓰이지 않는 색상의 체크를 해제합니다.
+                </small>
+            </div>
+            <button id="btnKmeansMatch" class="action-btn kmeans-btn kmeans-btn-match" data-i18n="btn_kmeans_match">
+                🎯 이미지와 매칭 최적화
             </button>
         </div>
 

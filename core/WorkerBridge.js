@@ -119,6 +119,7 @@ export class WorkerBridge {
         });
 
         eventBus.on('REQUEST_KMEANS_EXTRACTION', (payload) => {
+            const targetData = payload.imageData || state.latestConversionData || state.originalImageData;
             if (!state.originalImageData || this.isWorkerBusy) return;
             
             state.isConverting = true;
@@ -127,7 +128,7 @@ export class WorkerBridge {
             // UI에서 받은 옵션(K 개수, Oklab 여부 등)을 워커로 전달!
             this.worker.postMessage({
                 type: 'extractKMeans',
-                imageData: state.originalImageData, 
+                imageData: targetData, 
                 options: payload.options 
             });
         });

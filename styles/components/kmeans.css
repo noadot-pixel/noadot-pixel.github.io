@@ -112,8 +112,8 @@
 /* 🌟 K-Means 액션 버튼 공통 스타일 (텍스트 크기 최적화 및 엣지 유지) */
 .kmeans-btn {
     width: 100%;
-    padding: 14px;
-    font-size: 0.92em; /* 텍스트 크기를 줄여서 한 줄에 쏙 들어가게 수정! */
+    padding: 10px; /* 기존 14px -> 10px 로 감소 */
+    font-size: 0.85em; /* 기존 0.92em -> 0.85em 로 감소 */
     font-weight: 800;
     border-radius: 8px;
     border: none;
@@ -148,4 +148,27 @@
 }
 .kmeans-btn-extract:hover {
     background: linear-gradient(145deg, #a569bd, #9b59b6);
+}
+
+.kmeans-adjust-btns {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.kmeans-adjust-btns .mini-btn {
+    flex: 1;
+    padding: 4px 0;
+    font-size: 0.75em;
+    font-family: monospace;
+}
+
+.kmeans-btn-usage {
+    background: linear-gradient(145deg, #27ae60, #2ecc71);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.15), 0 2px 4px rgba(46, 204, 113, 0.3);
+}
+.kmeans-btn-usage:hover {
+    background: linear-gradient(145deg, #2ecc71, #27ae60);
 }

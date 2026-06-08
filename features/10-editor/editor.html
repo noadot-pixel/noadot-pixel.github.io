@@ -1,0 +1,19 @@
+<section class="sidebar-section editor-section" style="border: 2px solid var(--accent-primary); border-radius: 8px; background: rgba(0,0,0,0.3);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h2 style="margin: 0;">✏️ 픽셀 직접 수정</h2>
+        <div class="editor-tools">
+            <button id="btnEditorUndo" class="mini-btn" disabled>↩️ 취소</button>
+            <button id="btnEditorRedo" class="mini-btn" disabled>↪️ 재실행</button>
+        </div>
+    </div>
+    
+    <p style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 15px; line-height: 1.4;">
+        ※ 원본을 보호하기 위해 <b>복제본</b>을 편집 중입니다.<br>
+        체크박스를 해제하면 편집 내용이 사라집니다.<br>
+        <b style="color: #ccc;">[조작법]</b> 클릭: 칠하기 / 스페이스+클릭: 연속 칠하기 / 우클릭: 지우기
+    </p>
+
+    <div class="palette-group-title">🎨 마스터 팔레트 (현재 세션의 모든 색상)</div>
+    
+    <div id="editor-master-palette" class="palette-buttons" style="margin-top: 10px;"></div>
+</section>

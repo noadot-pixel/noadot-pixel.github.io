@@ -297,7 +297,6 @@ const ErrorDiffusion = {
 const ditherEngine = new DitheringEngine();
 
 export function matchColorAndDither(imageData, activePalette, options) {
-    // 🚨 여기서 가로세로 크기를 가져옵니다! (이게 지워져서 에러가 났던 것입니다)
     const { width, height, data } = imageData; 
     const result = new Uint8ClampedArray(data);
     
@@ -338,20 +337,15 @@ export function matchColorAndDither(imageData, activePalette, options) {
         }
     }
 
-    console.log("🛠️ [Worker] 패턴 및 디더링 렌더링 상태:", {
-        패턴사용: options.useMacroPattern,
-        패턴타입: options.patternType,
-        패턴크기: options.patternSize,
-        패턴강도: options.patternStrength,
-        매트릭스: activePatternMatrix ? "정상 장전됨" : "비어있음",
-        미세디더링: options.useMicroDither,
-        디더방식: options.basicDitherType
-    });
-
     const isBayer = options.useMicroDither && options.basicDitherType === 'bayer';
     const isErrorDiffusion = options.useMicroDither && ErrorDiffusion[options.basicDitherType];
     const diffMap = isErrorDiffusion ? ErrorDiffusion[options.basicDitherType] : null;
-    const safeDitherMultiplier = ((options.ditheringIntensity || 50) / 100) * 0.85;
+    
+    // 🌟 [핵심 변경 1] 오차 확산 댐핑(Damping) 조정
+    // 기존의 0.85는 너무 위험합니다. 수학적으로 안전한 한계선인 0.75 이하로 조정하고,
+    // 유저가 슬라이더를 100으로 올려도 부드럽게 한계선에 접근하도록 비선형(커브)을 줍니다.
+    const intensityRaw = (options.ditheringIntensity || 50) / 100;
+    const safeDitherMultiplier = (intensityRaw * 0.5) + (Math.pow(intensityRaw, 2) * 0.25); // 최대 0.75
 
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
@@ -361,16 +355,25 @@ export function matchColorAndDither(imageData, activePalette, options) {
             // fData에서 오차가 누적된 값을 가져옵니다.
             let r = fData[i], g = fData[i+1], b = fData[i+2];
 
-            // 🌟 1차 방어막: 이전 픽셀들로부터 오차를 너무 많이 받아 폭주했다면 여기서 잘라냅니다.
-            r = Math.max(0, Math.min(255, r));
-            g = Math.max(0, Math.min(255, g));
-            b = Math.max(0, Math.min(255, b));
+            // 🌟 [핵심 변경 2] 누적된 오차의 폭주 방지 (Soft Clamping)
+            // 무조건 0~255로 자르지 않고, 범위를 벗어난 값은 저항을 주어 서서히 줄어들게 합니다.
+            const clampSoft = (val) => {
+                if (val < -50) return -50 + (val + 50) * 0.1;
+                if (val > 305) return 305 + (val - 305) * 0.1;
+                return val;
+            };
+            r = clampSoft(r);
+            g = clampSoft(g);
+            b = clampSoft(b);
 
-            let shiftedR = r, shiftedG = g, shiftedB = b;
+            // 실제 화면에 찍힐 임시 계산용 (안전한 0~255)
+            let shiftedR = Math.max(0, Math.min(255, r));
+            let shiftedG = Math.max(0, Math.min(255, g));
+            let shiftedB = Math.max(0, Math.min(255, b));
             
             // 1. 패턴 & 베이어 변조
             if (activePatternMatrix || isBayer) {
-                const shifted = ditherEngine.applySuperposition(r, g, b, x, y, {
+                const shifted = ditherEngine.applySuperposition(shiftedR, shiftedG, shiftedB, x, y, {
                     useBayer: isBayer,
                     ditherStrength: options.ditheringIntensity,
                     bayerSize: options.bayerSize || 1, 
@@ -381,7 +384,7 @@ export function matchColorAndDither(imageData, activePalette, options) {
                 shiftedR = shifted.r; shiftedG = shifted.g; shiftedB = shifted.b;
             }
 
-            // 🌟 2차 방어막: 엔진이 흔들어놓은 값도 Oklab에 넣기 전에 안전하게 가둬버립니다!
+            // Oklab에 넣기 전에 최종적으로 0~255로 완벽히 가둡니다.
             const safeR = Math.max(0, Math.min(255, shiftedR));
             const safeG = Math.max(0, Math.min(255, shiftedG));
             const safeB = Math.max(0, Math.min(255, shiftedB));
@@ -392,10 +395,14 @@ export function matchColorAndDither(imageData, activePalette, options) {
 
             // 3. 오차 확산 (Floyd, Sierra, Atkinson) 적용
             if (isErrorDiffusion) {
-                // 오차 계산은 방어막을 거친 1차 안전값(r, g, b) 기준으로 계산해야 폭주하지 않습니다!
-                const errR = r - color[0];
-                const errG = g - color[1];
-                const errB = b - color[2];
+                // 🌟 [핵심 변경 3] 오차 제한 (Error Hard Clamping)
+                // 현재 픽셀의 원본(또는 누적값 r)과 매칭된 색상(color[0])의 차이를 구하되,
+                // 한 픽셀이 방출할 수 있는 최대 오차량을 절대값 128로 강제 제한합니다.
+                const clampErr = (err) => Math.max(-128, Math.min(128, err));
+                
+                const errR = clampErr(r - color[0]);
+                const errG = clampErr(g - color[1]);
+                const errB = clampErr(b - color[2]);
 
                 for (let d of diffMap) {
                     const nx = x + d.x;
