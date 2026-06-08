@@ -47,7 +47,6 @@ class NoaDotApp {
         
         await ComponentLoader.load('sub-slot-engine', 'features/05-color-engine/engine.html');
         await ComponentLoader.load('sub-slot-palettes', 'features/06-palettes/palettes.html');
-        // await ComponentLoader.load('sub-slot-export', 'features/08-export/export.html');
         await ComponentLoader.load('sub-slot-comments', 'features/09-comments/comments.html');
         await ComponentLoader.load('sub-slot-download', 'core/mobile/m-download.html');
 
