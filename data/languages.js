@@ -126,7 +126,7 @@ export const translations = {
         "btn_kmeans_match": "🎯 이미지와 매칭하여 팔레트 최적화",
         "label_kmeans_extract": "✨ 커스텀 색상 자동 추출",
         "desc_kmeans_extract": "이미지에서 색을 뽑아 커스텀 팔레트에 자동으로 추가합니다.",
-        "btn_kmeans_extract": "✨ 추출한 색상을 커스텀에 추가",
+        "btn_kmeans_extract": "✨ 최적화된 추천 색상을 커스텀에 추가",
         "btn_usage_extract": "📊 사용량이 많은 색상을 커스텀에 추가",
         "unit_colors": "{count}색",
         "msg_no_image_upload_first": "먼저 이미지를 업로드해주세요!",
