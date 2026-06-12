@@ -195,3 +195,84 @@
     border-bottom: 1px dashed var(--border-color);
     letter-spacing: 0.5px;
 }
+
+/* 1. 병합 설정 구역 컨테이너 */
+.palette-inclusion-group {
+    display: none; 
+    margin: 10px 0;
+}
+
+/* 2. 병합 체크박스 카드 레이아웃 (JS 강제 block 주입 시에도 마진 두께 유지) */
+.palette-checkbox-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    margin-bottom: 8px; /* 🌟 두 카드 사이의 거리를 확실히 보장 */
+}
+
+.palette-checkbox-card:last-child {
+    margin-bottom: 0;
+}
+
+.palette-checkbox-text {
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+/* 3. 커스텀 팔레트 수량 명세 */
+.custom-palette-count {
+    color: var(--accent-primary);
+    font-size: 0.9em;
+    margin-left: 5px;
+    font-weight: 800;
+}
+
+/* 4. 🌟 [신규] 자동 정렬 버튼 전용 독립 문단 행 */
+.palette-auto-sort-row {
+    display: flex;
+    margin-top: 4px;
+    margin-bottom: 12px; /* 하단 입력란과의 쾌적한 간격 생성 */
+}
+
+/* 5. 🌟 [신규] 문단형 자동 정렬 토글 컴포넌트 */
+.palette-auto-sort-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85em;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+    padding: 5px 10px;
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.palette-auto-sort-label:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+/* 6. 하단 조작 툴바 박스 */
+.palette-action-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+/* 7. 우측 아이콘 정렬 정착지 */
+.palette-action-right {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+}

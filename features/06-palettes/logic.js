@@ -275,6 +275,27 @@ export class PaletteSelectorFeature {
                 fileInput.value = '';
             });
         }
+
+        const useUplaceChk = document.getElementById('useUplaceInGeopixels');
+        if (useUplaceChk) {
+            useUplaceChk.checked = state.useUplaceInGeopixels || false;
+            useUplaceChk.addEventListener('change', (e) => {
+                state.useUplaceInGeopixels = e.target.checked;
+                this.refresh();
+                eventBus.emit('PALETTE_UPDATED');
+            });
+        }
+
+        // 🌟 [신규] 자동 정렬 토글
+        const chkAutoSort = document.getElementById('chkAutoSort');
+        if (chkAutoSort) {
+            chkAutoSort.checked = state.autoSortCustom || false;
+            chkAutoSort.addEventListener('change', (e) => {
+                state.autoSortCustom = e.target.checked;
+                this.sortAndRefresh();
+                this.refresh();
+            });
+        }
     }
 
     initBusListeners() {
@@ -364,20 +385,34 @@ export class PaletteSelectorFeature {
         const mode = state.paletteSortMode || 'added';
         
         state.addedColors.sort((a, b) => {
+            // 🌟 [자동 정렬 ON] 비활성화된 색상은 무슨 일이 있어도 최하단으로 유배 보냅니다!
+            if (state.autoSortCustom) {
+                const aHex = this.ui.rgbToHex(...a.rgb).toUpperCase();
+                const bHex = this.ui.rgbToHex(...b.rgb).toUpperCase();
+                const aDisabled = state.disabledHexes?.includes(aHex) ? 1 : 0;
+                const bDisabled = state.disabledHexes?.includes(bHex) ? 1 : 0;
+
+                // 둘의 활성화 상태가 다르면, 비활성화(1)된 녀석을 뒤로 보냄
+                if (aDisabled !== bDisabled) {
+                    return aDisabled - bDisabled; 
+                }
+            }
+
+            // 활성화 상태가 같으면 유저가 선택한 정렬 방식에 따름
             if (mode === 'bright') {
                 const lumA = 0.299 * a.rgb[0] + 0.587 * a.rgb[1] + 0.114 * a.rgb[2];
                 const lumB = 0.299 * b.rgb[0] + 0.587 * b.rgb[1] + 0.114 * b.rgb[2];
                 return lumB - lumA;
             } else if (mode === 'count') {
                 return (b.count || 0) - (a.count || 0);
-            } 
-            else if (mode === 'r') return b.rgb[0] - a.rgb[0];
+            } else if (mode === 'r') return b.rgb[0] - a.rgb[0];
             else if (mode === 'g') return b.rgb[1] - a.rgb[1];
             else if (mode === 'b') return b.rgb[2] - a.rgb[2];
-            else return (a.id || 0) - (b.id || 0);
+            else {
+                // 'added' (추가순) 일 때는 고유 ID를 비교해서 원본 순서를 유지합니다.
+                return a.id - b.id;
+            }
         });
-
-        this.refresh();
     }
 
     refresh() { this.ui.renderPalettes(); }

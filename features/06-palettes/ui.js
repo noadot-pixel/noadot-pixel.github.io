@@ -50,6 +50,12 @@ export class PaletteSelectorUI {
                 groups.push({ label: t('palette_wplace_paid') || 'Wplace 유료색', colors: wplacePaidColors });
                 colorsToRender = [...colorsToRender, ...wplaceFreeColors, ...wplacePaidColors];
             }
+
+            if (state.useUplaceInGeopixels) {
+                groups.push({ label: 'Uplace', colors: uplaceColors });
+                colorsToRender = [...colorsToRender, ...uplaceColors];
+            }
+
         } else if (mode === 'wplace') {
             groups.push({ label: t('palette_wplace_free') || 'Wplace 기본색', colors: wplaceFreeColors });
             groups.push({ label: t('palette_wplace_paid') || 'Wplace 유료색', colors: wplacePaidColors });
@@ -145,6 +151,14 @@ export class PaletteSelectorUI {
         
         if (!this.customPaletteContainer || state.currentMode !== 'geopixels') return;
         
+        if (!this.customPaletteContainer) return;
+        
+        // 🌟 [신규] 수량 표기 업데이트
+        const countSpan = document.getElementById('customColorCount');
+        if (countSpan) {
+            countSpan.textContent = `[${state.addedColors ? state.addedColors.length : 0}]`;
+        }
+
         this.customPaletteContainer.innerHTML = '';
         const viewMode = state.paletteViewMode || 'list';
         const customColors = state.addedColors || [];

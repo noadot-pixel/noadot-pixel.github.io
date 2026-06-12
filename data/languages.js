@@ -155,6 +155,8 @@ export const translations = {
         "label_use_wplace": "Wplace 팔레트 사용하기",
         "palette_wplace_free":"무료 팔레트",
         "palette_wplace_paid":"유료 팔레트",
+        "label_use_uplace": "Youplace 팔레트 사용하기",
+        "label_auto_sort": "자동정렬",
 
         //댓글
         "btn_open_comments": "💬 피드백 및 댓글 보기",
