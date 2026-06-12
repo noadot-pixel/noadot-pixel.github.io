@@ -131,6 +131,17 @@ self.onmessage = (e) => {
             // 🌟 [Step 2] 투명도 컷오프 (핵심!): 리사이징으로 형태가 잡힌 직후 찌꺼기를 날려버립니다.
             currentImage = flattenAlpha(currentImage, 128);
 
+            const pureColorCounts = {};
+            const pData = currentImage.data;
+            for (let i = 0; i < pData.length; i += 4) {
+                if (pData[i+3] > 0) {
+                    const hex = ('#' + pData[i].toString(16).padStart(2,'0') + 
+                                       pData[i+1].toString(16).padStart(2,'0') + 
+                                       pData[i+2].toString(16).padStart(2,'0')).toUpperCase();
+                    pureColorCounts[hex] = (pureColorCounts[hex] || 0) + 1;
+                }
+            }
+
             if (options.useDitherDenoise && options.ditherDenoiseStrength > 0) {
                 currentImage = applyDitherDenoise(currentImage, options.ditherDenoiseStrength);
             }
@@ -161,7 +172,8 @@ self.onmessage = (e) => {
                 width: currentImage.width,
                 height: currentImage.height,
                 activePixels: activePixelCount,
-                colorCounts: colorCounts // 🌟 영수증에 첨부 완료!
+                colorCounts: colorCounts, 
+                pureColorCounts: pureColorCounts // 🌟 영수증에 첨부 완료!
             };
 
             if (options.useSmoothing || options.useOrganicNoise || options.usePixelioe || options.useAlphaGradient) {
@@ -174,13 +186,21 @@ self.onmessage = (e) => {
         if (type === 'extractKMeans') {
             if (!imageData) throw new Error("이미지 데이터가 없습니다.");
             
-            // 1. 투명도 찌꺼기 제거 (리사이징 없이 원본 기반으로 정확하게 추출)
-            let currentImage = flattenAlpha(imageData, 128);
+            let currentImage = imageData;
+
+            // 🌟 1. 리사이징 수행 (1번 원본 -> 2번 순수 축소본으로 변신!)
+            if (options.scaleWidth && options.scaleHeight) {
+                const resizeMode = options.resizeMode || 'center';
+                currentImage = smartResize(currentImage, options.scaleWidth, options.scaleHeight, resizeMode);
+            }
             
-            // 2. K-Means++ 가동!
+            // 2. 투명도 찌꺼기 제거
+            currentImage = flattenAlpha(currentImage, 128);
+            
+            // 3. 2번 이미지를 바탕으로 K-Means++ 가동!
             const extractedColors = extractExactKMeansPalette(currentImage, options.colorCount, options);
             
-            // 3. 브릿지로 추출된 색상 배달
+            // 4. 브릿지로 추출된 순수 색상 배달
             self.postMessage({ type: 'kmeansExtractionResult', colors: extractedColors });
         }
         

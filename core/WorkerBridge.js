@@ -119,17 +119,25 @@ export class WorkerBridge {
         });
 
         eventBus.on('REQUEST_KMEANS_EXTRACTION', (payload) => {
-            const targetData = payload.imageData || state.latestConversionData || state.originalImageData;
-            if (!state.originalImageData || this.isWorkerBusy) return;
+            // 🌟 [핵심 변경] 무조건 1번(원본 이미지)을 보냅니다.
+            const targetData = state.originalImageData;
+            if (!targetData || this.isWorkerBusy) return;
             
             state.isConverting = true;
             this.isWorkerBusy = true;
             
-            // UI에서 받은 옵션(K 개수, Oklab 여부 등)을 워커로 전달!
+            // 🌟 워커가 2번(리사이즈) 상태로 만들 수 있도록 현재 사이즈 옵션 동봉!
+            const kmeansOptions = {
+                ...payload.options,
+                scaleWidth: state.resizeWidth,
+                scaleHeight: state.resizeHeight,
+                resizeMode: state.resizeMode || 'average'
+            };
+
             this.worker.postMessage({
                 type: 'extractKMeans',
                 imageData: targetData, 
-                options: payload.options 
+                options: kmeansOptions 
             });
         });
         eventBus.on('REQUEST_DOWNLOAD_WORKER', (payload) => {

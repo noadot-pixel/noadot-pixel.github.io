@@ -61,10 +61,13 @@ export class KMeansFeature {
         
         // 🌟 [핵심] 변환이 끝날 때마다 영수증(colorCounts)을 보관해둡니다!
         eventBus.on('CONVERSION_COMPLETE', (payload) => {
-            if (payload && payload.stats && payload.stats.colorCounts) {
+            if (payload && payload.stats) {
                 state.latestColorCounts = payload.stats.colorCounts;
+                // 🌟 2번 영수증을 별도로 보관합니다!
+                state.pureColorCounts = payload.stats.pureColorCounts; 
             } else if (payload && payload.imageData === null) {
                 state.latestColorCounts = null;
+                state.pureColorCounts = null;
             }
         });
         
@@ -114,14 +117,15 @@ export class KMeansFeature {
 
     // 🌟 [신규 추가] 연산 시간 0초! 영수증 기반 사용량 추출 로직
     processUsageExtraction(count) {
-        if (!state.latestColorCounts) {
+        // 🌟 3번 영수증(latestColorCounts) 대신 2번 영수증(pureColorCounts) 사용!
+        if (!state.pureColorCounts) {
             alert(t('msg_convert_image_first') || "먼저 이미지를 변환해야 사용량을 분석할 수 있습니다.");
             return;
         }
 
         const maxCount = parseInt(count, 10);
-        // 영수증 데이터를 사용량(픽셀 개수) 내림차순으로 정렬하여 상위 N개만 뽑아냅니다.
-        const sortedColors = Object.entries(state.latestColorCounts)
+        // 순수 이미지의 픽셀 사용량을 바탕으로 상위 N개를 뽑아냅니다.
+        const sortedColors = Object.entries(state.pureColorCounts)
             .sort((a, b) => b[1] - a[1])
             .slice(0, maxCount)
             .map(([hex, _]) => {
