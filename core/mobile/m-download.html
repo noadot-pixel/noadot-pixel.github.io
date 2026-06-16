@@ -42,6 +42,19 @@
             </div>
         </div>
 
+        <div class="m-dl-group" style="margin-top: 10px;">
+            <label class="m-dl-item" style="color: #04D0E2;">
+                <input type="checkbox" id="m-chkDlBplace"> <span data-i18n="dl_bplace">🟦 Bplace 포맷 (.bplace)</span>
+            </label>
+            <div id="m-popupDlBplace" class="m-sub-options" style="display: none;">
+                <p style="font-size: 0.8em; color: var(--text-secondary); margin-bottom: 5px;">* 맵 좌표 입력</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <label style="font-size: 0.8em;">X <input type="number" id="m-bplaceX" class="ui-input" placeholder="0"></label>
+                    <label style="font-size: 0.8em;">Y <input type="number" id="m-bplaceY" class="ui-input" placeholder="0"></label>
+                </div>
+            </div>
+        </div>
+
         <button id="m-btnDownload" class="m-primary-btn" data-i18n="btn_download">
             💾 이미지 다운로드
         </button>

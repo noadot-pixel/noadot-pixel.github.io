@@ -1,23 +1,28 @@
 import { state, t } from '../../core/state.js';
-import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors } from '../../data/palettes.js';
+import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors } from '../../data/palettes.js'; // bplaceColors 추가!
 
 export class PaletteSelectorUI {
     constructor() {
         this.paletteContainer = document.getElementById('palette-container');
-        this.modeButtons = document.querySelectorAll('.palette-mode-selector button');
+        this.modeSelect = document.getElementById('paletteModeSelect');
         this.customPaletteContainer = document.getElementById('custom-palette-container');
     }
 
     updateDisplay(mode) {
-        this.modeButtons.forEach(btn => {
-            if (btn.dataset.mode === mode) btn.classList.add('active');
-            else btn.classList.remove('active');
-        });
+        if (this.modeSelect) {
+            this.modeSelect.value = mode;
+        }
         
-        // 🌟 GeoPixels 모드일 때만 체크박스 표시!
         const wplaceSection = document.getElementById('wplace-inclusion-section');
         if (wplaceSection) {
-            wplaceSection.style.display = (mode === 'geopixels') ? 'block' : 'none';
+            // 드롭다운 개편 때 flex로 맞췄었죠!
+            wplaceSection.style.display = (mode === 'geopixels') ? 'flex' : 'none'; 
+        }
+
+        // 🌟 [추가] GeoPixels 모드가 아니면 커스텀 팔레트 전체 구역 숨기기!
+        const customSection = document.getElementById('custom-section');
+        if (customSection) {
+            customSection.style.display = (mode === 'geopixels') ? 'block' : 'none';
         }
     }
 
@@ -57,12 +62,33 @@ export class PaletteSelectorUI {
             }
 
         } else if (mode === 'wplace') {
+            // 🌟 t('번역 키값')을 사용해 언어 설정에 맞게 글자가 출력되게 합니다.
             groups.push({ label: t('palette_wplace_free') || 'Wplace 기본색', colors: wplaceFreeColors });
             groups.push({ label: t('palette_wplace_paid') || 'Wplace 유료색', colors: wplacePaidColors });
             colorsToRender = [...wplaceFreeColors, ...wplacePaidColors];
         } else if (mode === 'uplace') {
-            groups.push({ label: 'Uplace', colors: uplaceColors });
-            colorsToRender = uplaceColors;
+            groups.push({ label: t('palette_uplace') || 'Uplace', colors: uplaceColors });
+            colorsToRender = [...uplaceColors];
+        } else if (mode === 'bplace') {
+            groups.push({ label: t('palette_bplace') || 'Bplace', colors: bplaceColors });
+            colorsToRender = [...bplaceColors];
+        } else if (mode === 'geopixels') {
+            groups.push({ label: 'GeoPixels', colors: geopixelsColors });
+            colorsToRender = [...geopixelsColors];
+            
+            if (state.useWplaceInGeopixels) {
+                groups.push({ label: t('palette_wplace_free') || 'Wplace 기본색', colors: wplaceFreeColors });
+                groups.push({ label: t('palette_wplace_paid') || 'Wplace 유료색', colors: wplacePaidColors });
+                colorsToRender = [...colorsToRender, ...wplaceFreeColors, ...wplacePaidColors];
+            }
+            if (state.useUplaceInGeopixels) {
+                groups.push({ label: t('palette_uplace') || 'Uplace', colors: uplaceColors });
+                colorsToRender = [...colorsToRender, ...uplaceColors];
+            }
+            if (state.useBplaceInGeopixels) {
+                groups.push({ label: t('palette_bplace') || 'Bplace', colors: bplaceColors });
+                colorsToRender = [...colorsToRender, ...bplaceColors];
+            }
         }
 
         const globalCounts = state.latestColorCounts || {};

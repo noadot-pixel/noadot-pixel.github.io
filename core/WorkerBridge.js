@@ -216,6 +216,8 @@ export class WorkerBridge {
                 // 기타 시스템 설정
                 mode: state.currentMode || 'geopixels',
                 useWplaceInGeopixels: state.useWplaceInGeopixels || false,
+                useUplaceInGeopixels: state.useUplaceInGeopixels || false,
+                useBplaceInGeopixels: state.useBplaceInGeopixels || false,
                 palette: state.currentMode === 'geopixels' ? (state.addedColors || []) : [],
                 disabledHexes: state.disabledHexes || [],
                 scaleWidth: state.resizeWidth,

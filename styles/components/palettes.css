@@ -199,6 +199,8 @@
 /* 1. 병합 설정 구역 컨테이너 */
 .palette-inclusion-group {
     display: none; 
+    flex-direction: column; /* 🌟 핵심 해결책: JS가 flex로 켤 때 무조건 세로로 쌓이도록 강제! */
+    gap: 8px;               /* 🌟 마진 대신 gap을 써서 쾌적하게 띄워줍니다 */
     margin: 10px 0;
 }
 
@@ -212,7 +214,7 @@
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    margin-bottom: 8px; /* 🌟 두 카드 사이의 거리를 확실히 보장 */
+    /* margin-bottom: 8px; <-- 부모 컨테이너가 gap으로 관리하므로 이제 이 속성은 필요 없습니다! */
 }
 
 .palette-checkbox-card:last-child {
@@ -275,4 +277,59 @@
     display: flex;
     gap: 4px;
     margin-left: auto;
+}
+
+/* ===================================================
+   🌟 [드롭다운] 팔레트 모드 선택기 스타일
+=================================================== */
+.palette-mode-selector-wrapper {
+    margin-bottom: 15px;
+    position: relative;
+}
+
+.palette-mode-dropdown {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 1.1em;
+    font-weight: 800;
+    color: var(--text-primary);
+    background-color: var(--bg-surface);
+    border: 2px solid var(--accent-primary, #04D0E2);
+    border-radius: 8px;
+    appearance: none; /* 브라우저 기본 못생긴 화살표 제거 */
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.palette-mode-dropdown:hover {
+    background-color: rgba(255, 255, 255, 0.05); /* 다크모드 대응 */
+    transform: translateY(-1px);
+    box-shadow: 0 6px 10px rgba(0,0,0,0.15);
+}
+
+/* 우측에 세련된 커스텀 화살표 아이콘 배치 */
+.palette-mode-selector-wrapper::after {
+    content: '▼';
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    font-size: 0.9em;
+    color: var(--accent-primary, #04D0E2);
+}
+
+.palette-mode-dropdown option {
+    background-color: var(--bg-color, #1e1e1e);
+    color: var(--text-primary, #ffffff);
+    font-weight: bold;
+    padding: 10px;
+}
+
+/* 포커스 되었을 때의 테두리 강조 */
+.palette-mode-dropdown:focus {
+    border-color: #04D0E2;
+    box-shadow: 0 0 8px rgba(4, 208, 226, 0.4);
 }

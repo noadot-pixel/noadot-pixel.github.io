@@ -2,7 +2,7 @@
 import { eventBus } from '../../core/EventBus.js';
 import { state, t } from '../../core/state.js'; // 🌟 번역 함수 수입!
 import { PaletteSelectorUI } from './ui.js';
-import { wplaceFreeColors, wplacePaidColors, uplaceColors } from '../../data/palettes.js';
+import { wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors } from '../../data/palettes.js';
 
 export class PaletteSelectorFeature {
     constructor() {
@@ -104,9 +104,12 @@ export class PaletteSelectorFeature {
             eventBus.emit('PALETTE_UPDATED'); 
         });
 
-        this.ui.modeButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => this.setMode(e.target.dataset.mode));
-        });
+        const modeSelect = document.getElementById('paletteModeSelect');
+        if (modeSelect) {
+            modeSelect.addEventListener('change', (e) => {
+                this.setMode(e.target.value);
+            });
+        }
 
         const useWplaceCheckbox = document.getElementById('useWplaceInGeopixels');
         if (useWplaceCheckbox) {
@@ -286,6 +289,16 @@ export class PaletteSelectorFeature {
             });
         }
 
+        const useBplaceChk = document.getElementById('useBplaceInGeopixels');
+        if (useBplaceChk) {
+            useBplaceChk.checked = state.useBplaceInGeopixels || false;
+            useBplaceChk.addEventListener('change', (e) => {
+                state.useBplaceInGeopixels = e.target.checked;
+                this.refresh();
+                eventBus.emit('PALETTE_UPDATED');
+            });
+        }
+
         // 🌟 [신규] 자동 정렬 토글
         const chkAutoSort = document.getElementById('chkAutoSort');
         if (chkAutoSort) {
@@ -296,9 +309,16 @@ export class PaletteSelectorFeature {
                 this.refresh();
             });
         }
+
     }
 
     initBusListeners() {
+
+        eventBus.on('LANGUAGE_CHANGED', () => {
+            this.updatePlaceholders();
+            this.refresh(); 
+        });
+        
         // 🌟 언어가 바뀔 때마다 입력창 텍스트 새로고침
         eventBus.on('LANGUAGE_CHANGED', () => this.updatePlaceholders());
 

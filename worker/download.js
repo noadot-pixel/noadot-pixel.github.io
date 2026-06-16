@@ -351,6 +351,63 @@ self.onmessage = async (e) => {
             }
         }
 
+        if (options.isBplace) {
+            // 1. 순수 캔버스 이미지를 Base64 텍스트로 변환
+            const canvas = new OffscreenCanvas(width, height);
+            canvas.getContext('2d').putImageData(imageData, 0, 0);
+            const blob = await canvas.convertToBlob({ type: 'image/png' });
+            const arrayBuffer = await blob.arrayBuffer();
+            
+            let binary = '';
+            const bytes = new Uint8Array(arrayBuffer);
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            const base64Data = 'data:image/png;base64,' + btoa(binary); // 마법의 압축 문자열 완성!
+            
+            // 2. 고정된 JSON 템플릿에 좌표값과 함께 탑재
+            const nowIso = new Date().toISOString();
+            const bplaceJson = {
+                "version": 1,
+                "exportedAt": nowIso,
+                "template": {
+                    "name": `NOADOT_${timestamp}`,
+                    "imageData": base64Data,
+                    "opacity": 1,
+                    "position": { 
+                        "x": options.bplaceX || 0, 
+                        "y": options.bplaceY || 0 
+                    },
+                    "scale": 1,
+                    "rotation": 0,
+                    "visible": true,
+                    "width": width,
+                    "height": height,
+                    "displayMode": "pixel",
+                    "renderAbovePixels": true,
+                    "canvasType": "world",
+                    "excludeSpecialColors": false,
+                    "pendingUpload": false,
+                    "updatedAt": nowIso,
+                    "pixelAlgorithm": "v2",
+                    "boundingWidth": width,
+                    "boundingHeight": height,
+                    "pixelCount": width * height,
+                    "_version": 110111011011111 
+                }
+            };
+            
+            const bBlob = new Blob([JSON.stringify(bplaceJson, null, 2)], { type: 'application/octet-stream' });
+            
+            if (useZip) {
+                zip.file(`NOADOT_${timestamp}.bplace`, bBlob);
+            } else {
+                self.postMessage({ status: 'success', blob: bBlob, fileName: `NOADOT_${timestamp}.bplace` });
+                // 다른 포맷이 안 켜져 있으면 여기서 바로 종료!
+                if (!options.isSeparated && !options.isSplit && !options.isWplace && !options.isUplace) return;
+            }
+        }
+
         // ==========================================
         // 5. ZIP 압축 또는 기본 PNG 처리
         // ==========================================

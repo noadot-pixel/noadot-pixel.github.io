@@ -62,6 +62,19 @@
                 <label id="wrapDlUplace" class="dl-label color-uplace">
                     <input type="checkbox" id="chkDlUplace"> <span data-i18n="dl_uplace">.you</span>
                 </label>
+
+                <div id="wrapDlBplace" class="dl-popup-wrapper">
+                    <label class="dl-label">
+                        <input type="checkbox" id="chkDlBplace"> <span data-i18n="dl_bplace">.bplace</span>
+                    </label>
+                    <div id="popupDlBplace" class="dl-popup dl-popup-bplace" style="display: none;">
+                        <div class="dl-grid-2">
+                            <label class="dl-grid-label">X <input type="number" id="bplaceX" class="dl-input-number" placeholder="0"></label>
+                            <label class="dl-grid-label">Y <input type="number" id="bplaceY" class="dl-input-number" placeholder="0"></label>
+                        </div>
+                        <div class="dl-popup-tail tail-right"></div>
+                    </div>
+                </div>
             </div>
 
             <button id="btnDownload" class="dl-btn" data-i18n="btn_download">💾 다운로드</button>

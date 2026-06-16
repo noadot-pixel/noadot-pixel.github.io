@@ -53,3 +53,32 @@ export const uplaceColors = [
     {rgb:[255,168,0], name:"orange"}, {rgb:[255,69,0], name:"orange red"}, {rgb:[255,0,0], name:"red"}, 
     {rgb:[238,246,116], name:"pale canary"}
 ];
+
+const bplaceHexList = [
+    "#FFD1D1", "#FFA2A2", "#FB2C2C", "#C10000", "#631212",
+    "#FFE2C2", "#FFB675", "#FF7300", "#C24100", "#662200",
+    "#FFF4A3", "#FFE566", "#FFCC00", "#BD7E00", "#5C3D00",
+    "#E5FBBC", "#C2F368", "#7CCF00", "#537D00", "#293D00",
+    "#C7F9D9", "#7BF1A8", "#00C950", "#007531", "#08351B",
+    "#C6FBF0", "#74F1DF", "#00C7AC", "#007864", "#00382F",
+    "#CDFBFF", "#85F1FF", "#04D0E2", "#087B85", "#0C3F45",
+    "#CCE3FF", "#8EC5FF", "#2B7FFF", "#1344DD", "#132762",
+    "#D6DFFF", "#A3B3FF", "#615FFF", "#2E39B8", "#202A60",
+    "#E7DBFF", "#CDB4FF", "#8B51FF", "#6B07CF", "#3B0F66",
+    "#F8DBFF", "#F4A8FF", "#DC31F4", "#9F00AD", "#540E58",
+    "#FDD9ED", "#FDA5D5", "#FA2F9A", "#C6005C", "#640C32",
+    "#FFD6E4", "#FFA1C0", "#FF206A", "#BD003F", "#700027",
+    "#F4E1D7", "#E7C0AC", "#BA7D5E", "#88543A", "#4A2D1F",
+    "#FAEDDB", "#E0BA94", "#BF7C40", "#874F22", "#4E2809",
+    "#ECE5D7", "#CCC3AD", "#968661", "#6F6041", "#433C23",
+    "#E4E4E6", "#C4C4CA", "#82818D", "#4E4D5B", "#23222A",
+    "#FFFFFF", "#000000"
+];
+
+export const bplaceColors = bplaceHexList.map(hex => ({
+    rgb: [
+        parseInt(hex.slice(1, 3), 16),
+        parseInt(hex.slice(3, 5), 16),
+        parseInt(hex.slice(5, 7), 16)
+    ]
+}));

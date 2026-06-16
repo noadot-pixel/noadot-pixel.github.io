@@ -1,7 +1,7 @@
 import { smartResize } from './smart-resizer.js';
 import { PostProcessor } from './post-processing.js';
 import { preprocessImageData, matchColorAndDither } from './quantization.js';
-import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors } from '../data/palettes.js';
+import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors } from '../data/palettes.js'; // 🌟 bplaceColors 추가!
 import { extractExactKMeansPalette } from './analysis.js';
 
 function flattenAlpha(imageData, threshold = 128) {
@@ -92,17 +92,26 @@ function buildActivePalette(options) {
     // 🌟 2. 각 탭에 맞는 팔레트만 엄격하게 분리해서 담습니다!
     if (options.mode === 'geopixels') {
         if (typeof geopixelsColors !== 'undefined') geopixelsColors.forEach(addColor);
-        // 🌟 [추가됨] Wplace 함께 사용하기가 켜져있다면, 엔진 물감통에 Wplace 색상을 같이 부어줍니다!
+        
+        // 🌟 타 플랫폼 병합 체크 여부 확인
         if (options.useWplaceInGeopixels) {
             if (typeof wplaceFreeColors !== 'undefined') wplaceFreeColors.forEach(addColor);
             if (typeof wplacePaidColors !== 'undefined') wplacePaidColors.forEach(addColor);
         }
+        if (options.useUplaceInGeopixels) { // 🌟 Uplace 병합 추가
+            if (typeof uplaceColors !== 'undefined') uplaceColors.forEach(addColor);
+        }
+        if (options.useBplaceInGeopixels) { // 🌟 Bplace 병합 추가
+            if (typeof bplaceColors !== 'undefined') bplaceColors.forEach(addColor);
+        }
+        
     } else if (options.mode === 'wplace') {
         if (typeof wplaceFreeColors !== 'undefined') wplaceFreeColors.forEach(addColor);
         if (typeof wplacePaidColors !== 'undefined') wplacePaidColors.forEach(addColor);
     } else if (options.mode === 'uplace') {
-        // 🚨 Uplace 미아 구출 성공! 이제 정상적으로 색상을 불러옵니다.
         if (typeof uplaceColors !== 'undefined') uplaceColors.forEach(addColor);
+    } else if (options.mode === 'bplace') { // 🌟 Bplace 단독 모드 추가!
+        if (typeof bplaceColors !== 'undefined') bplaceColors.forEach(addColor);
     }
 
     // (참고) 커스텀 팔레트는 사용자가 추가한 거니까 어떤 모드든 무조건 섞어줍니다.

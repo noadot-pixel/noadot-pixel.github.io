@@ -20,6 +20,7 @@ export const translations = {
         "dl_split_title": "분할 수 (가로 x 세로)",
         "dl_wplace": "*wplace 버전(*.wplace)",
         "dl_uplace": "*youplace 버전(*.you)",
+        "dl_bplace": "*bplace 버전(*.bplace)",
         "viewer_converting": "⌛ 변환 중...",
         "viewer_upload_guide": "이곳을 클릭 혹은 이미지를 화면으로 드래그",
 
@@ -156,6 +157,7 @@ export const translations = {
         "palette_wplace_free":"무료 팔레트",
         "palette_wplace_paid":"유료 팔레트",
         "label_use_uplace": "Youplace 팔레트 사용하기",
+        "label_use_bplace": "Bplace 팔레트 사용하기",
         "label_auto_sort": "자동정렬",
 
         //댓글
@@ -223,6 +225,7 @@ export const translations = {
         "dl_split_title": "split count (width x height)",
         "dl_wplace": "wplace Version(*.wplace)",
         "dl_uplace": "*youplace Version(*.you)",
+        "dl_bplace": "*bplace Version(*.bplace)",
         "viewer_converting": "⌛ converting...",
         "viewer_upload_guide": "Click here or drag an image onto the screen",
 
@@ -357,7 +360,10 @@ export const translations = {
         "msg_custom_only_geo": "Custom colors can only be added in GeoPixels mode.",
         "label_use_wplace": "Used Wplace palettes",
         "palette_wplace_free":"free Palette",
-        "palette_wplace_paid":"paid Palette",
+        "palette_wplace_paid":"Paid Palette",
+        "label_use_uplace": "Used Youplace palettes",
+        "label_use_bplace": "Used Bplace palettes",
+        "label_auto_sort": "Auto Sort",
 
         // 댓글(comments)
         "btn_open_comments": "💬 View Feedback & Comments",

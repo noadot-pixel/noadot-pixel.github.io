@@ -1,10 +1,13 @@
 <section class="sidebar-section">
     <h2 data-i18n="sec_palettes">4. 팔레트 관리</h2>
     
-    <div class="palette-mode-selector">
-        <button class="active" data-mode="geopixels">GeoPixels</button>
-        <button data-mode="wplace">Wplace</button>
-        <button data-mode="uplace">Uplace</button>
+    <div class="palette-mode-selector-wrapper">
+        <select id="paletteModeSelect" class="palette-mode-dropdown">
+            <option value="geopixels">GeoPixels</option>
+            <option value="wplace">Wplace</option>
+            <option value="uplace">Youplace</option>
+            <option value="bplace">Bplace</option>
+        </select>
     </div>
 
     <div id="palette-container"></div>
@@ -19,11 +22,16 @@
             <input type="checkbox" id="useUplaceInGeopixels">
             <span data-i18n="label_use_uplace" class="palette-checkbox-text">Youplace 팔레트 함께 사용하기</span>
         </label>
+
+        <label class="palette-checkbox-card">
+            <input type="checkbox" id="useBplaceInGeopixels">
+            <span data-i18n="label_use_bplace" class="palette-checkbox-text">Bplace 팔레트 함께 사용하기</span>
+        </label>
     </div>
 
-    <div id="custom-section" class="custom-section-container">
-        
-        <div class="custom-palette-header">
+    <div class="kmeans-track track-divider"></div>
+
+    <div class="custom-palette-header">
             <label class="custom-palette-label">
                 <span data-i18n="label_custom_palette">🎨 커스텀 팔레트</span>
                 <span id="customColorCount" class="custom-palette-count">[0]</span>
@@ -33,13 +41,6 @@
                 <button id="viewGridBtn" class="mini-btn view-btn" title="그리드 뷰">▦</button>
             </div>
         </div>
-
-        <!--<div class="palette-auto-sort-row">
-            <label class="palette-auto-sort-label">
-                <input type="checkbox" id="chkAutoSort">
-                <span data-i18n="label_auto_sort">자동 정렬</span>
-            </label>
-        </div>-->
 
         <div class="custom-input-wrapper">
             <input type="text" id="addHex" placeholder="HEX (#FFFFFF)" class="ui-input hex-input" maxlength="25">

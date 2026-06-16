@@ -194,6 +194,19 @@ export class ImageViewerFeature {
                 }
             }
         });
+
+        const updateDownloadVisibility = () => {
+            const wrapWplace = document.getElementById('wrapDlWplace');
+            const wrapUplace = document.getElementById('wrapDlUplace');
+            const wrapBplace = document.getElementById('wrapDlBplace');
+
+            if (wrapWplace) wrapWplace.style.display = (state.currentMode === 'wplace') ? 'inline-flex' : 'none';
+            if (wrapUplace) wrapUplace.style.display = (state.currentMode === 'uplace') ? 'inline-flex' : 'none';
+            if (wrapBplace) wrapBplace.style.display = (state.currentMode === 'bplace') ? 'inline-flex' : 'none';
+        };
+
+        eventBus.on('PALETTE_MODE_CHANGED', updateDownloadVisibility);
+        eventBus.on('PALETTE_UPDATED', updateDownloadVisibility);
     }
 
     initInteractions() {
@@ -244,6 +257,36 @@ export class ImageViewerFeature {
                 return defaultVal;
             };
 
+            const isWplace = (state.currentMode === 'wplace') && getChecked(['chkDlWplace', 'm-chkDlWplace']);
+            const isUplace = (state.currentMode === 'uplace') && getChecked(['chkDlUplace', 'm-chkDlUplace']);
+            const isBplace = (state.currentMode === 'bplace') && getChecked(['chkDlBplace', 'm-chkDlBplace']);
+
+            // 입력칸이 비어있는지 확인하는 탐지기
+            const isInputEmpty = (pcId, mobileId) => {
+                const pcEl = document.getElementById(pcId);
+                const mEl = document.getElementById(mobileId);
+                const pcVal = pcEl ? pcEl.value.trim() : '';
+                const mVal = mEl ? mEl.value.trim() : '';
+                return pcVal === '' && mVal === ''; // 둘 다 비어있으면 true
+            };
+
+            // 🌟 [경비원 2] Wplace 좌표 필수 입력 검사
+            if (isWplace) {
+                if (isInputEmpty('wplaceTileX', 'm-wplaceTileX') || isInputEmpty('wplaceTileY', 'm-wplaceTileY') ||
+                    isInputEmpty('wplacePixelX', 'm-wplacePixelX') || isInputEmpty('wplacePixelY', 'm-wplacePixelY')) {
+                    alert("⚠️ 다운로드 실패: Wplace 좌표 4개(TX, TY, PX, PY)를 모두 입력해주세요.");
+                    return; // 함수를 즉시 멈추고 다운로드를 취소합니다.
+                }
+            }
+
+            // 🌟 [경비원 3] Bplace 좌표 필수 입력 검사
+            if (isBplace) {
+                if (isInputEmpty('bplaceX', 'm-bplaceX') || isInputEmpty('bplaceY', 'm-bplaceY')) {
+                    alert("⚠️ 다운로드 실패: Bplace 좌표 2개(X, Y)를 모두 입력해주세요.");
+                    return; // 함수를 즉시 멈추고 다운로드를 취소합니다.
+                }
+            }
+
             const options = {
                 currentMode: state.currentMode,
                 colorNameMap: colorNameMap, // 🌟 이름 지도 탑재 완료
@@ -254,15 +297,37 @@ export class ImageViewerFeature {
                 splitCols: getVal(['splitCols', 'm-splitCols'], 2),
                 splitRows: getVal(['splitRows', 'm-splitRows'], 2),
                 maintainSize: getChecked(['chkMaintainSize', 'm-chkMaintainSize']),
-                isWplace: getChecked(['chkDlWplace', 'm-chkDlWplace']),
+
+                isWplace: isWplace,
                 wplaceTX: getVal(['wplaceTileX', 'm-wplaceTileX'], 0),
                 wplaceTY: getVal(['wplaceTileY', 'm-wplaceTileY'], 0),
                 wplacePX: getVal(['wplacePixelX', 'm-wplacePixelX'], 0),
                 wplacePY: getVal(['wplacePixelY', 'm-wplacePixelY'], 0),
-                isUplace: getChecked(['chkDlUplace', 'm-chkDlUplace']),
+                
+                isUplace: isUplace,
+                
+                isBplace: isBplace,
+                bplaceX: getVal(['bplaceX', 'm-bplaceX'], 0),
+                bplaceY: getVal(['bplaceY', 'm-bplaceY'], 0),
                 
                 exportScale: state.exportScale || 1
             };
+
+            const chkDlBplace = document.getElementById('chkDlBplace');
+            const popupDlBplace = document.getElementById('popupDlBplace');
+            if (chkDlBplace && popupDlBplace) {
+                chkDlBplace.addEventListener('change', (e) => {
+                    popupDlBplace.style.display = e.target.checked ? 'block' : 'none';
+                });
+            }
+            // 🌟 Bplace 모바일 팝업 토글
+            const mChkDlBplace = document.getElementById('m-chkDlBplace');
+            const mPopupDlBplace = document.getElementById('m-popupDlBplace');
+            if (mChkDlBplace && mPopupDlBplace) {
+                mChkDlBplace.addEventListener('change', (e) => {
+                    mPopupDlBplace.style.display = e.target.checked ? 'block' : 'none';
+                });
+            }
 
             const now = new Date();
             const timestamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
@@ -518,6 +583,21 @@ export class ImageViewerFeature {
             this.ui.compareBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+            });
+        }
+
+        const chkDlBplace = document.getElementById('chkDlBplace');
+        const popupDlBplace = document.getElementById('popupDlBplace');
+        if (chkDlBplace && popupDlBplace) {
+            chkDlBplace.addEventListener('change', (e) => {
+                popupDlBplace.style.display = e.target.checked ? 'block' : 'none';
+            });
+        }
+        const mChkDlBplace = document.getElementById('m-chkDlBplace');
+        const mPopupDlBplace = document.getElementById('m-popupDlBplace');
+        if (mChkDlBplace && mPopupDlBplace) {
+            mChkDlBplace.addEventListener('change', (e) => {
+                mPopupDlBplace.style.display = e.target.checked ? 'block' : 'none';
             });
         }
     }
