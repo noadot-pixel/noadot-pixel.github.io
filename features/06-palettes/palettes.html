@@ -29,9 +29,9 @@
         </label>
     </div>
 
-    <div class="kmeans-track track-divider"></div>
-
-    <div class="custom-palette-header">
+    <div id="custom-section" class="custom-section-container">
+        
+        <div class="custom-palette-header">
             <label class="custom-palette-label">
                 <span data-i18n="label_custom_palette">🎨 커스텀 팔레트</span>
                 <span id="customColorCount" class="custom-palette-count">[0]</span>
@@ -41,6 +41,13 @@
                 <button id="viewGridBtn" class="mini-btn view-btn" title="그리드 뷰">▦</button>
             </div>
         </div>
+
+        <!--<div class="palette-auto-sort-row">
+            <label class="palette-auto-sort-label">
+                <input type="checkbox" id="chkAutoSort">
+                <span data-i18n="label_auto_sort">자동 정렬</span>
+            </label>
+        </div>-->
 
         <div class="custom-input-wrapper">
             <input type="text" id="addHex" placeholder="HEX (#FFFFFF)" class="ui-input hex-input" maxlength="25">

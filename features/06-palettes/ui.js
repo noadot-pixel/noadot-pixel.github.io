@@ -9,17 +9,18 @@ export class PaletteSelectorUI {
     }
 
     updateDisplay(mode) {
+        // 1. 드롭다운 값 동기화
         if (this.modeSelect) {
             this.modeSelect.value = mode;
         }
         
+        // 2. 타 플랫폼(Wplace, Uplace, Bplace) 병합 체크박스 영역 노출 제어
         const wplaceSection = document.getElementById('wplace-inclusion-section');
         if (wplaceSection) {
-            // 드롭다운 개편 때 flex로 맞췄었죠!
-            wplaceSection.style.display = (mode === 'geopixels') ? 'flex' : 'none'; 
+            wplaceSection.style.display = (mode === 'geopixels') ? 'flex' : 'none';
         }
 
-        // 🌟 [추가] GeoPixels 모드가 아니면 커스텀 팔레트 전체 구역 숨기기!
+        // 🌟 3. [신규 추가] 커스텀 팔레트 영역 노출 제어 (GeoPixels 모드에서만 켜짐!)
         const customSection = document.getElementById('custom-section');
         if (customSection) {
             customSection.style.display = (mode === 'geopixels') ? 'block' : 'none';
