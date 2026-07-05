@@ -2,7 +2,7 @@ import { smartResize } from './smart-resizer.js';
 import { PostProcessor } from './post-processing.js';
 import { preprocessImageData, matchColorAndDither } from './quantization.js';
 import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors } from '../data/palettes.js'; // 🌟 bplaceColors 추가!
-import { extractExactKMeansPalette } from './analysis.js';
+import { extractExactKMeansPalette, maskToGradientAreas } from './analysis.js';
 
 function flattenAlpha(imageData, threshold = 128) {
     const data = imageData.data;
@@ -124,13 +124,24 @@ function buildActivePalette(options) {
     return active;
 }
 
+// 🌟 [성능] 원본 이미지를 워커 안에 캐싱해서, 슬라이더를 움직일 때마다
+// 전체 픽셀 버퍼를 메인 스레드->워커로 매번 구조적 복제하지 않도록 함.
+// (WorkerBridge가 이미지가 실제로 바뀌었을 때만 imageData를 실어 보냄)
+let cachedOriginal = null;
+
 self.onmessage = (e) => {
     try {
-        const { type, imageData, options } = e.data;
+        const { type, imageData, options, cacheOriginal } = e.data;
 
         if (type === 'convert') {
-            if (!imageData) throw new Error("이미지 데이터가 없습니다.");
-            let currentImage = imageData;
+            if (imageData && cacheOriginal !== false) {
+                cachedOriginal = imageData;
+            }
+            const original = imageData || cachedOriginal;
+            if (!original) throw new Error("이미지 데이터가 없습니다.");
+
+            // 캐시된 원본은 절대 직접 변형하지 않도록 매 변환마다 작업용 사본을 만든다.
+            let currentImage = new ImageData(new Uint8ClampedArray(original.data), original.width, original.height);
 
             if (options.scaleWidth && options.scaleHeight) {
                 const resizeMode = options.resizeMode || 'center';
@@ -189,7 +200,8 @@ self.onmessage = (e) => {
                 currentImage = PostProcessor.apply(currentImage, options, options.scaleWidth, options.scaleHeight);
             }
 
-            self.postMessage({ type: 'conversionDone', imageData: currentImage, stats: stats });
+            // 🌟 [성능] 결과 픽셀 버퍼는 워커가 다시 쓸 일이 없으므로 복제 대신 소유권을 이전(zero-copy)
+            self.postMessage({ type: 'conversionDone', imageData: currentImage, stats: stats }, [currentImage.data.buffer]);
         }
 
         if (type === 'extractKMeans') {
@@ -205,7 +217,12 @@ self.onmessage = (e) => {
             
             // 2. 투명도 찌꺼기 제거
             currentImage = flattenAlpha(currentImage, 128);
-            
+
+            // 🌟 [그라데이션 전용 추출] 경계/디테일 픽셀을 제외하고 매끄러운 구간의 색만 남김
+            if (options.gradientOnly) {
+                currentImage = maskToGradientAreas(currentImage, options.adaptiveDitherStrength);
+            }
+
             // 3. 2번 이미지를 바탕으로 K-Means++ 가동!
             const extractedColors = extractExactKMeansPalette(currentImage, options.colorCount, options);
             

@@ -58,8 +58,7 @@ export class ImageUploaderFeature {
         this.ui.dropZone.addEventListener('drop', (e) => {
             // [추가된 방어벽] 캔버스에 이미지가 있다면 업로드 취소!
             if (this.ui.container && this.ui.container.classList.contains('has-image')) {
-                console.log("[Prevent] 이미지가 이미 존재하여 드롭 업로드를 차단합니다.");
-                return; // 여기서 함수를 끝내버려서 handleFile이 실행되지 않게 함
+                return; // 이미지가 이미 있으면 드롭 업로드로 덮어쓰지 않음
             }
 
             const file = e.dataTransfer.files[0];
@@ -70,8 +69,7 @@ export class ImageUploaderFeature {
         window.addEventListener('paste', (e) => {
             // 🌟 [추가된 방어벽] 붙여넣기로 강제 덮어씌워지는 것도 차단!
             if (this.ui.container && this.ui.container.classList.contains('has-image')) {
-                console.log("[Prevent] 이미지가 이미 존재하여 붙여넣기 업로드를 차단합니다.");
-                return; 
+                return; // 이미지가 이미 있으면 붙여넣기로 덮어쓰지 않음
             }
 
             const items = (e.clipboardData || e.originalEvent.clipboardData).items;
@@ -95,25 +93,34 @@ export class ImageUploaderFeature {
         this.ui.toggleLoading(true);
         state.originalFileName = file.name.split('.')[0];
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                state.originalImageObject = img;
-                state.aspectRatio = img.height / img.width;
+        // 🌟 [성능] base64(readAsDataURL)로 통째로 문자열화하는 대신 objectURL로 가볍게 디코딩
+        const objectUrl = URL.createObjectURL(file);
+        const img = new Image();
 
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = img.width;
-                tempCanvas.height = img.height;
-                const ctx = tempCanvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-                state.originalImageData = ctx.getImageData(0, 0, img.width, img.height);
+        img.onload = () => {
+            URL.revokeObjectURL(objectUrl); // 디코딩 끝나면 바로 해제 (메모리 누수 방지)
 
-                eventBus.emit('IMAGE_LOADED', img);
-                this.ui.toggleLoading(false);
-            };
-            img.src = e.target.result;
+            state.originalImageObject = img;
+            state.aspectRatio = img.height / img.width;
+
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = img.width;
+            tempCanvas.height = img.height;
+            const ctx = tempCanvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            state.originalImageData = ctx.getImageData(0, 0, img.width, img.height);
+
+            // 🌟 뷰어가 다시 디코딩하지 않도록 이미 계산된 ImageData를 함께 전달
+            eventBus.emit('IMAGE_LOADED', { source: img, imageData: state.originalImageData });
+            this.ui.toggleLoading(false);
         };
-        reader.readAsDataURL(file);
+
+        img.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            this.ui.toggleLoading(false);
+            alert(t('alert_image_only'));
+        };
+
+        img.src = objectUrl;
     }
 }

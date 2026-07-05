@@ -1,5 +1,5 @@
 import { eventBus } from '../../core/EventBus.js';
-import { state } from '../../core/state.js';
+import { state, t } from '../../core/state.js';
 
 export class PixelEditorFeature {
     constructor() {
@@ -15,7 +15,7 @@ export class PixelEditorFeature {
             if (isON) {
                 // 1. 에디터 켜기 (안전 검사)
                 if (!state.latestConversionData) {
-                    alert("먼저 이미지를 업로드하고 변환해주세요!");
+                    alert(t('msg_no_image_upload_first'));
                     document.getElementById('chkEditorMode').checked = false;
                     this.isActive = false;
                     return;
@@ -30,9 +30,6 @@ export class PixelEditorFeature {
                 this.lockOtherModules(true);
                 editorSlot.style.display = 'block';
 
-                // (TODO) 마스터 팔레트 긁어오기 로직 호출 예정
-                console.log("✏️ 에디터 모드 ON: 비파괴 복제본 캔버스 준비 완료!");
-
             } else {
                 // 3. 에디터 끄기 (휴지통 버리기 및 권한 반환)
                 state.editorWorkingData = null; 
@@ -41,7 +38,6 @@ export class PixelEditorFeature {
 
                 // 4. 복사본이 치워졌으니 깨끗한 원래 이미지로 캔버스 새로고침
                 eventBus.emit('CONVERSION_COMPLETE', { imageData: state.latestConversionData });
-                console.log("🔙 에디터 모드 OFF: 복제본 폐기 및 원상 복구 완료.");
             }
         });
     }

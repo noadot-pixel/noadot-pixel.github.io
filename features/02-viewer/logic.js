@@ -1,6 +1,6 @@
 // js/features/image-viewer/logic.js
 import { eventBus } from '../../core/EventBus.js';
-import { state } from '../../core/state.js';
+import { state, rgbToHex, t } from '../../core/state.js';
 import { ImageViewerUI } from './ui.js';
 import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors } from '../../data/palettes.js';
 
@@ -112,32 +112,42 @@ export class ImageViewerFeature {
             }
         });
 
-        eventBus.on('IMAGE_LOADED', (source) => {
-            if (!source) return;
-            const tempCanvas = document.createElement('canvas');
-            
-            if (source instanceof HTMLImageElement || source.tagName === 'IMG') {
-                tempCanvas.width = source.width;
-                tempCanvas.height = source.height;
+        eventBus.on('IMAGE_LOADED', (payload) => {
+            if (!payload) return;
+
+            // 🌟 [성능] 업로더가 이미 디코딩해 둔 ImageData/Image를 그대로 재사용해서
+            // 캔버스 재-드로우 + getImageData + toDataURL 재인코딩(중복 디코딩)을 없앰.
+            let rawData, imageObject;
+            if (payload.imageData && payload.source) {
+                rawData = payload.imageData;
+                imageObject = payload.source;
+            } else {
+                // 방어적 fallback: Image 엘리먼트 또는 raw ImageData가 그대로 들어온 경우
+                const source = payload;
+                const tempCanvas = document.createElement('canvas');
                 const ctx = tempCanvas.getContext('2d');
-                ctx.drawImage(source, 0, 0);
-            } else if (source.data && source.width && source.height) { 
-                tempCanvas.width = source.width;
-                tempCanvas.height = source.height;
-                const ctx = tempCanvas.getContext('2d');
-                ctx.putImageData(source, 0, 0);
+
+                if (source instanceof HTMLImageElement || source.tagName === 'IMG') {
+                    tempCanvas.width = source.width;
+                    tempCanvas.height = source.height;
+                    ctx.drawImage(source, 0, 0);
+                    imageObject = source;
+                } else if (source.data && source.width && source.height) {
+                    tempCanvas.width = source.width;
+                    tempCanvas.height = source.height;
+                    ctx.putImageData(source, 0, 0);
+                    imageObject = new Image();
+                    imageObject.src = tempCanvas.toDataURL();
+                } else {
+                    return;
+                }
+                rawData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
             }
 
-            const ctx = tempCanvas.getContext('2d');
-            const rawData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-            const data = rawData.data;
-
-            ctx.putImageData(rawData, 0, 0);
             state.originalImageData = rawData;
-            state.originalImageObject = new Image();
-            state.originalImageObject.src = tempCanvas.toDataURL();
+            state.originalImageObject = imageObject;
 
-            this.resetView(); 
+            this.resetView();
             this.ui.updateCanvas(state.originalImageData);
             this.ui.showCanvas();
             this.checkEyedropperStatus();
@@ -233,7 +243,7 @@ export class ImageViewerFeature {
                 const palette = [...wplaceFreeColors, ...wplacePaidColors];
                 palette.forEach(c => {
                     if (c.rgb) {
-                        const hex = '#' + c.rgb.map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+                        const hex = rgbToHex(...c.rgb);
                         colorNameMap[hex] = c.name;
                     }
                 });
@@ -241,7 +251,7 @@ export class ImageViewerFeature {
                 const palette = uplaceColors || [];
                 palette.forEach(c => {
                     if (c.rgb) {
-                        const hex = '#' + c.rgb.map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+                        const hex = rgbToHex(...c.rgb);
                         colorNameMap[hex] = c.name;
                     }
                 });
@@ -417,6 +427,13 @@ export class ImageViewerFeature {
             e.preventDefault();
             e.stopPropagation();
 
+            // 🌟 [성능] 휠 줌 중에는 CSS transition을 꺼서 애니메이션이 밀리며 버벅이는 현상을 방지
+            if (this.ui.canvas) this.ui.canvas.style.transition = 'none';
+            clearTimeout(this.wheelZoomEndTimer);
+            this.wheelZoomEndTimer = setTimeout(() => {
+                if (this.ui.canvas) this.ui.canvas.style.transition = 'transform 0.1s ease-out';
+            }, 150);
+
             const delta = -Math.sign(e.deltaY);
             const zoomSpeed = 0.15;
 
@@ -454,8 +471,16 @@ export class ImageViewerFeature {
 
         window.addEventListener('mousemove', (e) => {
             if (this.isEyedropperActive) {
-                this.handlePixelHover(e);
-            } 
+                // 🌟 [성능] mousemove는 초당 수십~백 회 발생하므로 rAF로 프레임당 1회만 처리
+                this.lastHoverEvent = e;
+                if (!this.hoverRafPending) {
+                    this.hoverRafPending = true;
+                    requestAnimationFrame(() => {
+                        this.hoverRafPending = false;
+                        this.handlePixelHover(this.lastHoverEvent);
+                    });
+                }
+            }
             else if (state.isDragging) {
                 e.preventDefault();
                 const currentX = e.clientX - this.startDragX;
@@ -641,7 +666,6 @@ export class ImageViewerFeature {
             }
 
             if (this.addedColorsInSession > 0) {
-                console.log(`[스포이드] ${this.addedColorsInSession}개의 색상이 추가되어 변환을 갱신합니다.`);
                 eventBus.emit('PALETTE_UPDATED');
             }
         }
@@ -651,7 +675,7 @@ export class ImageViewerFeature {
         if (!state.originalImageData) return;
         
         if (state.currentMode !== 'geopixels') {
-            alert("⚠️ 스포이드 색상 추가는 GeoPixels 모드에서만 가능합니다.");
+            alert(t('msg_eyedropper_only_geo'));
             return;
         }
 
@@ -669,29 +693,28 @@ export class ImageViewerFeature {
         const p = ctx.getImageData(x, y, 1, 1).data;
         
         const rgb = [p[0], p[1], p[2]];
-        const hex = '#' + rgb.map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
-        
+        const hex = rgbToHex(...rgb);
+
         //중복 검사 (커스텀 & 기본 팔레트)
         if (!state.addedColors) state.addedColors = [];
-        const existsInCustom = state.addedColors.some(c => '#' + c.rgb.map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase() === hex);
-        const existsInBase = geopixelsColors.some(c => '#' + c.rgb.map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase() === hex);
+        const existsInCustom = state.addedColors.some(c => rgbToHex(...c.rgb) === hex);
+        const existsInBase = geopixelsColors.some(c => rgbToHex(...c.rgb) === hex);
 
         if (existsInCustom || existsInBase) {
-            console.log(`⚠️ 이미 팔레트에 존재하는 색상입니다: ${hex}`);
             return;
         }
 
         // 장바구니에 무사히 추가!
         state.addedColors.push({ id: Date.now() + Math.random(), rgb: rgb, count: 0 });
         this.addedColorsInSession++;
-        console.log(`✅ 커스텀 색상 등록 완료: ${hex}`);
-        
+
         // 이제 사용자가 버튼을 다시 누르기 전까지 절대 모드가 풀리지 않습니다!
     }
 
     handlePixelHover(e) {
-        if (!state.originalImageData || !this.isEyedropperActive) {
+        if (!e || !state.originalImageData || !this.isEyedropperActive) {
             if (this.eyedropperTooltip) this.eyedropperTooltip.style.display = 'none';
+            this.lastHoverPixel = null;
             return;
         }
 
@@ -702,21 +725,30 @@ export class ImageViewerFeature {
         const y = Math.floor((e.clientY - rect.top) * scaleY);
 
         if (x >= 0 && x < this.ui.canvas.width && y >= 0 && y < this.ui.canvas.height) {
-            const ctx = this.ui.canvas.getContext('2d');
-            const p = ctx.getImageData(x, y, 1, 1).data;
-            const hex = '#' + [p[0], p[1], p[2]].map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+            // 🌟 [성능] 같은 픽셀 위에 머무는 동안은 getImageData/DOM 갱신을 다시 하지 않음
+            const samePixel = this.lastHoverPixel && this.lastHoverPixel.x === x && this.lastHoverPixel.y === y;
+            if (!samePixel) {
+                const ctx = this.ui.canvas.getContext('2d');
+                const p = ctx.getImageData(x, y, 1, 1).data;
+                const hex = rgbToHex(p[0], p[1], p[2]);
+                this.lastHoverPixel = { x, y };
+
+                if (this.eyedropperTooltip) {
+                    this.eyedropperTooltip.innerHTML = `
+                        <div style="width: 16px; height: 16px; background: ${hex}; border: 1px solid rgba(255,255,255,0.8); border-radius: 4px; margin-right: 6px;"></div>
+                        <span style="color: white; font-size: 0.9em; font-family: monospace;">${hex}</span>
+                    `;
+                }
+            }
 
             if (this.eyedropperTooltip) {
                 this.eyedropperTooltip.style.display = 'flex';
                 // 마우스 커서에 가려지지 않게 살짝 우측 하단으로 이동
                 this.eyedropperTooltip.style.left = (e.clientX + 15) + 'px';
                 this.eyedropperTooltip.style.top = (e.clientY + 15) + 'px';
-                this.eyedropperTooltip.innerHTML = `
-                    <div style="width: 16px; height: 16px; background: ${hex}; border: 1px solid rgba(255,255,255,0.8); border-radius: 4px; margin-right: 6px;"></div>
-                    <span style="color: white; font-size: 0.9em; font-family: monospace;">${hex}</span>
-                `;
             }
         } else {
+            this.lastHoverPixel = null;
             if (this.eyedropperTooltip) this.eyedropperTooltip.style.display = 'none';
         }
     }

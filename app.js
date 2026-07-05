@@ -10,8 +10,7 @@ import { ImageUploaderFeature } from './features/03-uploader/logic.js';
 import { ImageResizerFeature } from './features/04-resizer/logic.js';
 import { ConversionOptionsFeature } from './features/05-color-engine/logic.js';
 import { PaletteSelectorFeature } from './features/06-palettes/logic.js';
-import { KMeansFeature } from './features/07-kmeans/logic.js'; 
-import { ExportFeature } from './features/08-export/logic.js';
+import { KMeansFeature } from './features/07-kmeans/logic.js';
 import { CommentFeature } from './features/09-comments/logic.js';
 
 class NoaDotApp {
@@ -32,9 +31,8 @@ class NoaDotApp {
                 <div id="sub-slot-kmeans"></div> 
                 <div id="sub-slot-palettes"></div>
                 <div id="sub-slot-comments"></div>
-                
+
                 <div id="sub-slot-download" style="display: none;"></div>
-                <div id="sub-slot-comments" style="display: none;"></div>
             </div>
         `;
 
@@ -66,9 +64,8 @@ class NoaDotApp {
             this.uploader = new ImageUploaderFeature();
             this.resizer = new ImageResizerFeature();
             
-            this.kmeans = new KMeansFeature(); 
-            //[AI가 주석하래]this.exportFeature = new ExportFeature();
-            
+            this.kmeans = new KMeansFeature();
+
             this.engineOptions = new ConversionOptionsFeature();
             this.palettes = new PaletteSelectorFeature();
             this.comments = new CommentFeature();

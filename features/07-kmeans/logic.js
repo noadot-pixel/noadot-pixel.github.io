@@ -1,7 +1,7 @@
 // js/features/07-kmeans/logic.js
 import { eventBus } from '../../core/EventBus.js';
-import { state, t } from '../../core/state.js';
-import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors } from '../../data/palettes.js';
+import { state, t, rgbToHex } from '../../core/state.js';
+import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors } from '../../data/palettes.js';
 
 export class KMeansFeature {
     constructor() {
@@ -22,6 +22,9 @@ export class KMeansFeature {
         // 🌟 [추가] 사용량 기반 추출 버튼
         this.btnUsageExtract = document.getElementById('btnUsageExtract');
         this.track2Container = document.getElementById('kmeans-track-match');
+
+        // 🌟 그라데이션 영역만 추출
+        this.chkGradientOnly = document.getElementById('chkGradientOnly');
 
         if (this.matchSlider) {
             this.matchSlider.addEventListener('input', (e) => {
@@ -101,9 +104,10 @@ export class KMeansFeature {
         if (extractTrack) extractTrack.style.display = (mode === 'geopixels') ? 'block' : 'none';
 
         if (this.matchSlider) {
-            let maxCount = 16; 
+            let maxCount = 16;
             if (mode === 'wplace') maxCount = 63;
             else if (mode === 'uplace') maxCount = 127;
+            else if (mode === 'bplace') maxCount = bplaceColors.length;
             else if (mode === 'geopixels') {
                 const customCount = (state.addedColors || []).length;
                 maxCount = 29 + customCount;
@@ -140,29 +144,35 @@ export class KMeansFeature {
 
     sendKmeansRequest(task, count) {
         // 🌟 [핵심 변경] 원본 이미지 대신 변환/리사이징 된 이미지를 브릿지에 실어 보냅니다!
+        // (참고: WorkerBridge가 실제로는 항상 state.originalImageData를 사용하므로, 그라데이션 판정도
+        // 이미 디더링되지 않은 원본을 기준으로 이뤄집니다.)
+        const gradientOnly = task === 'add' && !!this.chkGradientOnly?.checked;
         const targetData = state.latestConversionData || state.originalImageData;
-        
+
         if (!targetData) {
             alert(t('msg_no_image_upload_first'));
             return;
         }
 
-        this.pendingTask = task; 
+        this.pendingTask = task;
         if (task === 'match' && this.btnMatch) this.btnMatch.textContent = t('msg_matching');
         if (task === 'add' && this.btnExtract) this.btnExtract.textContent = t('msg_extracting');
 
         eventBus.emit('REQUEST_KMEANS_EXTRACTION', {
             options: {
                 colorCount: parseInt(count, 10),
-                kmeansUseOklab: true, 
-                kmeansChromaBoost: 1.5 
+                kmeansUseOklab: true,
+                kmeansChromaBoost: 1.5,
+                gradientOnly,
+                adaptiveDitherStrength: state.adaptiveDitherStrength ?? 50
             },
             imageData: targetData // 🌟 WorkerBridge가 이걸 받아서 쓰도록 넘겨줍니다!
         });
     }
 
+    // 🌟 [정리] core/state.js의 공용 유틸을 그대로 위임 (여러 파일에 중복 구현되어 있던 것을 통합)
     rgbToHex(rgbArray) {
-        return '#' + rgbArray.map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+        return rgbToHex(...rgbArray);
     }
 
     processMatching(extractedColors) {
@@ -171,6 +181,7 @@ export class KMeansFeature {
         
         if (mode === 'wplace') targetPalette = [...wplaceFreeColors, ...wplacePaidColors];
         else if (mode === 'uplace') targetPalette = uplaceColors;
+        else if (mode === 'bplace') targetPalette = bplaceColors;
         else if (mode === 'geopixels') targetPalette = [...geopixelsColors, ...(state.addedColors || [])];
 
         const matchedHexes = new Set();

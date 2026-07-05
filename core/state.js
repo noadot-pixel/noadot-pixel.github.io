@@ -44,7 +44,9 @@ export function updateDOMTranslations() {
 
 export const CONFIG = {
     DEBOUNCE_DELAY: 150,
-    // [핵심] 리셋 기준값 정의 (Sierra-2 기본 설정 포함)
+    // 🌟 [정리] 리셋 기준값의 단일 진실 공급원(Single Source of Truth).
+    // 05-color-engine/logic.js의 resetOptions()/resetIndividualOption()이
+    // 이 값들을 각자 따로 하드코딩하고 있어서 서로 다른 값으로 드리프트되어 있었음 -> 여기로 통합.
     DEFAULTS: {
         saturationSlider: 100,
         brightnessSlider: 0,
@@ -53,16 +55,21 @@ export const CONFIG = {
         rgbWeightR: 0,
         rgbWeightG: 0,
         rgbWeightB: 0,
-        
-        // 초기값 Sierra-2 설정
-        ditheringAlgorithmSelect: 'none', 
-        
+
+        ditheringAlgorithmSelect: 'none',
+        useMicroDither: false,
+        useMacroPattern: false,
+        basicDitherType: 'bayer',
+        useAdaptiveDither: false,
+        adaptiveDitherStrength: 50,
+
         applyPattern: false,
-        patternTypeSelect: 'bayer8x8',
+        patternTypeSelect: 'grid',
         patternSizeSlider: 4,
+        patternStrengthSlider: 10,
         applyGradient: false,
         gradientTypeSelect: 'bayer',
-        gradientDitherSizeSlider: 1, 
+        gradientDitherSizeSlider: 1,
         gradientAngleSlider: 0,
         gradientStrengthSlider: 100,
         colorMethodSelect: 'oklab',
@@ -75,8 +82,30 @@ export const CONFIG = {
         algoWeightM: 0,
         algoChromaBoost: 10,
 
+        applyOutlineExpansion: false,
+        applySmartSampling: false,
+        applyRefinement: false,
+        refinementSlider: 50,
+        applyUpscale: false,
+        upscaleMode: 1,
+
+        useDitherDenoise: false,
+        ditherDenoiseStrength: 50,
+        useOrganicNoise: false,
+        organicNoiseStrength: 50,
+        usePixelioe: false,
+        pixelioeStrength: 50,
+        useSmoothing: false,
+        smoothingLevel: 0,
+        useAlphaGradient: false,
+        alphaGradientType: 'bayer',
+        alphaGradientAngle: 0,
+        alphaGradientSize: 1,
+        alphaGradientStrength: 50,
+
         celShadingApply: false,
-        celShadingLevelsSlider: 24,
+        celShadingAlgorithmSelect: 'kmeans',
+        celShadingLevelsSlider: 8,
         celShadingColorSpaceSelect: 'oklab',
         celShadingOutline: false,
         celShadingOutlineThresholdSlider: 50,

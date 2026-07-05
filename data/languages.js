@@ -112,6 +112,10 @@ export const translations = {
         "label_micro_dither": "미세 디더링 (노이즈)",
         "label_macro_pattern": "텍스처 패턴 (질감)",
         "label_pattern_strength": "패턴 강도:",
+        "label_adaptive_dither": "🌈 그라데이션 적응형 디더링",
+        "desc_adaptive_dither": "(매끄러운 구간을 등고선처럼 정리)",
+        "label_adaptive_dither_strength": "그라데이션 감지 강도:",
+        "desc_adaptive_dither_detail": "색이 매끄럽게 변하는 구간은 디더링/패턴 강도를 자동으로 낮춰 사각형 얼룩 없이 등고선처럼 깔끔한 경계로 정리합니다. 값이 높을수록 더 넓은 범위를 그라데이션으로 판정합니다.",
         "pat_custom": "✨ 커스텀 패턴 (직접 제작)",
         "title_custom_pattern_editor": "🎨 커스텀 텍스처 에디터",
         "label_grid_size": "그리드 캔버스 크기",
@@ -127,6 +131,8 @@ export const translations = {
         "btn_kmeans_match": "🎯 이미지와 매칭하여 팔레트 최적화",
         "label_kmeans_extract": "✨ 커스텀 색상 자동 추출",
         "desc_kmeans_extract": "이미지에서 색을 뽑아 커스텀 팔레트에 자동으로 추가합니다.",
+        "label_gradient_only": "🌈 그라데이션 영역만 추출",
+        "title_gradient_only": "경계/디테일 픽셀은 빼고, 색이 매끄럽게 변하는 구간의 색만 뽑습니다",
         "btn_kmeans_extract": "✨ 최적화된 추천 색상을 커스텀에 추가",
         "btn_usage_extract": "📊 사용량이 많은 색상을 커스텀에 추가",
         "unit_colors": "{count}색",
@@ -158,7 +164,12 @@ export const translations = {
         "palette_wplace_paid":"유료 팔레트",
         "label_use_uplace": "Youplace 팔레트 사용하기",
         "label_use_bplace": "Bplace 팔레트 사용하기",
-        "label_auto_sort": "자동정렬",
+        "label_auto_sort": "🔃 자동 정렬",
+        "title_auto_sort": "비활성화된 색상을 목록 맨 아래로 자동 정렬합니다",
+        "title_remove_unused": "변환 결과에서 한 번도 쓰이지 않은 커스텀 색상을 한꺼번에 제거합니다",
+        "label_remove_unused": "🧹 미사용 제거",
+        "msg_confirm_remove_unused": "사용되지 않는 커스텀 색상 {count}개를 제거하시겠습니까?",
+        "msg_no_unused_colors": "제거할 미사용 색상이 없습니다.",
 
         //댓글
         "btn_open_comments": "💬 피드백 및 댓글 보기",
@@ -182,6 +193,7 @@ export const translations = {
         "msg_db_error": "서버(DB)와 연결되지 않았습니다.",
         "msg_empty_comment": "댓글 내용을 입력해주세요.",
         "msg_comment_fail": "댓글 등록에 실패했습니다.",
+        "msg_comment_cooldown": "너무 빠르게 댓글을 등록하고 있어요. 잠시 후 다시 시도해주세요.",
 
         // 자바스크립트 알림 메시지
         "msg_no_image": "다운로드할 이미지가 없습니다!",
@@ -315,8 +327,12 @@ export const translations = {
 
         //커스텀 디더링 상세
         "label_micro_dither": "Micro Dithering (Noise)", 
-        "label_macro_pattern": "Texture Pattern", 
+        "label_macro_pattern": "Texture Pattern",
         "label_pattern_strength": "Pattern Strength:",
+        "label_adaptive_dither": "🌈 Adaptive Gradient Dithering",
+        "desc_adaptive_dither": "(Cleans up smooth areas into contour-like bands)",
+        "label_adaptive_dither_strength": "Gradient Detection Strength:",
+        "desc_adaptive_dither_detail": "Automatically lowers dithering/pattern strength in smoothly-changing areas so they settle into clean, contour-like edges instead of blocky artifacts. Higher values treat a wider range of color change as a gradient.",
         "pat_custom": "✨ Custom Pattern (Create Your Own)",
         "title_custom_pattern_editor": "🎨 Custom Texture Editor",
         "label_grid_size": "Canvas Grid Size",
@@ -332,6 +348,8 @@ export const translations = {
         "btn_kmeans_match": "🎯 Optimize Palette by Matching",
         "label_kmeans_extract": "✨ Auto-Extract Custom Colors",
         "desc_kmeans_extract": "Extracts colors from the image and automatically adds them to the custom palette.",
+        "label_gradient_only": "🌈 Gradient Areas Only",
+        "title_gradient_only": "Excludes edge/detail pixels and only samples colors from smoothly-changing areas",
         "btn_kmeans_extract": "✨ Add Extracted Colors to Custom",
         "btn_usage_extract": "📊 Add Usage Extracted Colors to Custom",
         "unit_colors": "{count} Colors",
@@ -363,7 +381,12 @@ export const translations = {
         "palette_wplace_paid":"Paid Palette",
         "label_use_uplace": "Used Youplace palettes",
         "label_use_bplace": "Used Bplace palettes",
-        "label_auto_sort": "Auto Sort",
+        "label_auto_sort": "🔃 Auto Sort",
+        "title_auto_sort": "Automatically keep disabled colors sorted to the bottom of the list",
+        "title_remove_unused": "Remove all custom colors that weren't used in the last conversion",
+        "label_remove_unused": "🧹 Remove Unused",
+        "msg_confirm_remove_unused": "Remove {count} unused custom color(s)?",
+        "msg_no_unused_colors": "There are no unused colors to remove.",
 
         // 댓글(comments)
         "btn_open_comments": "💬 View Feedback & Comments",
@@ -387,6 +410,7 @@ export const translations = {
         "msg_db_error": "Database connection error.",
         "msg_empty_comment": "Please enter a comment.",
         "msg_comment_fail": "Failed to submit comment.",
+        "msg_comment_cooldown": "You're posting comments too fast. Please wait a moment and try again.",
 
         // 자바스크립트 알림 메시지(JavaScript Alert Messages)
         "msg_no_image": "No image to download!",

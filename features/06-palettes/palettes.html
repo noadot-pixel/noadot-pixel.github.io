@@ -37,17 +37,10 @@
                 <span id="customColorCount" class="custom-palette-count">[0]</span>
             </label>
             <div class="view-mode-toggle">
-                <button id="viewListBtn" class="mini-btn view-btn active" title="리스트 뷰">☰</button>
-                <button id="viewGridBtn" class="mini-btn view-btn" title="그리드 뷰">▦</button>
+                <button id="viewListBtn" class="mini-btn view-btn active" data-i18n-title="title_view_list" title="리스트 뷰">☰</button>
+                <button id="viewGridBtn" class="mini-btn view-btn" data-i18n-title="title_view_grid" title="그리드 뷰">▦</button>
             </div>
         </div>
-
-        <!--<div class="palette-auto-sort-row">
-            <label class="palette-auto-sort-label">
-                <input type="checkbox" id="chkAutoSort">
-                <span data-i18n="label_auto_sort">자동 정렬</span>
-            </label>
-        </div>-->
 
         <div class="custom-input-wrapper">
             <input type="text" id="addHex" placeholder="HEX (#FFFFFF)" class="ui-input hex-input" maxlength="25">
@@ -59,9 +52,10 @@
             </div>
         </div>
 
-        <div class="palette-action-group">
+        <!-- 🌟 1행: 선택/정렬/자동정렬 - 팔레트를 "보는 방식"을 다루는 컨트롤 묶음 -->
+        <div class="palette-action-group palette-action-view">
             <button id="toggleAllCustomBtn" class="mini-btn btn-toggle-all" data-i18n-title="title_toggle_all" title="커스텀 전체 선택/해제">A</button>
-            
+
             <select id="paletteSortSelect" class="palette-sort-select">
                 <option value="added" data-i18n="opt_sort_added">추가순</option>
                 <option value="count" data-i18n="opt_sort_count">사용량순</option>
@@ -71,13 +65,22 @@
                 <option value="b" data-i18n="opt_sort_b">B값 높은순</option>
             </select>
 
-            <div class="palette-action-right">
-                <button id="resetAddedColorsBtn" class="mini-btn" data-i18n-title="title_reset_custom" title="전체 초기화">🔄</button>
-                <button id="exportPaletteBtn" class="mini-btn" data-i18n-title="title_export_palette" title="팔레트 내보내기">💾</button>
-                <button id="importPaletteBtn" class="mini-btn" data-i18n-title="title_import_palette" title="팔레트 불러오기">📂</button>
-            </div>
-            <input type="file" id="paletteUpload" accept=".json" style="display: none;">
+            <label class="palette-toggle-chip" data-i18n-title="title_auto_sort" title="비활성화된 색상을 목록 맨 아래로 자동 정렬합니다">
+                <input type="checkbox" id="chkAutoSort">
+                <span data-i18n="label_auto_sort">🔃 자동 정렬</span>
+            </label>
         </div>
+
+        <!-- 🌟 2행: 편집/저장 - 팔레트 내용을 "바꾸는" 컨트롤 묶음 (동일 너비로 정렬해 위험도별 색상 구분) -->
+        <div class="palette-action-group palette-action-edit">
+            <button id="removeUnusedColorsBtn" class="mini-btn btn-remove-unused" data-i18n-title="title_remove_unused" title="변환 결과에서 한 번도 쓰이지 않은 커스텀 색상을 한꺼번에 제거합니다">
+                <span data-i18n="label_remove_unused">🧹 미사용 제거</span>
+            </button>
+            <button id="resetAddedColorsBtn" class="mini-btn btn-reset-all" data-i18n-title="title_reset_custom" title="전체 초기화">🔄</button>
+            <button id="exportPaletteBtn" class="mini-btn btn-export" data-i18n-title="title_export_palette" title="팔레트 내보내기">💾</button>
+            <button id="importPaletteBtn" class="mini-btn btn-import" data-i18n-title="title_import_palette" title="팔레트 불러오기">📂</button>
+        </div>
+        <input type="file" id="paletteUpload" accept=".json" style="display: none;">
 
         <div id="custom-palette-container"></div>
     </div>

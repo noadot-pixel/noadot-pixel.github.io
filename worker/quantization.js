@@ -1,5 +1,6 @@
 import { clamp, colorDistanceSq, ColorConverter, findClosestColor, findClosestColorFusion } from './color.js';
 import { DitheringEngine } from './dithering.js';
+import { computeLocalVariance, smoothnessFactor, resolveGradientThresholds } from './gradient-detection.js';
 
 export function preprocessImageData(sourceImageData, options) {
     const { saturation, brightness, contrast } = options;
@@ -347,6 +348,15 @@ export function matchColorAndDither(imageData, activePalette, options) {
     const intensityRaw = (options.ditheringIntensity || 50) / 100;
     const safeDitherMultiplier = (intensityRaw * 0.5) + (Math.pow(intensityRaw, 2) * 0.25); // 최대 0.75
 
+    // 🌟 [그라데이션 적응형 디더링] 매끄러운 구간(로컬 분산이 낮음)에서는 패턴/디더링 강도를
+    // 0에 가깝게 낮춰서 팔레트 경계에서 등고선처럼 깔끔하게 끊기게 하고, 경계/디테일 구간은 그대로 유지합니다.
+    const useAdaptiveDither = !!options.useAdaptiveDither;
+    let varianceMap = null, adaptLow = 0, adaptHigh = 1;
+    if (useAdaptiveDither) {
+        varianceMap = computeLocalVariance(data, width, height);
+        ({ low: adaptLow, high: adaptHigh } = resolveGradientThresholds(options.adaptiveDitherStrength));
+    }
+
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const i = (y * width + x) * 4;
@@ -370,16 +380,21 @@ export function matchColorAndDither(imageData, activePalette, options) {
             let shiftedR = Math.max(0, Math.min(255, r));
             let shiftedG = Math.max(0, Math.min(255, g));
             let shiftedB = Math.max(0, Math.min(255, b));
-            
+
+            // 이 픽셀이 매끄러운 그라데이션 구간인지(0) 경계/디테일 구간인지(1) 계수화
+            const localFactor = useAdaptiveDither
+                ? smoothnessFactor(varianceMap[y * width + x], adaptLow, adaptHigh)
+                : 1;
+
             // 1. 패턴 & 베이어 변조
             if (activePatternMatrix || isBayer) {
                 const shifted = ditherEngine.applySuperposition(shiftedR, shiftedG, shiftedB, x, y, {
                     useBayer: isBayer,
-                    ditherStrength: options.ditheringIntensity,
-                    bayerSize: options.bayerSize || 1, 
+                    ditherStrength: options.ditheringIntensity * localFactor,
+                    bayerSize: options.bayerSize || 1,
                     patternMatrix: activePatternMatrix,
-                    patternStrength: options.patternStrength,
-                    patternSize: options.patternSize || 2 
+                    patternStrength: (options.patternStrength || 0) * localFactor,
+                    patternSize: options.patternSize || 2
                 });
                 shiftedR = shifted.r; shiftedG = shifted.g; shiftedB = shifted.b;
             }
@@ -403,16 +418,17 @@ export function matchColorAndDither(imageData, activePalette, options) {
                 const errR = clampErr(r - color[0]);
                 const errG = clampErr(g - color[1]);
                 const errB = clampErr(b - color[2]);
+                const localDitherMultiplier = safeDitherMultiplier * localFactor;
 
                 for (let d of diffMap) {
                     const nx = x + d.x;
                     const ny = y + d.y;
                     if (nx >= 0 && nx < width && ny < height) {
                         const ni = (ny * width + nx) * 4;
-                        if (data[ni + 3] > 0) { 
-                            fData[ni] += errR * d.w * safeDitherMultiplier;
-                            fData[ni+1] += errG * d.w * safeDitherMultiplier;
-                            fData[ni+2] += errB * d.w * safeDitherMultiplier;
+                        if (data[ni + 3] > 0) {
+                            fData[ni] += errR * d.w * localDitherMultiplier;
+                            fData[ni+1] += errG * d.w * localDitherMultiplier;
+                            fData[ni+2] += errB * d.w * localDitherMultiplier;
                         }
                     }
                 }

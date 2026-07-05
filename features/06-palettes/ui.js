@@ -1,4 +1,4 @@
-import { state, t } from '../../core/state.js';
+import { state, t, rgbToHex, getTextColorForBg } from '../../core/state.js';
 import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors } from '../../data/palettes.js'; // bplaceColors 추가!
 
 export class PaletteSelectorUI {
@@ -295,13 +295,12 @@ export class PaletteSelectorUI {
         });
     }
 
+    // 🌟 [정리] core/state.js의 공용 유틸을 그대로 위임 (여러 파일에 중복 구현되어 있던 것을 통합)
     rgbToHex(r, g, b) {
-        return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+        return rgbToHex(r, g, b);
     }
 
-    // 🌟 배경색 밝기에 따라 글자색을 흑/백으로 결정해주는 도우미 함수
     getContrastYIQ(r, g, b) {
-        const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-        return (yiq >= 128) ? '#000000' : '#FFFFFF';
+        return getTextColorForBg([r, g, b]);
     }
 }

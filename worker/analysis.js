@@ -1,4 +1,21 @@
 import { ColorConverter, colorDistanceSq } from './color.js';
+import { computeLocalVariance, resolveGradientThresholds } from './gradient-detection.js';
+
+// 🌟 [그라데이션 전용 추출] 경계/디테일 픽셀은 투명 처리해서 K-Means 표본에서 제외시키고,
+// 색이 매끄럽게 변하는(로컬 분산이 낮은) 구간의 픽셀만 남깁니다.
+export function maskToGradientAreas(imageData, adaptiveDitherStrength = 50) {
+    const { width, height, data } = imageData;
+    const variance = computeLocalVariance(data, width, height);
+    const { high } = resolveGradientThresholds(adaptiveDitherStrength);
+
+    const masked = new Uint8ClampedArray(data);
+    for (let idx = 0; idx < variance.length; idx++) {
+        if (variance[idx] > high) {
+            masked[idx * 4 + 3] = 0;
+        }
+    }
+    return new ImageData(masked, width, height);
+}
 
 // 🌟 [K-Means 궁극기] 3가지 옵션을 지원하는 색상 추출 알고리즘
 export function extractExactKMeansPalette(imageData, colorCount, options = {}) {

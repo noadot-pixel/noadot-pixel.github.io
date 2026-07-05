@@ -38,41 +38,45 @@ export class PostProcessor {
         const result = new Uint8ClampedArray(pixels);
         const radius = Math.min(3, Math.ceil(level / 3)); // 레벨에 따라 탐색 반경 증가
 
+        // 🌟 [성능] 픽셀마다 새 Map+문자열 키를 만드는 대신, 정수 키(RGB 팩킹) + 재사용 Map 사용
+        const colorCounts = new Map();
+
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 const idx = (y * width + x) * 4;
                 if (pixels[idx + 3] === 0) continue; // 투명 픽셀 무시
 
-                // 주변 픽셀 색상 수집
-                const colorCounts = new Map();
+                colorCounts.clear();
                 let maxCount = 0;
-                let dominantColor = null;
+                let dominantKey = -1;
 
                 for (let dy = -radius; dy <= radius; dy++) {
+                    const ny = y + dy;
+                    if (ny < 0 || ny >= height) continue;
+
                     for (let dx = -radius; dx <= radius; dx++) {
-                        const ny = y + dy, nx = x + dx;
-                        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                            const nIdx = (ny * width + nx) * 4;
-                            if (pixels[nIdx + 3] === 0) continue;
+                        const nx = x + dx;
+                        if (nx < 0 || nx >= width) continue;
 
-                            const r = pixels[nIdx], g = pixels[nIdx+1], b = pixels[nIdx+2];
-                            const key = `${r},${g},${b}`;
-                            const count = (colorCounts.get(key) || 0) + 1;
-                            colorCounts.set(key, count);
+                        const nIdx = (ny * width + nx) * 4;
+                        if (pixels[nIdx + 3] === 0) continue;
 
-                            if (count > maxCount) {
-                                maxCount = count;
-                                dominantColor = [r, g, b];
-                            }
+                        const key = (pixels[nIdx] << 16) | (pixels[nIdx + 1] << 8) | pixels[nIdx + 2];
+                        const count = (colorCounts.get(key) || 0) + 1;
+                        colorCounts.set(key, count);
+
+                        if (count > maxCount) {
+                            maxCount = count;
+                            dominantKey = key;
                         }
                     }
                 }
 
                 // 가장 많이 등장한 색으로 현재 픽셀 덮어쓰기 (평탄화)
-                if (dominantColor) {
-                    result[idx] = dominantColor[0];
-                    result[idx + 1] = dominantColor[1];
-                    result[idx + 2] = dominantColor[2];
+                if (dominantKey !== -1) {
+                    result[idx] = (dominantKey >> 16) & 0xFF;
+                    result[idx + 1] = (dominantKey >> 8) & 0xFF;
+                    result[idx + 2] = dominantKey & 0xFF;
                 }
             }
         }
@@ -83,6 +87,8 @@ export class PostProcessor {
         if (strength <= 0) return pixels;
 
         let result = new Uint8ClampedArray(pixels);
+        // 🌟 [성능] 패스마다 새 배열을 할당하지 않고, 재사용 버퍼에 복사만 해서 GC 부담을 줄임
+        const temp = new Uint8ClampedArray(pixels.length);
         const getIdx = (x, y) => (y * width + x) * 4;
 
         // 🚀 패스 횟수와 오차 허용치를 극단적으로 올립니다.
@@ -97,8 +103,8 @@ export class PostProcessor {
         };
 
         for (let pass = 0; pass < passes; pass++) {
-            const temp = new Uint8ClampedArray(result);
-            
+            temp.set(result);
+
             // 🌟 박살 난 노이즈의 핵심: 긁는 방향을 매 패스마다 위아래로 번갈아 교차!
             const reverse = pass % 2 !== 0;
             const startY = reverse ? height - 3 : 2;

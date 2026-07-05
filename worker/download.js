@@ -61,14 +61,23 @@ function generateUplaceBlob(width, height, data, timestamp, nameSuffix = "") {
         }
         return bestId;
     };
+    // 🌟 [성능] 같은 비-팔레트 색이 반복될 때마다 선형 탐색을 다시 하지 않도록 캐싱
+    const nearestCache = new Map();
 
     let pIdx = 0;
     for (let i = 0; i < data.length; i += 4) {
         const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
-        if (a === 0) pixels[pIdx++] = 0;
-        else {
-            const hex = rgbToHex(r, g, b);
-            pixels[pIdx++] = colorMap.has(hex) ? colorMap.get(hex) : getNearestId(r, g, b);
+        if (a === 0) { pixels[pIdx++] = 0; continue; }
+
+        const hex = rgbToHex(r, g, b);
+        if (colorMap.has(hex)) {
+            pixels[pIdx++] = colorMap.get(hex);
+        } else if (nearestCache.has(hex)) {
+            pixels[pIdx++] = nearestCache.get(hex);
+        } else {
+            const id = getNearestId(r, g, b);
+            nearestCache.set(hex, id);
+            pixels[pIdx++] = id;
         }
     }
 
@@ -310,15 +319,23 @@ self.onmessage = async (e) => {
                 }
                 return bestId;
             };
+            // 🌟 [성능] 같은 비-팔레트 색이 반복될 때마다 선형 탐색을 다시 하지 않도록 캐싱
+            const nearestCache = new Map();
 
             let pIdx = 0;
             for (let i = 0; i < data.length; i += 4) {
                 const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
-                if (a === 0) {
-                    pixels[pIdx++] = 0; // 투명
+                if (a === 0) { pixels[pIdx++] = 0; continue; } // 투명
+
+                const hex = rgbToHex(r, g, b);
+                if (colorMap.has(hex)) {
+                    pixels[pIdx++] = colorMap.get(hex);
+                } else if (nearestCache.has(hex)) {
+                    pixels[pIdx++] = nearestCache.get(hex);
                 } else {
-                    const hex = rgbToHex(r, g, b);
-                    pixels[pIdx++] = colorMap.has(hex) ? colorMap.get(hex) : getNearestId(r, g, b);
+                    const id = getNearestId(r, g, b);
+                    nearestCache.set(hex, id);
+                    pixels[pIdx++] = id;
                 }
             }
 

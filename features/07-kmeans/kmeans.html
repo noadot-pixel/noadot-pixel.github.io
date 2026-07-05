@@ -23,6 +23,11 @@
                 <small class="kmeans-desc" data-i18n="desc_kmeans_extract">
                     이미지에서 색을 뽑아 커스텀 팔레트에 추가합니다.
                 </small>
+
+                <label class="kmeans-gradient-toggle" data-i18n-title="title_gradient_only" title="경계/디테일 픽셀은 빼고, 색이 매끄럽게 변하는 구간의 색만 뽑습니다">
+                    <input type="checkbox" id="chkGradientOnly">
+                    <span data-i18n="label_gradient_only">🌈 그라데이션 영역만 추출</span>
+                </label>
             </div>
             <div style="display: flex; gap: 8px;">
                 <button id="btnKmeansExtract" class="action-btn kmeans-btn kmeans-btn-extract" data-i18n="btn_kmeans_extract">

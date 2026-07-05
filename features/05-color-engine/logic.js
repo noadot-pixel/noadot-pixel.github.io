@@ -357,6 +357,16 @@ export class ConversionOptionsFeature {
             eventBus.emit('OPTION_CHANGED');
         });
 
+        // 🌟 그라데이션 적응형 디더링
+        const checkAdaptiveDither = document.getElementById('useAdaptiveDither');
+        const boxAdaptiveDither = document.getElementById('adaptiveDitherControls');
+        checkAdaptiveDither?.addEventListener('change', (e) => {
+            state.useAdaptiveDither = e.target.checked;
+            if(boxAdaptiveDither) boxAdaptiveDither.style.display = e.target.checked ? 'block' : 'none';
+            eventBus.emit('OPTION_CHANGED');
+        });
+        this.syncInput('adaptiveDitherStrength', 'value', 'adaptiveDitherStrengthVal');
+
         // 🌟 2. 하위 옵션(방식 및 패턴) 동기화
         basicTypeSelect?.addEventListener('change', (e) => {
             state.basicDitherType = e.target.value;
@@ -472,7 +482,6 @@ export class ConversionOptionsFeature {
                 radio.addEventListener('change', (e) => {
                     const track = e.target.value;
                     state.algoTrack = track;
-                    console.log('🚨 [CCTV 1 - UI] 트랙 변경됨:', track); // 로그 추가
 
                     if (track === 'simple') {
                         simplePanel.style.display = 'block';
@@ -505,7 +514,6 @@ export class ConversionOptionsFeature {
             // 2. 기본 드롭다운 동기화
             if (simpleSelect) {
                 simpleSelect.addEventListener('change', (e) => {
-                    console.log('🚨 [CCTV 1 - UI] 기본 알고리즘 드롭다운 선택됨:', e.target.value); // 로그 추가
                     state.algoModelA = e.target.value;
                     if(modelA) modelA.value = e.target.value;
                     
@@ -846,6 +854,7 @@ export class ConversionOptionsFeature {
             'saturationSlider', 'brightnessSlider', 'contrastSlider', 
             'useMicroDither', 'basicDitherType', 'ditheringSlider',
             'useMacroPattern', 'patternTypeSelect', 'patternSizeSlider', 'patternStrengthSlider',
+            'useAdaptiveDither', 'adaptiveDitherStrength',
             'applyGradient', 'gradientTypeSelect', 'gradientDitherSizeSlider', 'gradientAngleSlider', 'gradientStrengthSlider',
             'celShadingApply', 'celShadingAlgorithmSelect', 'celShadingLevelsSlider', 'celShadingColorSpaceSelect', 
             'celShadingOutline', 'celShadingOutlineThresholdSlider', 'celShadingOutlineColorSelect',
@@ -902,23 +911,23 @@ export class ConversionOptionsFeature {
     }
 
     resetIndividualOption(targetId) {
-        let defaultValue = 0;
-        switch(targetId) {
-            case 'applyOutlineExpansion': defaultValue = false; break;
-            case 'applySmartSampling': defaultValue = false; break;
-            case 'saturationSlider': defaultValue = 100; break;
-            case 'brightnessSlider': defaultValue = 0; break;
-            case 'contrastSlider': defaultValue = 0; break;
-            case 'patternSizeSlider': defaultValue = 4; break;
-            case 'gradientDitherSizeSlider': defaultValue = 1; break;
-            case 'gradientStrengthSlider': defaultValue = 100; break;
-            case 'celShadingLevelsSlider': defaultValue = 8; break;
-            case 'celShadingOutlineThresholdSlider': defaultValue = 50; break;
-            case 'refinementSlider': defaultValue = 50; break;
-            case 'applyUpscale': defaultValue = false; break;
-            case 'upscaleSelect': defaultValue = 1; break;
-            default: defaultValue = 0;
-        }
+        // 🌟 [정리] 여기서 값을 따로 하드코딩하지 않고 CONFIG.DEFAULTS(단일 진실 공급원)를 그대로 사용
+        const defaultsMap = {
+            applyOutlineExpansion: CONFIG.DEFAULTS.applyOutlineExpansion,
+            applySmartSampling: CONFIG.DEFAULTS.applySmartSampling,
+            saturationSlider: CONFIG.DEFAULTS.saturationSlider,
+            brightnessSlider: CONFIG.DEFAULTS.brightnessSlider,
+            contrastSlider: CONFIG.DEFAULTS.contrastSlider,
+            patternSizeSlider: CONFIG.DEFAULTS.patternSizeSlider,
+            gradientDitherSizeSlider: CONFIG.DEFAULTS.gradientDitherSizeSlider,
+            gradientStrengthSlider: CONFIG.DEFAULTS.gradientStrengthSlider,
+            celShadingLevelsSlider: CONFIG.DEFAULTS.celShadingLevelsSlider,
+            celShadingOutlineThresholdSlider: CONFIG.DEFAULTS.celShadingOutlineThresholdSlider,
+            refinementSlider: CONFIG.DEFAULTS.refinementSlider,
+            applyUpscale: CONFIG.DEFAULTS.applyUpscale,
+            upscaleSelect: CONFIG.DEFAULTS.upscaleMode // upscaleSelect는 upscaleMode의 UI 표시용 별칭
+        };
+        const defaultValue = Object.prototype.hasOwnProperty.call(defaultsMap, targetId) ? defaultsMap[targetId] : 0;
 
         state[targetId] = defaultValue;
         this.ui.updateDisplay(targetId, defaultValue);
@@ -939,41 +948,22 @@ export class ConversionOptionsFeature {
     }
 
     resetOptions() {
-        const defaults = {
-            applyOutlineExpansion: false,
-            applySmartSampling: false, 
-            celShadingOutlineColorSelect: '#000000',
-            saturationSlider: 100,
-            brightnessSlider: 0,
-            contrastSlider: 0,
-            ditheringAlgorithmSelect: 'atkinson', 
-            ditheringSlider: 0,
-
-            useMicroDither: false,
-            useMacroPattern: false,
-            basicDitherType: 'bayer',
-
-            applyPattern: false,
-            patternTypeSelect: 'grid',
-            patternSizeSlider: 1,
-            applyGradient: false,
-            gradientTypeSelect: 'bayer',
-            gradientDitherSizeSlider: 1, 
-            gradientAngleSlider: 0,
-            gradientStrengthSlider: 100,
-            colorMethodSelect: 'oklab',
-            celShadingApply: false,
-            celShadingAlgorithmSelect: 'kmeans', 
-            celShadingLevelsSlider: 8,
-            celShadingColorSpaceSelect: 'oklab',
-            celShadingOutline: false,
-            celShadingOutlineThresholdSlider: 50,
-            celShadingOutlineColorSelect: '#000000',
-            refinementSlider: 50,
-            applyRefinement: false,
-            applyUpscale: false,
-            upscaleMode: 1
-        };
+        // 🌟 [정리] CONFIG.DEFAULTS(단일 진실 공급원)에서 그대로 가져와서
+        // 여기와 resetIndividualOption(), core/state.js 세 곳의 값이 서로 다르게 드리프트되던 문제를 제거
+        const keys = [
+            'applyOutlineExpansion', 'applySmartSampling', 'celShadingOutlineColorSelect',
+            'saturationSlider', 'brightnessSlider', 'contrastSlider',
+            'ditheringAlgorithmSelect', 'ditheringSlider',
+            'useMicroDither', 'useMacroPattern', 'basicDitherType',
+            'applyPattern', 'patternTypeSelect', 'patternSizeSlider',
+            'applyGradient', 'gradientTypeSelect', 'gradientDitherSizeSlider',
+            'gradientAngleSlider', 'gradientStrengthSlider', 'colorMethodSelect',
+            'celShadingApply', 'celShadingAlgorithmSelect', 'celShadingLevelsSlider',
+            'celShadingColorSpaceSelect', 'celShadingOutline', 'celShadingOutlineThresholdSlider',
+            'refinementSlider', 'applyRefinement', 'applyUpscale', 'upscaleMode'
+        ];
+        const defaults = {};
+        keys.forEach(key => { defaults[key] = CONFIG.DEFAULTS[key]; });
 
         Object.keys(defaults).forEach(key => {
             state[key] = defaults[key];

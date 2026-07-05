@@ -162,12 +162,6 @@
     padding: 0 10px;
 }
 
-.palette-action-group {
-    display: flex;
-    gap: 5px;
-    margin-bottom: 10px;
-}
-
 .btn-toggle-all {
     font-weight: bold;
     width: 28px;
@@ -234,50 +228,96 @@
     font-weight: 800;
 }
 
-/* 4. 🌟 [신규] 자동 정렬 버튼 전용 독립 문단 행 */
-.palette-auto-sort-row {
-    display: flex;
-    margin-top: 4px;
-    margin-bottom: 12px; /* 하단 입력란과의 쾌적한 간격 생성 */
-}
-
-/* 5. 🌟 [신규] 문단형 자동 정렬 토글 컴포넌트 */
-.palette-auto-sort-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.85em;
-    font-weight: bold;
-    cursor: pointer;
-    user-select: none;
-    padding: 5px 10px;
-    background: rgba(0, 0, 0, 0.15);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    color: var(--text-secondary);
-    transition: all 0.2s;
-}
-
-.palette-auto-sort-label:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--text-primary);
-}
-
-/* 6. 하단 조작 툴바 박스 */
+/* 4. 하단 조작 툴바 공통 베이스 (1행: 보기/정렬, 2행: 편집/저장 - 두 줄로 분리해서 가독성 확보) */
 .palette-action-group {
     display: flex;
     align-items: center;
     gap: 6px;
     flex-wrap: wrap;
     margin-top: 10px;
+    margin-bottom: 10px;
 }
 
-/* 7. 우측 아이콘 정렬 정착지 */
-.palette-action-right {
-    display: flex;
-    gap: 4px;
-    margin-left: auto;
+/* 5. 🌟 [신규] 1행 - 선택/정렬/자동정렬 (팔레트를 "보는 방식" 컨트롤) */
+.palette-action-view .palette-sort-select {
+    flex: 1;
+    min-width: 0;
 }
+
+/* 6. 🌟 [신규] 자동 정렬 토글 칩 - 병합 체크박스 카드(.palette-checkbox-card)와 같은 시각 언어를 툴바에 맞게 축소 */
+.palette-toggle-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+    transition: all 0.2s;
+}
+
+.palette-toggle-chip:hover {
+    background: var(--bg-color);
+    color: var(--text-primary);
+}
+
+.palette-toggle-chip input[type="checkbox"] {
+    accent-color: var(--accent-primary);
+    cursor: pointer;
+}
+
+.palette-toggle-chip:has(input:checked) {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+}
+
+/* 7. 🌟 [신규] 2행 - 편집/저장 (팔레트 내용을 "바꾸는" 컨트롤, 위험도별로 색상 분리) */
+.palette-action-edit {
+    flex-wrap: nowrap;
+}
+
+.palette-action-edit .btn-remove-unused {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 0.8em;
+    font-weight: 700;
+    white-space: nowrap;
+    padding: 7px 6px;
+}
+
+.palette-action-edit .btn-reset-all,
+.palette-action-edit .btn-export,
+.palette-action-edit .btn-import {
+    flex: 0 0 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 0;
+    font-size: 1em;
+}
+
+/* 위험/성격별 강조색 - 기존 accent 변수를 그대로 재사용해 색상 체계를 유지 */
+.btn-remove-unused { color: var(--accent-warning); border-color: var(--accent-warning); }
+.btn-remove-unused:hover { background: var(--accent-warning); color: #241a10; }
+
+.btn-reset-all { color: var(--accent-danger); border-color: var(--accent-danger); }
+.btn-reset-all:hover { background: var(--accent-danger); color: #fff; }
+
+.btn-export { color: var(--accent-success); border-color: var(--accent-success); }
+.btn-export:hover { background: var(--accent-success); color: #10230f; }
+
+.btn-import { color: var(--accent-primary); border-color: var(--accent-primary); }
+.btn-import:hover { background: var(--accent-primary); color: #fff; }
 
 /* ===================================================
    🌟 [드롭다운] 팔레트 모드 선택기 스타일

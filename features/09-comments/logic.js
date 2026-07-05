@@ -1,12 +1,16 @@
-// js/features/08-comments/logic.js
+// js/features/09-comments/logic.js
 import { eventBus } from '../../core/EventBus.js';
 import { t, currentLang } from '../../core/state.js';
+
+const COMMENT_SUBMIT_COOLDOWN_MS = 3000;
+const COMMENT_LOAD_LIMIT = 500;
 
 export class CommentFeature {
     constructor() {
         // 🌟 [수정] 구버전의 과거 댓글들을 다시 불러오기 위해 방 이름을 똑같이 맞춥니다!
-        this.collectionName = 'noadot_comments'; 
-        
+        this.collectionName = 'noadot_comments';
+        this.lastSubmitAt = 0;
+
         this.initEvents();
         this.updatePlaceholders();
         
@@ -32,6 +36,13 @@ export class CommentFeature {
             localStorage.setItem('user_uuid', uuid);
         }
         return uuid;
+    }
+
+    // 🌟 [보안] 닉네임/내용을 HTML로 삽입하기 전에 반드시 이스케이프 (저장형 XSS 방지)
+    escapeHtml(str) {
+        return String(str ?? '').replace(/[&<>"']/g, (ch) => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[ch]);
     }
 
     simpleHash(str) {
@@ -115,6 +126,12 @@ export class CommentFeature {
     async addComment(parentId, nickname, content) {
         if (typeof db === 'undefined') return alert(t('msg_db_error'));
 
+        // 🌟 [보안] 클라이언트 측 간단한 도배(스팸) 완화 - 실질적인 방어는 Firestore 보안 규칙에서 해야 함
+        const now = Date.now();
+        if (now - this.lastSubmitAt < COMMENT_SUBMIT_COOLDOWN_MS) {
+            return alert(t('msg_comment_cooldown'));
+        }
+
         const userUUID = this.getOrCreateUUID();
         const finalNickname = nickname.trim() === '' ? 'ㅇㅇ' : nickname.trim();
         const finalContent = content.trim();
@@ -132,8 +149,9 @@ export class CommentFeature {
             };
             if (parentId) payload.parentId = parentId;
 
+            this.lastSubmitAt = now;
             await db.collection(this.collectionName).add(payload);
-            
+
             // 입력창 초기화
             if (!parentId) {
                 document.getElementById('commentContent').value = '';
@@ -157,11 +175,16 @@ export class CommentFeature {
         }
 
         try {
-            const snapshot = await db.collection(this.collectionName).orderBy('timestamp', 'asc').get();
+            // 🌟 [성능] 컬렉션이 무한히 커져도 매번 전체를 읽지 않도록 최근 N개로 제한
+            const snapshot = await db.collection(this.collectionName)
+                .orderBy('timestamp', 'desc')
+                .limit(COMMENT_LOAD_LIMIT)
+                .get();
             const comments = [];
             const replies = {};
 
-            snapshot.forEach((doc) => {
+            // desc로 가져왔으니 기존 로직(오름차순 전제)에 맞춰 다시 뒤집어 처리
+            snapshot.docs.slice().reverse().forEach((doc) => {
                 const data = doc.data();
                 data.id = doc.id;
                 
@@ -210,25 +233,29 @@ export class CommentFeature {
             hashClass = 'admin-glow';
         }
 
+        const safeNickname = this.escapeHtml(comment.nickname);
+        const safeContent = this.escapeHtml(comment.content);
+        const safeId = this.escapeHtml(comment.id);
+
         const html = `
             <div class="comment-item ${isReplyClass}" style="${marginStyle}">
                 <div class="comment-header">
-                    <span class="comment-author">${comment.nickname}</span>
+                    <span class="comment-author">${safeNickname}</span>
                     <span class="comment-hash ${hashClass}" title="ID">${userHash}</span>
                     <span class="comment-time">(${timeStr})</span>
                 </div>
-                <div class="comment-body">${comment.content}</div>
-                
+                <div class="comment-body">${safeContent}</div>
+
                 <div class="comment-actions">
-                    <button class="btn-reply" data-id="${comment.id}">${t('btn_reply_comment')}</button>
+                    <button class="btn-reply" data-id="${safeId}">${t('btn_reply_comment')}</button>
                 </div>
-                
-                <div id="reply-form-${comment.id}" class="reply-form">
-                    <input type="text" id="reply-nick-${comment.id}" class="ui-input" placeholder="${t('ph_nickname')}">
-                    <textarea id="reply-content-${comment.id}" class="ui-input" rows="2" placeholder="${t('ph_reply')}"></textarea>
+
+                <div id="reply-form-${safeId}" class="reply-form">
+                    <input type="text" id="reply-nick-${safeId}" class="ui-input" placeholder="${t('ph_nickname')}">
+                    <textarea id="reply-content-${safeId}" class="ui-input" rows="2" placeholder="${t('ph_reply')}"></textarea>
                     <div class="reply-actions">
-                        <button class="btn-reply-cancel" data-id="${comment.id}">${t('btn_cancel')}</button>
-                        <button class="btn-reply-submit" data-id="${comment.id}">${t('btn_submit')}</button>
+                        <button class="btn-reply-cancel" data-id="${safeId}">${t('btn_cancel')}</button>
+                        <button class="btn-reply-submit" data-id="${safeId}">${t('btn_submit')}</button>
                     </div>
                 </div>
             </div>

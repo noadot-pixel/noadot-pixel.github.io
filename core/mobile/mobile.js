@@ -1,5 +1,17 @@
 import { ComponentLoader } from '../ComponentLoader.js';
 
+// 🌟 [정리] showTargetTab()과 handleScreenResize()가 이 목록을 각자 따로 들고 있어서
+// 서로 다르게 드리프트되어 있었음(sub-slot-presets 누락, 존재하지 않는 sub-slot-export 잔존) -> 하나로 통합.
+const MOBILE_TAB_SLOTS = [
+    'sub-slot-uploader',
+    'sub-slot-resizer',
+    'sub-slot-engine',
+    'sub-slot-palettes',
+    'sub-slot-kmeans',
+    'sub-slot-comments',
+    'sub-slot-download'
+];
+
 export class MobileManager {
     constructor() {
         this.mediaQuery = window.matchMedia("(max-width: 768px), (max-aspect-ratio: 4/5)");
@@ -88,17 +100,6 @@ export class MobileManager {
     }
 
     showTargetTab(targetId) {
-        const allSlots = [
-            'sub-slot-uploader', 
-            'sub-slot-resizer', 
-            'sub-slot-engine', 
-            'sub-slot-palettes', 
-            'sub-slot-kmeans',
-            'sub-slot-export',
-            'sub-slot-comments',
-            'sub-slot-download'
-        ];
-
         // 🌟 2. 켜야 할 패널들을 담을 장바구니 (기본적으로 누른 탭 1개)
         let slotsToShow = [targetId];
 
@@ -116,13 +117,8 @@ export class MobileManager {
             slotsToShow.push('sub-slot-comments');
         }
 
-        // 저장 탭을 누르면 댓글 같이 켜기
-        if (targetId === 'sub-slot-export') {
-            slotsToShow.push('sub-slot-comments');
-        }
-
         // 🌟 3. 장바구니에 있는 건 켜고, 없는 건 끕니다.
-        allSlots.forEach(slotId => {
+        MOBILE_TAB_SLOTS.forEach(slotId => {
             const el = document.getElementById(slotId);
             if (el) {
                 el.style.display = slotsToShow.includes(slotId) ? 'block' : 'none';
@@ -132,19 +128,6 @@ export class MobileManager {
 
     // 🌟 [핵심] 화면 비율이 바뀔 때마다 실행되는 함수
     handleScreenResize() {
-        // 여기도 모든 슬롯 목록으로 업데이트
-        const allSlots = [
-            'sub-slot-uploader', 
-            'sub-slot-resizer', 
-            'sub-slot-engine', 
-            'sub-slot-palettes', 
-            'sub-slot-kmeans', 
-            'sub-slot-export',
-            'sub-slot-comments',
-            'sub-slot-download',
-            'sub-slot-presets'
-        ];
-
         if (this.isMobile) {
             // PC -> 모바일로 좁아졌을 때
             if (!this.isInitialized) {
@@ -156,11 +139,15 @@ export class MobileManager {
             }
         } else {
             // 🚨 모바일 -> PC로 넓어졌을 때: K-Means와 댓글까지 포함해서 숨김 속성을 완전히 청소!
-            allSlots.forEach(slotId => {
+            // 🌟 [수정] sub-slot-download(모바일 전용 다운로드 패널)는 데스크탑 화면에 노출될 트리거가
+            // 전혀 없으므로, display를 비워서 되돌리지 말고 항상 숨김(none) 상태를 유지시킴.
+            MOBILE_TAB_SLOTS.forEach(slotId => {
                 const el = document.getElementById(slotId);
-                if (el) el.style.display = ''; 
+                if (!el) return;
+                el.style.display = (slotId === 'sub-slot-download') ? 'none' : '';
             });
-            
+
+
             const sidebar = document.getElementById('slot-sidebar');
             if (sidebar) sidebar.classList.remove('sheet-open');
         }

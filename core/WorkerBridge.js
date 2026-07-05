@@ -16,9 +16,14 @@ export class WorkerBridge {
             { type: 'module' }
         );
 
-        this.conversionTimer = null; 
+        this.conversionTimer = null;
         this.isWorkerBusy = false;
-        this.hasPendingRequest = false; 
+        this.hasPendingRequest = false;
+
+        // 🌟 [성능] state.originalImageData가 실제로 바뀐 시점만 추적해서,
+        // 슬라이더 조작 등으로 발생하는 변환마다 전체 원본 픽셀 버퍼를 재전송하지 않도록 함.
+        this.originalImageVersion = 0;
+        this.workerCachedImageVersion = -1;
 
         this.initWorkerListeners();
         this.initBusListeners();
@@ -100,12 +105,16 @@ export class WorkerBridge {
         eventBus.on('OPTION_CHANGED', () => this.triggerConversion());
         eventBus.on('BATCH_OPTION_CHANGED', () => this.triggerConversion());
         eventBus.on('PALETTE_UPDATED', () => this.triggerConversion());
-        eventBus.on('IMAGE_LOADED', () => this.triggerConversion(true));
+        eventBus.on('IMAGE_LOADED', () => {
+            this.originalImageVersion++; // 새 원본이 로드됐으니 다음 변환 때 워커 캐시를 갱신해야 함
+            this.triggerConversion(true);
+        });
 
         eventBus.on('MANUAL_CONVERSION_REQUEST', ({ imageData }) => {
             const message = this.packOptions();
             message.imageData = imageData;
-            message.options.dithering = 'none'; 
+            message.cacheOriginal = false; // 임시로 넘긴 이미지가 워커의 원본 캐시를 덮어쓰지 않도록 방지
+            message.options.dithering = 'none';
             message.options.ditheringIntensity = 0;
             message.options.applyPattern = false;
             message.options.applyGradient = false;
@@ -173,9 +182,13 @@ export class WorkerBridge {
     }
 
     packOptions() {
-        return {
+        // 🌟 [성능] 원본이 바뀌었을 때만 픽셀 버퍼를 실어 보내고,
+        // 옵션(슬라이더 등)만 바뀐 변환은 가벼운 메시지만 전송해서 워커의 캐시본을 재사용한다.
+        const needsImage = this.workerCachedImageVersion !== this.originalImageVersion;
+        if (needsImage) this.workerCachedImageVersion = this.originalImageVersion;
+
+        const message = {
             type: 'convert',
-            imageData: state.originalImageData,
             options: {
                 // 1. 색상 및 톤
                 colorMethod: state.colorMethodSelect ?? 'oklab',
@@ -195,8 +208,12 @@ export class WorkerBridge {
                 patternType: state.patternTypeSelect || 'grid',
                 patternSize: state.patternSizeSlider ?? 2,
 
-                patternMatrix: state.patternMatrix || null, 
+                patternMatrix: state.patternMatrix || null,
                 patternStrength: state.patternStrengthSlider ?? 10,
+
+                // 🌟 그라데이션 적응형 디더링 (매끄러운 구간은 디더링/패턴 강도를 낮춰 등고선처럼 깔끔하게 처리)
+                useAdaptiveDither: state.useAdaptiveDither ?? false,
+                adaptiveDitherStrength: state.adaptiveDitherStrength ?? 50,
 
                 // 3. 포스트 프로세싱 (새로 연결할 옵션들 자리표시자)
                 usePixelioe: state.usePixelioe ?? false,
@@ -238,5 +255,12 @@ export class WorkerBridge {
                 })()
             }
         };
+
+        if (needsImage) {
+            message.imageData = state.originalImageData;
+            message.cacheOriginal = true;
+        }
+
+        return message;
     }
 }

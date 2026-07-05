@@ -4,17 +4,23 @@ import { state, t } from '../../core/state.js'; // 🌟 번역 함수 수입!
 import { PaletteSelectorUI } from './ui.js';
 import { wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors } from '../../data/palettes.js';
 
+// 🌟 마지막으로 쓰던 팔레트 모드를 언어 설정과 같은 방식(localStorage)으로 기억합니다.
+const PALETTE_MODE_STORAGE_KEY = 'noadot-palette-mode';
+const VALID_PALETTE_MODES = ['geopixels', 'wplace', 'uplace', 'bplace'];
+
 export class PaletteSelectorFeature {
     constructor() {
         this.ui = new PaletteSelectorUI();
-        
+
         if (!state.paletteViewMode) state.paletteViewMode = 'list';
         if (!state.paletteSortMode) state.paletteSortMode = 'added';
         if (!state.addedColors) state.addedColors = [];
 
         this.initEvents();
         this.initBusListeners();
-        this.setMode('geopixels');
+
+        const savedMode = localStorage.getItem(PALETTE_MODE_STORAGE_KEY);
+        this.setMode(VALID_PALETTE_MODES.includes(savedMode) ? savedMode : 'geopixels');
         this.updatePlaceholders(); // 🌟 초기 placeholder 번역 세팅
     }
 
@@ -206,6 +212,26 @@ export class PaletteSelectorFeature {
             });
         }
 
+        // 🌟 [신규] 미사용 색상 일괄 제거 - 최근 변환 결과에서 count가 0인(=한 번도 안 쓰인) 커스텀 색만 골라냄
+        const removeUnusedBtn = document.getElementById('removeUnusedColorsBtn');
+        if (removeUnusedBtn) {
+            removeUnusedBtn.addEventListener('click', () => {
+                const unused = (state.addedColors || []).filter(c => !c.count);
+                if (unused.length === 0) {
+                    alert(t('msg_no_unused_colors'));
+                    return;
+                }
+                if (!confirm(t('msg_confirm_remove_unused', { count: unused.length }))) return;
+
+                const unusedHexes = unused.map(c => this.ui.rgbToHex(...c.rgb));
+                state.addedColors = state.addedColors.filter(c => c.count);
+                state.disabledHexes = (state.disabledHexes || []).filter(h => !unusedHexes.includes(h));
+
+                this.refresh();
+                eventBus.emit('PALETTE_UPDATED');
+            });
+        }
+
         const sortSelect = document.getElementById('paletteSortSelect');
         if (sortSelect) {
             sortSelect.addEventListener('change', (e) => {
@@ -305,8 +331,7 @@ export class PaletteSelectorFeature {
             chkAutoSort.checked = state.autoSortCustom || false;
             chkAutoSort.addEventListener('change', (e) => {
                 state.autoSortCustom = e.target.checked;
-                this.sortAndRefresh();
-                this.refresh();
+                this.sortAndRefresh(); // 이제 sortAndRefresh() 안에서 refresh()까지 함께 처리됨
             });
         }
 
@@ -337,65 +362,13 @@ export class PaletteSelectorFeature {
             }
         });
 
+        // 🌟 [정리] add/match 실제 처리는 07-kmeans/logic.js가 this.pendingTask로 담당함.
+        // 여기서는 절대 설정되지 않는 state.pendingKmeansAction을 검사하는 죽은 분기가 있었어서 제거하고,
+        // kmeans 쪽이 state.addedColors/disabledHexes를 바꾼 뒤 화면만 새로고침.
         eventBus.on('KMEANS_EXTRACTION_COMPLETE', (payload) => {
             if (!payload || !payload.colors) return;
-            
-            const extractedColors = payload.colors; 
-            const actionType = state.pendingKmeansAction; 
-            const mode = state.currentMode;
 
-            if (actionType === 'add') {
-                if (mode !== 'geopixels') {
-                    alert(t('msg_custom_only_geo')); // 🌟 다국어 텍스트 적용!
-                    return;
-                }
-                let addedCount = 0;
-                extractedColors.forEach(rgb => {
-                    const hex = this.ui.rgbToHex(...rgb).toUpperCase();
-                    const exists = state.addedColors.some(c => this.ui.rgbToHex(...c.rgb).toUpperCase() === hex);
-                    if (!exists) {
-                        state.addedColors.push({ id: Date.now() + Math.random(), rgb: rgb, count: 0 });
-                        addedCount++;
-                    }
-                });
-                console.log(`[추가] ${addedCount}개의 색상이 등록되었습니다.`);
-            } 
-            else if (actionType === 'match') {
-                let targetPalette = [];
-                if (mode === 'wplace') targetPalette = [...wplaceFreeColors, ...wplacePaidColors];
-                else if (mode === 'uplace') targetPalette = uplaceColors;
-                else if (mode === 'geopixels') {
-                    targetPalette = [...geopixelsColors, ...(state.addedColors || [])];
-                    // 🌟 K-Means가 안 쓰는 색을 끌 때, Wplace 색상도 포함해서 검사하도록 추가!
-                    if (state.useWplaceInGeopixels) {
-                        targetPalette = [...targetPalette, ...wplaceFreeColors, ...wplacePaidColors];
-                    }
-                }
-
-                const matchedHexes = new Set(); 
-
-                extractedColors.forEach(exRgb => {
-                    let minDist = Infinity;
-                    let bestHex = null;
-                    
-                    targetPalette.forEach(pColor => {
-                        const dist = Math.pow(exRgb[0]-pColor.rgb[0], 2) + Math.pow(exRgb[1]-pColor.rgb[1], 2) + Math.pow(exRgb[2]-pColor.rgb[2], 2);
-                        if (dist < minDist) {
-                            minDist = dist;
-                            bestHex = this.ui.rgbToHex(...pColor.rgb).toUpperCase();
-                        }
-                    });
-                    if (bestHex) matchedHexes.add(bestHex);
-                });
-
-                const allTargetHexes = targetPalette.map(c => this.ui.rgbToHex(...c.rgb).toUpperCase());
-                state.disabledHexes = allTargetHexes.filter(hex => !matchedHexes.has(hex));
-
-                console.log(`[비활성화 완료] 목표: ${extractedColors.length}색 / 실제 활성화: ${matchedHexes.size}색 유지`);
-            }
-
-            this.sortAndRefresh(); 
-            this.refresh(); 
+            this.sortAndRefresh(); // sortAndRefresh()가 refresh()까지 함께 처리
             eventBus.emit('PALETTE_UPDATED');
         });
     }
@@ -433,12 +406,17 @@ export class PaletteSelectorFeature {
                 return a.id - b.id;
             }
         });
+
+        // 🌟 [버그 수정] 이름과 달리 정렬만 하고 화면을 갱신하지 않아서, 색상 추가/정렬 변경/
+        // 팔레트 불러오기 직후 화면에 즉시 반영되지 않던 문제를 고쳤습니다.
+        this.refresh();
     }
 
     refresh() { this.ui.renderPalettes(); }
 
     setMode(mode) {
         state.currentMode = mode;
+        localStorage.setItem(PALETTE_MODE_STORAGE_KEY, mode);
         this.ui.updateDisplay(mode);
         this.refresh();
         eventBus.emit('PALETTE_MODE_CHANGED', mode);
