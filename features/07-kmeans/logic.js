@@ -105,12 +105,18 @@ export class KMeansFeature {
 
         if (this.matchSlider) {
             let maxCount = 16;
-            if (mode === 'wplace') maxCount = 63;
-            else if (mode === 'uplace') maxCount = 127;
+            if (mode === 'wplace') maxCount = wplaceFreeColors.length + wplacePaidColors.length;
+            else if (mode === 'uplace') maxCount = uplaceColors.length;
             else if (mode === 'bplace') maxCount = bplaceColors.length;
             else if (mode === 'geopixels') {
                 const customCount = (state.addedColors || []).length;
-                maxCount = 29 + customCount;
+                // 🌟 geopixels에 다른 사이트 팔레트를 병합해서 쓰는 만큼 매칭 가능한 색상 수도 늘려줌
+                // (예: geopixels 29개 + wplace 63개 = 102개). 이 병합은 geopixels 모드에서만 존재하는 옵션.
+                let baseCount = geopixelsColors.length;
+                if (state.useWplaceInGeopixels) baseCount += wplaceFreeColors.length + wplacePaidColors.length;
+                if (state.useUplaceInGeopixels) baseCount += uplaceColors.length;
+                if (state.useBplaceInGeopixels) baseCount += bplaceColors.length;
+                maxCount = baseCount + customCount;
             }
             maxCount = Math.max(2, maxCount);
             this.matchSlider.max = maxCount;

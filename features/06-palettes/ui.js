@@ -62,6 +62,13 @@ export class PaletteSelectorUI {
                 colorsToRender = [...colorsToRender, ...uplaceColors];
             }
 
+            // 🌟 [버그 수정] 이 분기가 아래쪽에 중복된 mode==='geopixels' 블록에만 있어서
+            // 실제로는 절대 실행되지 않던 죽은 코드였음 -> 여기로 옮겨서 실제로 동작하게 함
+            if (state.useBplaceInGeopixels) {
+                groups.push({ label: t('palette_bplace') || 'Bplace', colors: bplaceColors });
+                colorsToRender = [...colorsToRender, ...bplaceColors];
+            }
+
         } else if (mode === 'wplace') {
             // 🌟 t('번역 키값')을 사용해 언어 설정에 맞게 글자가 출력되게 합니다.
             groups.push({ label: t('palette_wplace_free') || 'Wplace 기본색', colors: wplaceFreeColors });
@@ -73,23 +80,6 @@ export class PaletteSelectorUI {
         } else if (mode === 'bplace') {
             groups.push({ label: t('palette_bplace') || 'Bplace', colors: bplaceColors });
             colorsToRender = [...bplaceColors];
-        } else if (mode === 'geopixels') {
-            groups.push({ label: 'GeoPixels', colors: geopixelsColors });
-            colorsToRender = [...geopixelsColors];
-            
-            if (state.useWplaceInGeopixels) {
-                groups.push({ label: t('palette_wplace_free') || 'Wplace 기본색', colors: wplaceFreeColors });
-                groups.push({ label: t('palette_wplace_paid') || 'Wplace 유료색', colors: wplacePaidColors });
-                colorsToRender = [...colorsToRender, ...wplaceFreeColors, ...wplacePaidColors];
-            }
-            if (state.useUplaceInGeopixels) {
-                groups.push({ label: t('palette_uplace') || 'Uplace', colors: uplaceColors });
-                colorsToRender = [...colorsToRender, ...uplaceColors];
-            }
-            if (state.useBplaceInGeopixels) {
-                groups.push({ label: t('palette_bplace') || 'Bplace', colors: bplaceColors });
-                colorsToRender = [...colorsToRender, ...bplaceColors];
-            }
         }
 
         const globalCounts = state.latestColorCounts || {};

@@ -213,6 +213,17 @@ export class ImageViewerFeature {
             if (wrapWplace) wrapWplace.style.display = (state.currentMode === 'wplace') ? 'inline-flex' : 'none';
             if (wrapUplace) wrapUplace.style.display = (state.currentMode === 'uplace') ? 'inline-flex' : 'none';
             if (wrapBplace) wrapBplace.style.display = (state.currentMode === 'bplace') ? 'inline-flex' : 'none';
+
+            // 🌟 모바일 버전의 .bplace 다운로드 항목도 bplace 팔레트를 쓰고 있을 때만 노출
+            const mChkBplace = document.getElementById('m-chkDlBplace');
+            const mWrapBplace = mChkBplace ? mChkBplace.closest('.m-dl-group') : null;
+            const isBplaceMode = state.currentMode === 'bplace';
+            if (mWrapBplace) mWrapBplace.style.display = isBplaceMode ? 'block' : 'none';
+            if (mChkBplace && !isBplaceMode) {
+                mChkBplace.checked = false;
+                const mPopupBplace = document.getElementById('m-popupDlBplace');
+                if (mPopupBplace) mPopupBplace.style.display = 'none';
+            }
         };
 
         eventBus.on('PALETTE_MODE_CHANGED', updateDownloadVisibility);
