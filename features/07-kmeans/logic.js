@@ -23,9 +23,6 @@ export class KMeansFeature {
         this.btnUsageExtract = document.getElementById('btnUsageExtract');
         this.track2Container = document.getElementById('kmeans-track-match');
 
-        // 🌟 그라데이션 영역만 추출
-        this.chkGradientOnly = document.getElementById('chkGradientOnly');
-
         if (this.matchSlider) {
             this.matchSlider.addEventListener('input', (e) => {
                 if (this.matchSliderVal) this.matchSliderVal.textContent = t('unit_colors', { count: e.target.value });
@@ -87,10 +84,10 @@ export class KMeansFeature {
         eventBus.on('KMEANS_EXTRACTION_COMPLETE', (payload) => {
             if (!payload || !payload.colors) return;
             const extractedColors = payload.colors;
-            
+
             if (this.pendingTask === 'match') this.processMatching(extractedColors);
             else if (this.pendingTask === 'add') this.processExtraction(extractedColors);
-            
+
             this.pendingTask = null;
             if (this.btnMatch) this.btnMatch.textContent = t('btn_kmeans_match');
             if (this.btnExtract) this.btnExtract.textContent = t('btn_kmeans_extract');
@@ -150,9 +147,6 @@ export class KMeansFeature {
 
     sendKmeansRequest(task, count) {
         // 🌟 [핵심 변경] 원본 이미지 대신 변환/리사이징 된 이미지를 브릿지에 실어 보냅니다!
-        // (참고: WorkerBridge가 실제로는 항상 state.originalImageData를 사용하므로, 그라데이션 판정도
-        // 이미 디더링되지 않은 원본을 기준으로 이뤄집니다.)
-        const gradientOnly = task === 'add' && !!this.chkGradientOnly?.checked;
         const targetData = state.latestConversionData || state.originalImageData;
 
         if (!targetData) {
@@ -168,9 +162,7 @@ export class KMeansFeature {
             options: {
                 colorCount: parseInt(count, 10),
                 kmeansUseOklab: true,
-                kmeansChromaBoost: 1.5,
-                gradientOnly,
-                adaptiveDitherStrength: state.adaptiveDitherStrength ?? 50
+                kmeansChromaBoost: 1.5
             },
             imageData: targetData // 🌟 WorkerBridge가 이걸 받아서 쓰도록 넘겨줍니다!
         });

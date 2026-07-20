@@ -17,6 +17,9 @@
     background: var(--bg-color);
     border: 1px solid var(--border-color);
     border-radius: 8px;
+    /* 🌟 드래그(패닝) 중에 "변환 중..." 안내문구 등이 글자 선택되는 것을 방지 */
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 /* 🌟 2. 캔버스 본체 (투명도 체크무늬 및 안티앨리어싱 방지) */
@@ -105,6 +108,8 @@
     color: white;
     padding: 10px 20px;
     border-radius: 20px;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 /* ==========================================

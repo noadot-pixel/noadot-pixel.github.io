@@ -2,7 +2,7 @@ import { smartResize } from './smart-resizer.js';
 import { PostProcessor } from './post-processing.js';
 import { preprocessImageData, matchColorAndDither } from './quantization.js';
 import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors } from '../data/palettes.js'; // 🌟 bplaceColors 추가!
-import { extractExactKMeansPalette, maskToGradientAreas } from './analysis.js';
+import { extractExactKMeansPalette } from './analysis.js';
 
 function flattenAlpha(imageData, threshold = 128) {
     const data = imageData.data;
@@ -129,6 +129,72 @@ function buildActivePalette(options) {
 // (WorkerBridge가 이미지가 실제로 바뀌었을 때만 imageData를 실어 보냄)
 let cachedOriginal = null;
 
+// 🌟 [정리] 'convert'와 (중복 색상 검사 팝업의) 'previewConvert'가 완전히 같은 파이프라인을
+// 타므로, 중복 작성 대신 공용 함수로 뽑아서 재사용한다.
+function runConversionPipeline(original, options) {
+    // 캐시된 원본은 절대 직접 변형하지 않도록 매 변환마다 작업용 사본을 만든다.
+    let currentImage = new ImageData(new Uint8ClampedArray(original.data), original.width, original.height);
+
+    if (options.scaleWidth && options.scaleHeight) {
+        const resizeMode = options.resizeMode || 'center';
+        currentImage = smartResize(currentImage, options.scaleWidth, options.scaleHeight, resizeMode);
+    }
+
+    // 🌟 [Step 2] 투명도 컷오프 (핵심!): 리사이징으로 형태가 잡힌 직후 찌꺼기를 날려버립니다.
+    currentImage = flattenAlpha(currentImage, 128);
+
+    const pureColorCounts = {};
+    const pData = currentImage.data;
+    for (let i = 0; i < pData.length; i += 4) {
+        if (pData[i+3] > 0) {
+            const hex = ('#' + pData[i].toString(16).padStart(2,'0') +
+                               pData[i+1].toString(16).padStart(2,'0') +
+                               pData[i+2].toString(16).padStart(2,'0')).toUpperCase();
+            pureColorCounts[hex] = (pureColorCounts[hex] || 0) + 1;
+        }
+    }
+
+    if (options.useDitherDenoise && options.ditherDenoiseStrength > 0) {
+        currentImage = applyDitherDenoise(currentImage, options.ditherDenoiseStrength);
+    }
+
+    currentImage = preprocessImageData(currentImage, options);
+
+    const activePalette = buildActivePalette(options);
+    // 🌟 주석 처리되어 있던 대망의 디더링 매칭 코어 부활!
+    currentImage = matchColorAndDither(currentImage, activePalette, options);
+
+    let activePixelCount = 0;
+    const colorCounts = {}; // 🌟 색상별 사용량 장부 추가!
+    const finalData = currentImage.data;
+
+    for (let i = 0; i < finalData.length; i += 4) {
+        if (finalData[i + 3] > 0) {
+            activePixelCount++;
+            // RGB를 HEX로 변환해서 몇 번 쓰였는지 카운트
+            const r = finalData[i].toString(16).padStart(2, '0');
+            const g = finalData[i+1].toString(16).padStart(2, '0');
+            const b = finalData[i+2].toString(16).padStart(2, '0');
+            const hex = ('#' + r + g + b).toUpperCase();
+            colorCounts[hex] = (colorCounts[hex] || 0) + 1;
+        }
+    }
+
+    const stats = {
+        width: currentImage.width,
+        height: currentImage.height,
+        activePixels: activePixelCount,
+        colorCounts: colorCounts,
+        pureColorCounts: pureColorCounts // 🌟 영수증에 첨부 완료!
+    };
+
+    if (options.useSmoothing || options.useOrganicNoise || options.usePixelioe || options.useAlphaGradient) {
+        currentImage = PostProcessor.apply(currentImage, options, options.scaleWidth, options.scaleHeight);
+    }
+
+    return { currentImage, stats };
+}
+
 self.onmessage = (e) => {
     try {
         const { type, imageData, options, cacheOriginal } = e.data;
@@ -140,68 +206,23 @@ self.onmessage = (e) => {
             const original = imageData || cachedOriginal;
             if (!original) throw new Error("이미지 데이터가 없습니다.");
 
-            // 캐시된 원본은 절대 직접 변형하지 않도록 매 변환마다 작업용 사본을 만든다.
-            let currentImage = new ImageData(new Uint8ClampedArray(original.data), original.width, original.height);
-
-            if (options.scaleWidth && options.scaleHeight) {
-                const resizeMode = options.resizeMode || 'center';
-                currentImage = smartResize(currentImage, options.scaleWidth, options.scaleHeight, resizeMode);
-            }
-
-            // 🌟 [Step 2] 투명도 컷오프 (핵심!): 리사이징으로 형태가 잡힌 직후 찌꺼기를 날려버립니다.
-            currentImage = flattenAlpha(currentImage, 128);
-
-            const pureColorCounts = {};
-            const pData = currentImage.data;
-            for (let i = 0; i < pData.length; i += 4) {
-                if (pData[i+3] > 0) {
-                    const hex = ('#' + pData[i].toString(16).padStart(2,'0') + 
-                                       pData[i+1].toString(16).padStart(2,'0') + 
-                                       pData[i+2].toString(16).padStart(2,'0')).toUpperCase();
-                    pureColorCounts[hex] = (pureColorCounts[hex] || 0) + 1;
-                }
-            }
-
-            if (options.useDitherDenoise && options.ditherDenoiseStrength > 0) {
-                currentImage = applyDitherDenoise(currentImage, options.ditherDenoiseStrength);
-            }
-
-            currentImage = preprocessImageData(currentImage, options);
-
-            const activePalette = buildActivePalette(options);
-            // 🌟 주석 처리되어 있던 대망의 디더링 매칭 코어 부활!
-            currentImage = matchColorAndDither(currentImage, activePalette, options);
-
-            let activePixelCount = 0;
-            const colorCounts = {}; // 🌟 색상별 사용량 장부 추가!
-            const finalData = currentImage.data;
-            
-            for (let i = 0; i < finalData.length; i += 4) {
-                if (finalData[i + 3] > 0) {
-                    activePixelCount++;
-                    // RGB를 HEX로 변환해서 몇 번 쓰였는지 카운트
-                    const r = finalData[i].toString(16).padStart(2, '0');
-                    const g = finalData[i+1].toString(16).padStart(2, '0');
-                    const b = finalData[i+2].toString(16).padStart(2, '0');
-                    const hex = ('#' + r + g + b).toUpperCase();
-                    colorCounts[hex] = (colorCounts[hex] || 0) + 1;
-                }
-            }
-
-            const stats = {
-                width: currentImage.width,
-                height: currentImage.height,
-                activePixels: activePixelCount,
-                colorCounts: colorCounts, 
-                pureColorCounts: pureColorCounts // 🌟 영수증에 첨부 완료!
-            };
-
-            if (options.useSmoothing || options.useOrganicNoise || options.usePixelioe || options.useAlphaGradient) {
-                currentImage = PostProcessor.apply(currentImage, options, options.scaleWidth, options.scaleHeight);
-            }
+            const { currentImage, stats } = runConversionPipeline(original, options);
 
             // 🌟 [성능] 결과 픽셀 버퍼는 워커가 다시 쓸 일이 없으므로 복제 대신 소유권을 이전(zero-copy)
             self.postMessage({ type: 'conversionDone', imageData: currentImage, stats: stats }, [currentImage.data.buffer]);
+        }
+
+        // 🌟 [신규] 중복 색상 검사 팝업 전용 미리보기 변환.
+        // 실제 상태(state.disabledHexes 등)는 건드리지 않고, 팝업에서 임시로 켜고 끈 색상
+        // 조합만 반영해서 결과를 그려주기 위한 용도라 conversionDone과는 별개 응답을 쓴다.
+        // (같은 메시지 타입을 쓰면 메인 화면/팔레트 사용량 카운트가 미리보기 값으로 오염됨)
+        if (type === 'previewConvert') {
+            const original = imageData || cachedOriginal;
+            if (!original) throw new Error("이미지 데이터가 없습니다.");
+
+            const { currentImage } = runConversionPipeline(original, options);
+
+            self.postMessage({ type: 'previewConversionResult', imageData: currentImage }, [currentImage.data.buffer]);
         }
 
         if (type === 'extractKMeans') {
@@ -218,18 +239,13 @@ self.onmessage = (e) => {
             // 2. 투명도 찌꺼기 제거
             currentImage = flattenAlpha(currentImage, 128);
 
-            // 🌟 [그라데이션 전용 추출] 경계/디테일 픽셀을 제외하고 매끄러운 구간의 색만 남김
-            if (options.gradientOnly) {
-                currentImage = maskToGradientAreas(currentImage, options.adaptiveDitherStrength);
-            }
-
             // 3. 2번 이미지를 바탕으로 K-Means++ 가동!
             const extractedColors = extractExactKMeansPalette(currentImage, options.colorCount, options);
-            
+
             // 4. 브릿지로 추출된 순수 색상 배달
             self.postMessage({ type: 'kmeansExtractionResult', colors: extractedColors });
         }
-        
+
     } catch (err) {
         console.error("🚨 [Worker 내부 에러]:", err);
         self.postMessage({ status: 'error', message: err.message || "알 수 없는 워커 오류" });

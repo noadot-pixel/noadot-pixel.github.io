@@ -91,6 +91,13 @@ export class WorkerBridge {
                     if (!payload.tags) payload.tags = [];
                     eventBus.emit('IMAGE_ANALYZED', payload);
                     break;
+
+                // 🌟 [신규] 중복 색상 검사 팝업 전용 미리보기 결과.
+                // 메인 화면/상태(state.latestConversionData, 팔레트 사용량 카운트 등)는
+                // 절대 건드리지 않고 팝업에게만 결과를 전달한다.
+                case 'previewConversionResult':
+                    eventBus.emit('PALETTE_PREVIEW_READY', { imageData: payload.imageData });
+                    break;
             }
         };
 
@@ -152,6 +159,17 @@ export class WorkerBridge {
         eventBus.on('REQUEST_DOWNLOAD_WORKER', (payload) => {
             this.downloadWorker.postMessage(payload);
         });
+
+        // 🌟 [신규] 중복 색상 검사 팝업이 특정 색상들을 임시로 껐을 때의 결과만 미리 보고 싶을 때 사용.
+        // 메인 변환 큐(isWorkerBusy/hasPendingRequest)와는 완전히 분리된 별도 요청이라
+        // 팝업에서 체크박스를 연타해도 실제 화면/상태에는 아무 영향을 주지 않는다.
+        eventBus.on('REQUEST_PALETTE_PREVIEW', (payload) => {
+            if (!state.originalImageData) return;
+            const message = this.packOptions();
+            message.type = 'previewConvert';
+            message.options.disabledHexes = payload.disabledHexes || [];
+            this.worker.postMessage(message);
+        });
     }
 
     triggerConversion(immediate = false) {
@@ -210,10 +228,6 @@ export class WorkerBridge {
 
                 patternMatrix: state.patternMatrix || null,
                 patternStrength: state.patternStrengthSlider ?? 10,
-
-                // 🌟 그라데이션 적응형 디더링 (매끄러운 구간은 디더링/패턴 강도를 낮춰 등고선처럼 깔끔하게 처리)
-                useAdaptiveDither: state.useAdaptiveDither ?? false,
-                adaptiveDitherStrength: state.adaptiveDitherStrength ?? 50,
 
                 // 3. 포스트 프로세싱 (새로 연결할 옵션들 자리표시자)
                 usePixelioe: state.usePixelioe ?? false,

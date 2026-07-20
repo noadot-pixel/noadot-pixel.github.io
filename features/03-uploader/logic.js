@@ -2,6 +2,7 @@
 import { eventBus } from '../../core/EventBus.js';
 import { state } from '../../core/state.js';
 import { ImageUploaderUI } from './ui.js';
+import { decodeYouPixels } from '../../data/uplace-file-format.js';
 
 export class ImageUploaderFeature {
     constructor() {
@@ -84,7 +85,15 @@ export class ImageUploaderFeature {
     }
 
     handleFile(file) {
-        if (!file || !file.type.startsWith('image/')) {
+        if (!file) return;
+
+        // 🌟 [신규] Youplace(.you) 파일 - MIME 타입이 image/*가 아니므로 확장자로 먼저 분기
+        if (file.name && file.name.toLowerCase().endsWith('.you')) {
+            this.handleYouFile(file);
+            return;
+        }
+
+        if (!file.type.startsWith('image/')) {
             // [수정] 언어 파일의 텍스트 호출
             alert(t('alert_image_only'));
             return;
@@ -122,5 +131,56 @@ export class ImageUploaderFeature {
         };
 
         img.src = objectUrl;
+    }
+
+    // 🌟 [신규] Youplace(.you) 파일 불러오기 - base64 픽셀 ID 배열을 실제 이미지로 복원
+    handleYouFile(file) {
+        this.ui.toggleLoading(true);
+        state.originalFileName = file.name.replace(/\.you$/i, '');
+
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            try {
+                const payload = JSON.parse(e.target.result);
+                const guide = payload.guide || {};
+                const { width, height, pixels: base64Pixels } = guide;
+                if (!width || !height || !base64Pixels) throw new Error('invalid .you structure');
+
+                const rgba = decodeYouPixels(base64Pixels, width, height);
+                const imageData = new ImageData(rgba, width, height);
+
+                // 다른 기능들과의 일관성을 위해 표시/재사용 가능한 Image 오브젝트도 함께 준비
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = width;
+                tempCanvas.height = height;
+                tempCanvas.getContext('2d').putImageData(imageData, 0, 0);
+                const img = new Image();
+                img.src = tempCanvas.toDataURL();
+
+                state.aspectRatio = height / width;
+                state.originalImageObject = img;
+                state.originalImageData = imageData;
+
+                // 🌟 다른 팔레트를 쓰고 있었다면 .you 파일에 맞게 Youplace(uplace)로 강제 전환
+                if (state.currentMode !== 'uplace') {
+                    eventBus.emit('FORCE_PALETTE_MODE', 'uplace');
+                }
+
+                eventBus.emit('IMAGE_LOADED', { source: img, imageData: state.originalImageData });
+                this.ui.toggleLoading(false);
+            } catch (err) {
+                console.error('.you 파일 파싱 오류:', err);
+                this.ui.toggleLoading(false);
+                alert(t('alert_invalid_you_file'));
+            }
+        };
+
+        reader.onerror = () => {
+            this.ui.toggleLoading(false);
+            alert(t('alert_invalid_you_file'));
+        };
+
+        reader.readAsText(file);
     }
 }

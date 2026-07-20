@@ -2,7 +2,8 @@
 import { eventBus } from '../../core/EventBus.js';
 import { state, t } from '../../core/state.js'; // 🌟 번역 함수 수입!
 import { PaletteSelectorUI } from './ui.js';
-import { wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors } from '../../data/palettes.js';
+import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors } from '../../data/palettes.js';
+import { DuplicateCheckModal } from './duplicate-check-ui.js';
 
 // 🌟 마지막으로 쓰던 팔레트 모드를 언어 설정과 같은 방식(localStorage)으로 기억합니다.
 const PALETTE_MODE_STORAGE_KEY = 'noadot-palette-mode';
@@ -18,6 +19,12 @@ export class PaletteSelectorFeature {
 
         this.initEvents();
         this.initBusListeners();
+
+        // 🌟 [신규] 중복 색상 검사 팝업 - "최종 결정" 시 팔레트 새로고침 + 재변환 트리거
+        this.dupCheckModal = new DuplicateCheckModal(() => {
+            this.refresh();
+            eventBus.emit('PALETTE_UPDATED');
+        });
 
         const savedMode = localStorage.getItem(PALETTE_MODE_STORAGE_KEY);
         this.setMode(VALID_PALETTE_MODES.includes(savedMode) ? savedMode : 'geopixels');
@@ -225,7 +232,17 @@ export class PaletteSelectorFeature {
 
                 const unusedHexes = unused.map(c => this.ui.rgbToHex(...c.rgb));
                 state.addedColors = state.addedColors.filter(c => c.count);
-                state.disabledHexes = (state.disabledHexes || []).filter(h => !unusedHexes.includes(h));
+
+                // 🌟 [버그 수정] 삭제되는 커스텀 색상의 HEX가 기본 제공 팔레트(geopixels/wplace/uplace/bplace) 색상과
+                // 우연히 겹치는 경우, disabledHexes에서 그 HEX를 무조건 지워버리면 꺼둔 기본 팔레트 색이
+                // 함께 재활성화되던 문제가 있었음. 남아있는 색(기본 팔레트 전체 + 남은 커스텀 색)이
+                // 실제로 그 HEX를 더 이상 하나도 안 쓸 때만 disabledHexes에서 지운다.
+                const stillExistingHexes = new Set([
+                    ...geopixelsColors, ...wplaceFreeColors, ...wplacePaidColors, ...uplaceColors, ...bplaceColors
+                ].map(c => this.ui.rgbToHex(...c.rgb)));
+                state.addedColors.forEach(c => stillExistingHexes.add(this.ui.rgbToHex(...c.rgb)));
+
+                state.disabledHexes = (state.disabledHexes || []).filter(h => !unusedHexes.includes(h) || stillExistingHexes.has(h));
 
                 this.refresh();
                 eventBus.emit('PALETTE_UPDATED');
@@ -339,9 +356,14 @@ export class PaletteSelectorFeature {
 
     initBusListeners() {
 
+        // 🌟 [신규] .you 파일 업로드처럼, 다른 기능이 팔레트 모드를 강제로 전환해야 할 때 사용
+        eventBus.on('FORCE_PALETTE_MODE', (mode) => {
+            if (VALID_PALETTE_MODES.includes(mode)) this.setMode(mode);
+        });
+
         eventBus.on('LANGUAGE_CHANGED', () => {
             this.updatePlaceholders();
-            this.refresh(); 
+            this.refresh();
         });
         
         // 🌟 언어가 바뀔 때마다 입력창 텍스트 새로고침

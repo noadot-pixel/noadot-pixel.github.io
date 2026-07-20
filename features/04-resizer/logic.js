@@ -2,34 +2,58 @@ import { eventBus } from '../../core/EventBus.js';
 import { state } from '../../core/state.js';
 import { ImageResizerUI } from './ui.js';
 
+// 🌟 마지막으로 쓰던 조절 방식(픽셀/비율)을 언어, 팔레트 설정과 같은 방식(localStorage)으로 기억합니다.
+const SCALE_MODE_STORAGE_KEY = 'noadot-scale-mode';
+const VALID_SCALE_MODES = ['pixel', 'ratio'];
+
 export class ImageResizerFeature {
     constructor() {
         this.ui = new ImageResizerUI();
-        
+
         // UI 요소 연결
         this.algoRadios = document.querySelectorAll('input[name="resizeAlgo"]');
         this.modeSelect = document.getElementById('scaleModeSelect');
         this.pixelControls = document.getElementById('pixel-scale-controls');
         this.ratioControls = document.getElementById('ratio-scale-controls');
-        
+
         this.pixelSlider = document.getElementById('pixelWidthSlider');
         this.pixelSliderVal = document.getElementById('pixelSliderValue');
         this.widthInput = document.getElementById('scaleWidth');
         this.heightInput = document.getElementById('scaleHeight');
-        
+
         this.ratioSlider = document.getElementById('scaleSlider');
         this.ratioValue = document.getElementById('scaleValue');
-        
+
         this.exportSlider = document.getElementById('exportScaleSlider');
         this.exportValue = document.getElementById('exportScaleValue');
 
         this.initEvents();
         this.initBusListeners();
 
+        // 저장된 조절 방식을 복원 (없거나 유효하지 않으면 기본값 유지)
+        const savedScaleMode = localStorage.getItem(SCALE_MODE_STORAGE_KEY);
+        if (VALID_SCALE_MODES.includes(savedScaleMode)) {
+            this.applyScaleMode(savedScaleMode);
+        }
+
         // 초기 실행 시 데이터가 이미 있다면 표시
         if (state.originalImageData) {
             this.resetToImage(state.originalImageData);
         }
+    }
+
+    // 🌟 조절 방식(픽셀/비율) 화면 전환 + 상태/저장까지 한 번에 처리
+    applyScaleMode(mode) {
+        state.scaleMode = mode;
+        if (this.modeSelect) this.modeSelect.value = mode;
+        if (mode === 'pixel') {
+            if (this.pixelControls) this.pixelControls.style.display = 'block';
+            if (this.ratioControls) this.ratioControls.style.display = 'none';
+        } else {
+            if (this.pixelControls) this.pixelControls.style.display = 'none';
+            if (this.ratioControls) this.ratioControls.style.display = 'block';
+        }
+        localStorage.setItem(SCALE_MODE_STORAGE_KEY, mode);
     }
 
     // 🌟 이미지를 새로 읽었을 때 모든 수치를 리셋하는 핵심 함수
@@ -68,16 +92,10 @@ export class ImageResizerFeature {
             });
         });
 
-        // 🌟 [복구 1] 조절 방식 드롭다운 이벤트 (픽셀 vs 비율 화면 전환)
+        // 🌟 [복구 1] 조절 방식 드롭다운 이벤트 (픽셀 vs 비율 화면 전환 + 기억)
         if (this.modeSelect) {
             this.modeSelect.addEventListener('change', (e) => {
-                if (e.target.value === 'pixel') {
-                    this.pixelControls.style.display = 'block';
-                    this.ratioControls.style.display = 'none';
-                } else {
-                    this.pixelControls.style.display = 'none';
-                    this.ratioControls.style.display = 'block';
-                }
+                this.applyScaleMode(e.target.value);
             });
         }
 

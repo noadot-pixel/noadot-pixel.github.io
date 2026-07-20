@@ -27,6 +27,8 @@ export const translations = {
         // 이미지 업로드
         "sec_upload": "이미지 업로드",
         "btn_upload": "📁 이미지 불러오기",
+        "alert_image_only": "이미지 파일(PNG, JPG, GIF) 또는 Youplace(.you) 파일만 업로드할 수 있습니다.",
+        "alert_invalid_you_file": "올바르지 않은 .you 파일입니다. 파일이 손상되었거나 형식이 맞지 않습니다.",
 
         // 리사이저
         "sec_resizer": "크기 조절",
@@ -112,10 +114,6 @@ export const translations = {
         "label_micro_dither": "미세 디더링 (노이즈)",
         "label_macro_pattern": "텍스처 패턴 (질감)",
         "label_pattern_strength": "패턴 강도:",
-        "label_adaptive_dither": "🌈 그라데이션 적응형 디더링",
-        "desc_adaptive_dither": "(매끄러운 구간을 등고선처럼 정리)",
-        "label_adaptive_dither_strength": "그라데이션 감지 강도:",
-        "desc_adaptive_dither_detail": "색이 매끄럽게 변하는 구간은 디더링/패턴 강도를 자동으로 낮춰 사각형 얼룩 없이 등고선처럼 깔끔한 경계로 정리합니다. 값이 높을수록 더 넓은 범위를 그라데이션으로 판정합니다.",
         "pat_custom": "✨ 커스텀 패턴 (직접 제작)",
         "title_custom_pattern_editor": "🎨 커스텀 텍스처 에디터",
         "label_grid_size": "그리드 캔버스 크기",
@@ -131,8 +129,6 @@ export const translations = {
         "btn_kmeans_match": "🎯 이미지와 매칭하여 팔레트 최적화",
         "label_kmeans_extract": "✨ 커스텀 색상 자동 추출",
         "desc_kmeans_extract": "이미지에서 색을 뽑아 커스텀 팔레트에 자동으로 추가합니다.",
-        "label_gradient_only": "🌈 그라데이션 영역만 추출",
-        "title_gradient_only": "경계/디테일 픽셀은 빼고, 색이 매끄럽게 변하는 구간의 색만 뽑습니다",
         "btn_kmeans_extract": "✨ 최적화된 추천 색상을 커스텀에 추가",
         "btn_usage_extract": "📊 사용량이 많은 색상을 커스텀에 추가",
         "unit_colors": "{count}색",
@@ -172,6 +168,15 @@ export const translations = {
         "label_remove_unused": "🧹 미사용 제거",
         "msg_confirm_remove_unused": "사용되지 않는 커스텀 색상 {count}개를 제거하시겠습니까?",
         "msg_no_unused_colors": "제거할 미사용 색상이 없습니다.",
+
+        // 중복 색상 검사 팝업
+        "title_check_duplicates": "현재 활성화된 팔레트에서 거의 구분되지 않는 중복 색상을 찾아줍니다",
+        "title_dup_check_modal": "🔍 중복 색상 검사",
+        "btn_apply_dup_check": "✅ 최종 결정",
+        "title_dup_zone_toggle_all": "이 구역의 색상을 한꺼번에 켜고 끕니다",
+        "msg_dup_zone_summary": "{zones}개 구역 발견 · {removed}개 색상 제외 예정",
+        "msg_no_duplicate_colors": "중복으로 볼 만한 색상이 없습니다.",
+        "msg_dup_preview_loading": "⌛ 변환 중...",
 
         //댓글
         "btn_open_comments": "💬 피드백 및 댓글 보기",
@@ -246,6 +251,8 @@ export const translations = {
         // 이미지 업로드(Uploader)
         "sec_upload": "Image Upload",
         "btn_upload": "📁 Image Confirm",
+        "alert_image_only": "Only image files (PNG, JPG, GIF) or Youplace (.you) files can be uploaded.",
+        "alert_invalid_you_file": "This .you file is invalid. It may be corrupted or in the wrong format.",
 
         //리사이저(Resizer)
         "sec_resizer": "Resize Image",
@@ -331,10 +338,6 @@ export const translations = {
         "label_micro_dither": "Micro Dithering (Noise)", 
         "label_macro_pattern": "Texture Pattern",
         "label_pattern_strength": "Pattern Strength:",
-        "label_adaptive_dither": "🌈 Adaptive Gradient Dithering",
-        "desc_adaptive_dither": "(Cleans up smooth areas into contour-like bands)",
-        "label_adaptive_dither_strength": "Gradient Detection Strength:",
-        "desc_adaptive_dither_detail": "Automatically lowers dithering/pattern strength in smoothly-changing areas so they settle into clean, contour-like edges instead of blocky artifacts. Higher values treat a wider range of color change as a gradient.",
         "pat_custom": "✨ Custom Pattern (Create Your Own)",
         "title_custom_pattern_editor": "🎨 Custom Texture Editor",
         "label_grid_size": "Canvas Grid Size",
@@ -350,8 +353,6 @@ export const translations = {
         "btn_kmeans_match": "🎯 Optimize Palette by Matching",
         "label_kmeans_extract": "✨ Auto-Extract Custom Colors",
         "desc_kmeans_extract": "Extracts colors from the image and automatically adds them to the custom palette.",
-        "label_gradient_only": "🌈 Gradient Areas Only",
-        "title_gradient_only": "Excludes edge/detail pixels and only samples colors from smoothly-changing areas",
         "btn_kmeans_extract": "✨ Add Extracted Colors to Custom",
         "btn_usage_extract": "📊 Add Usage Extracted Colors to Custom",
         "unit_colors": "{count} Colors",
@@ -391,6 +392,15 @@ export const translations = {
         "label_remove_unused": "🧹 Remove Unused",
         "msg_confirm_remove_unused": "Remove {count} unused custom color(s)?",
         "msg_no_unused_colors": "There are no unused colors to remove.",
+
+        // Duplicate color check popup
+        "title_check_duplicates": "Find near-duplicate colors in the currently active palette",
+        "title_dup_check_modal": "🔍 Duplicate Color Check",
+        "btn_apply_dup_check": "✅ Confirm",
+        "title_dup_zone_toggle_all": "Toggle all colors in this group at once",
+        "msg_dup_zone_summary": "{zones} group(s) found · {removed} color(s) will be excluded",
+        "msg_no_duplicate_colors": "No near-duplicate colors were found.",
+        "msg_dup_preview_loading": "⌛ Converting...",
 
         // 댓글(comments)
         "btn_open_comments": "💬 View Feedback & Comments",

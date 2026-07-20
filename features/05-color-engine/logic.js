@@ -357,16 +357,6 @@ export class ConversionOptionsFeature {
             eventBus.emit('OPTION_CHANGED');
         });
 
-        // 🌟 그라데이션 적응형 디더링
-        const checkAdaptiveDither = document.getElementById('useAdaptiveDither');
-        const boxAdaptiveDither = document.getElementById('adaptiveDitherControls');
-        checkAdaptiveDither?.addEventListener('change', (e) => {
-            state.useAdaptiveDither = e.target.checked;
-            if(boxAdaptiveDither) boxAdaptiveDither.style.display = e.target.checked ? 'block' : 'none';
-            eventBus.emit('OPTION_CHANGED');
-        });
-        this.syncInput('adaptiveDitherStrength', 'value', 'adaptiveDitherStrengthVal');
-
         // 🌟 2. 하위 옵션(방식 및 패턴) 동기화
         basicTypeSelect?.addEventListener('change', (e) => {
             state.basicDitherType = e.target.value;
@@ -854,7 +844,6 @@ export class ConversionOptionsFeature {
             'saturationSlider', 'brightnessSlider', 'contrastSlider', 
             'useMicroDither', 'basicDitherType', 'ditheringSlider',
             'useMacroPattern', 'patternTypeSelect', 'patternSizeSlider', 'patternStrengthSlider',
-            'useAdaptiveDither', 'adaptiveDitherStrength',
             'applyGradient', 'gradientTypeSelect', 'gradientDitherSizeSlider', 'gradientAngleSlider', 'gradientStrengthSlider',
             'celShadingApply', 'celShadingAlgorithmSelect', 'celShadingLevelsSlider', 'celShadingColorSpaceSelect', 
             'celShadingOutline', 'celShadingOutlineThresholdSlider', 'celShadingOutlineColorSelect',

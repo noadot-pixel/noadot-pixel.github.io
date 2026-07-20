@@ -76,6 +76,7 @@
             <button id="removeUnusedColorsBtn" class="mini-btn btn-remove-unused" data-i18n-title="title_remove_unused" title="변환 결과에서 한 번도 쓰이지 않은 커스텀 색상을 한꺼번에 제거합니다">
                 <span data-i18n="label_remove_unused">🧹 미사용 제거</span>
             </button>
+            <button id="btnCheckDuplicates" class="mini-btn btn-check-duplicates" data-i18n-title="title_check_duplicates" title="현재 활성화된 팔레트에서 거의 구분되지 않는 중복 색상을 찾아줍니다">🔍</button>
             <button id="resetAddedColorsBtn" class="mini-btn btn-reset-all" data-i18n-title="title_reset_custom" title="전체 초기화">🔄</button>
             <button id="exportPaletteBtn" class="mini-btn btn-export" data-i18n-title="title_export_palette" title="팔레트 내보내기">💾</button>
             <button id="importPaletteBtn" class="mini-btn btn-import" data-i18n-title="title_import_palette" title="팔레트 불러오기">📂</button>
@@ -85,3 +86,30 @@
         <div id="custom-palette-container"></div>
     </div>
 </section>
+
+<!-- 🌟 [신규] 중복 색상 검사 팝업 - 서로 거의 구분 안 되는 색상들을 구역으로 묶어 보여주고,
+     어떤 색을 남기고 뺄지 실시간 미리보기와 함께 결정할 수 있게 해준다. -->
+<div id="dupCheckModal" class="dupcheck-modal-overlay" style="display: none;">
+    <div class="dupcheck-modal-content">
+        <div class="dupcheck-modal-header">
+            <h3 data-i18n="title_dup_check_modal">🔍 중복 색상 검사</h3>
+            <button id="btnCloseDupCheck" class="mini-btn" title="닫기">✕</button>
+        </div>
+
+        <div class="dupcheck-modal-body">
+            <div class="dupcheck-preview-pane">
+                <canvas id="dupCheckPreviewCanvas"></canvas>
+                <div id="dupCheckLoading" class="dupcheck-loading" style="display: none;">
+                    <div class="dupcheck-spinner"></div>
+                    <span data-i18n="msg_dup_preview_loading">변환 중...</span>
+                </div>
+            </div>
+            <div class="dupcheck-sidebar" id="dupCheckSidebar"></div>
+        </div>
+
+        <div class="dupcheck-modal-footer">
+            <span id="dupCheckSummary" class="dupcheck-summary"></span>
+            <button id="btnApplyDupCheck" class="primary-btn" data-i18n="btn_apply_dup_check">✅ 최종 결정</button>
+        </div>
+    </div>
+</div>

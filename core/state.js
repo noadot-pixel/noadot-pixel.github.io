@@ -60,8 +60,6 @@ export const CONFIG = {
         useMicroDither: false,
         useMacroPattern: false,
         basicDitherType: 'bayer',
-        useAdaptiveDither: false,
-        adaptiveDitherStrength: 50,
 
         applyPattern: false,
         patternTypeSelect: 'grid',

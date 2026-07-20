@@ -109,41 +109,6 @@
     font-size: 0.85em;
 }
 
-/* 🌟 [신규] 그라데이션 전용 추출 토글 - 06-palettes의 .palette-toggle-chip과 같은 시각 언어 재사용 */
-.kmeans-gradient-toggle {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 8px;
-    padding: 5px 10px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    font-size: 0.8em;
-    font-weight: bold;
-    color: var(--text-secondary);
-    cursor: pointer;
-    width: fit-content;
-    user-select: none;
-    transition: all 0.2s;
-}
-
-.kmeans-gradient-toggle:hover {
-    background: var(--bg-color);
-    color: var(--text-primary);
-}
-
-.kmeans-gradient-toggle input[type="checkbox"] {
-    accent-color: var(--accent-primary);
-    cursor: pointer;
-}
-
-.kmeans-gradient-toggle:has(input:checked) {
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
-    background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
-}
-
 /* 🌟 K-Means 액션 버튼 공통 스타일 (텍스트 크기 최적화 및 엣지 유지) */
 .kmeans-btn {
     width: 100%;
