@@ -37,34 +37,43 @@ export function extractExactKMeansPalette(imageData, colorCount, options = {}) {
     // 2. 🌟 [밑반찬] K-Means++ 초기점 설정 (가장 멀리 떨어진 색들을 우선 선발)
     const centroids = [];
     // 첫 번째 색상은 무작위로 선택
-    centroids.push(pixels[Math.floor(Math.random() * pixels.length)].pos);
+    const firstCentroid = pixels[Math.floor(Math.random() * pixels.length)].pos;
+    centroids.push(firstCentroid);
+
+    const distToCentroid = (pos, centroid) => useOklab
+        ? Math.pow(pos[0] - centroid[0], 2) + Math.pow(pos[1] - centroid[1], 2) + Math.pow(pos[2] - centroid[2], 2)
+        : colorDistanceSq(pos, centroid);
+
+    // 🌟 [성능] 예전엔 라운드마다 모든 기존 중심점과 다시 거리를 재서 O(K^2 * N)이었음.
+    // "각 픽셀의 가장 가까운 중심점까지 거리"를 유지하며 새로 뽑힌 중심점 1개와만 비교하도록 바꿔서 O(K * N)으로 축소.
+    // (addSlider의 256 상한을 없애면서 K가 수백~수천까지 커질 수 있어 이 최적화가 필수가 됨)
+    const minDistSq = new Float32Array(pixels.length);
+    for (let j = 0; j < pixels.length; j++) minDistSq[j] = distToCentroid(pixels[j].pos, firstCentroid);
 
     for (let i = 1; i < colorCount; i++) {
         let sumDistSq = 0;
-        const distances = new Float32Array(pixels.length);
-        
-        // 각 픽셀별로 '가장 가까운 기존 중심점'과의 거리를 잽니다.
-        for (let j = 0; j < pixels.length; j++) {
-            let minDistSq = Infinity;
-            for (let c = 0; c < centroids.length; c++) {
-                const distSq = useOklab 
-                    ? Math.pow(pixels[j].pos[0]-centroids[c][0], 2) + Math.pow(pixels[j].pos[1]-centroids[c][1], 2) + Math.pow(pixels[j].pos[2]-centroids[c][2], 2)
-                    : colorDistanceSq(pixels[j].pos, centroids[c]);
-                if (distSq < minDistSq) minDistSq = distSq;
-            }
-            distances[j] = minDistSq;
-            sumDistSq += minDistSq;
-        }
+        for (let j = 0; j < pixels.length; j++) sumDistSq += minDistSq[j];
 
         // 거리가 멀수록(기존 색과 다를수록) 다음 중심으로 뽑힐 확률이 높아집니다!
         let target = Math.random() * sumDistSq;
         let cumulative = 0;
+        let chosenPos = null;
         for (let j = 0; j < pixels.length; j++) {
-            cumulative += distances[j];
+            cumulative += minDistSq[j];
             if (cumulative >= target) {
-                centroids.push(pixels[j].pos);
+                chosenPos = pixels[j].pos;
                 break;
             }
+        }
+        // 부동소수점 오차로 못 골랐을 때의 방어 (마지막 픽셀로 폴백)
+        if (!chosenPos) chosenPos = pixels[pixels.length - 1].pos;
+
+        centroids.push(chosenPos);
+
+        // 새로 뽑힌 중심점 기준으로만 "가장 가까운 거리"를 갱신 (기존 중심점들과는 다시 비교할 필요 없음)
+        for (let j = 0; j < pixels.length; j++) {
+            const d = distToCentroid(pixels[j].pos, chosenPos);
+            if (d < minDistSq[j]) minDistSq[j] = d;
         }
     }
 

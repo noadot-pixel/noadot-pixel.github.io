@@ -9,8 +9,8 @@
                     <span data-i18n="label_kmeans_extract">✨ 커스텀 색상 자동 추가</span>
                     <span id="addSliderVal" class="kmeans-val-extract">16색</span>
                 </label>
-                <input type="range" id="addSlider" class="kmeans-slider" min="1" max="256" value="16" step="1">
-                
+                <input type="range" id="addSlider" class="kmeans-slider" min="0" max="1000" value="60" step="1">
+
                 <div class="kmeans-adjust-btns">
                     <button class="mini-btn adjust-btn" data-target="addSlider" data-val="-100">-100</button>
                     <button class="mini-btn adjust-btn" data-target="addSlider" data-val="-10">-10</button>
@@ -21,7 +21,7 @@
                 </div>
 
                 <small class="kmeans-desc" data-i18n="desc_kmeans_extract">
-                    이미지에서 색을 뽑아 커스텀 팔레트에 추가합니다.
+                    원본 이미지의 색 다양성 대비 %만큼 대표색을 뽑아 커스텀 팔레트에 추가합니다. (조정 버튼은 %p 단위로 움직입니다)
                 </small>
             </div>
             <div style="display: flex; gap: 8px;">
