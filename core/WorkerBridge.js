@@ -96,7 +96,7 @@ export class WorkerBridge {
                 // 메인 화면/상태(state.latestConversionData, 팔레트 사용량 카운트 등)는
                 // 절대 건드리지 않고 팝업에게만 결과를 전달한다.
                 case 'previewConversionResult':
-                    eventBus.emit('PALETTE_PREVIEW_READY', { imageData: payload.imageData });
+                    eventBus.emit('PALETTE_PREVIEW_READY', { imageData: payload.imageData, colorCounts: payload.colorCounts });
                     break;
             }
         };

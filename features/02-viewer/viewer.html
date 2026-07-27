@@ -14,70 +14,77 @@
         <canvas id="main-canvas"></canvas>
 
         <div class="viewer-bottom-toolbar">
-            <button id="btnViewOriginal" class="v-btn" data-i18n-title="btn_original">👁️</button>
-            <button id="btnEyedropper" class="v-btn" data-i18n-title="btn_eyedropper">💉</button>
-            <button id="btnRecenter" class="v-btn" data-i18n-title="btn_recenter">⌖</button>
-            <button id="btnResetAll" class="v-btn" data-i18n-title="btn_reset">🔄</button>
-            
-            <div class="v-divider"></div>
-            
-            <div class="dl-checkbox-group">
-                <label class="dl-label">
-                    <input type="checkbox" id="chkDlSeparated"> <span data-i18n="dl_separated">분리(.zip)</span>
-                </label>
+            <div class="v-toolbar-icons">
+                <button id="btnViewOriginal" class="v-btn" data-i18n-title="btn_original">👁️</button>
+                <button id="btnEyedropper" class="v-btn" data-i18n-title="btn_eyedropper">💉</button>
+                <button id="btnRecenter" class="v-btn" data-i18n-title="btn_recenter">⌖</button>
+                <button id="btnResetAll" class="v-btn" data-i18n-title="btn_reset">🔄</button>
 
-                <div class="dl-popup-wrapper">
+                <div class="v-divider"></div>
+
+                <div class="dl-checkbox-group">
                     <label class="dl-label">
-                        <input type="checkbox" id="chkDlSplit"> <span data-i18n="dl_split">분할(.zip)</span>
+                        <input type="checkbox" id="chkDlSeparated"> <span data-i18n="dl_separated">분리(.zip)</span>
                     </label>
-                    <div id="popupDlSplit" class="dl-popup dl-popup-split">
-                        <div class="dl-popup-title" data-i18n="dl_split_title">분할 수 (가로 x 세로)</div>
-                        <div class="dl-popup-inputs">
-                            <input type="number" id="splitCols" value="2" min="1" class="dl-input-number">
-                            <span>x</span>
-                            <input type="number" id="splitRows" value="2" min="1" class="dl-input-number">
-                        </div>
-                        <label class="dl-label-small">
-                            <input type="checkbox" id="chkMaintainSize" checked> <span data-i18n="dl_maintain_size">원본 사이즈 유지 (투명화)</span>
+
+                    <div class="dl-popup-wrapper">
+                        <label class="dl-label">
+                            <input type="checkbox" id="chkDlSplit"> <span data-i18n="dl_split">분할(.zip)</span>
                         </label>
-                        <div class="dl-popup-tail tail-left"></div>
-                    </div>
-                </div>
-                
-                <div id="wrapDlWplace" class="dl-popup-wrapper">
-                    <label class="dl-label color-wplace">
-                        <input type="checkbox" id="chkDlWplace"> <span data-i18n="dl_wplace">.wplace</span>
-                    </label>
-                    <div id="popupDlWplace" class="dl-popup dl-popup-wplace">
-                        <div class="dl-grid-2">
-                            <label class="dl-grid-label">TX <input type="number" id="wplaceTileX" class="dl-input-number"></label>
-                            <label class="dl-grid-label">TY <input type="number" id="wplaceTileY" class="dl-input-number"></label>
-                            <label class="dl-grid-label">PX <input type="number" id="wplacePixelX" class="dl-input-number"></label>
-                            <label class="dl-grid-label">PY <input type="number" id="wplacePixelY" class="dl-input-number"></label>
+                        <div id="popupDlSplit" class="dl-popup dl-popup-split">
+                            <div class="dl-popup-title" data-i18n="dl_split_title">분할 수 (가로 x 세로)</div>
+                            <div class="dl-popup-inputs">
+                                <input type="number" id="splitCols" value="2" min="1" class="dl-input-number">
+                                <span>x</span>
+                                <input type="number" id="splitRows" value="2" min="1" class="dl-input-number">
+                            </div>
+                            <label class="dl-label-small">
+                                <input type="checkbox" id="chkMaintainSize" checked> <span data-i18n="dl_maintain_size">원본 사이즈 유지 (투명화)</span>
+                            </label>
+                            <div class="dl-popup-tail tail-left"></div>
                         </div>
-                        <div class="dl-popup-tail tail-right"></div>
+                    </div>
+
+                    <div id="wrapDlWplace" class="dl-popup-wrapper">
+                        <label class="dl-label color-wplace">
+                            <input type="checkbox" id="chkDlWplace"> <span data-i18n="dl_wplace">.wplace</span>
+                        </label>
+                        <div id="popupDlWplace" class="dl-popup dl-popup-wplace">
+                            <div class="dl-grid-2">
+                                <label class="dl-grid-label">TX <input type="number" id="wplaceTileX" class="dl-input-number"></label>
+                                <label class="dl-grid-label">TY <input type="number" id="wplaceTileY" class="dl-input-number"></label>
+                                <label class="dl-grid-label">PX <input type="number" id="wplacePixelX" class="dl-input-number"></label>
+                                <label class="dl-grid-label">PY <input type="number" id="wplacePixelY" class="dl-input-number"></label>
+                            </div>
+                            <div class="dl-popup-tail tail-right"></div>
+                        </div>
+                    </div>
+
+                    <label id="wrapDlUplace" class="dl-label color-uplace">
+                        <input type="checkbox" id="chkDlUplace"> <span data-i18n="dl_uplace">.you</span>
+                    </label>
+
+                    <div id="wrapDlBplace" class="dl-popup-wrapper">
+                        <label class="dl-label">
+                            <input type="checkbox" id="chkDlBplace"> <span data-i18n="dl_bplace">.bplace</span>
+                        </label>
+                        <div id="popupDlBplace" class="dl-popup dl-popup-bplace" style="display: none;">
+                            <div class="dl-grid-2">
+                                <label class="dl-grid-label">X <input type="number" id="bplaceX" class="dl-input-number" placeholder="0"></label>
+                                <label class="dl-grid-label">Y <input type="number" id="bplaceY" class="dl-input-number" placeholder="0"></label>
+                            </div>
+                            <div class="dl-popup-tail tail-right"></div>
+                        </div>
                     </div>
                 </div>
 
-                <label id="wrapDlUplace" class="dl-label color-uplace">
-                    <input type="checkbox" id="chkDlUplace"> <span data-i18n="dl_uplace">.you</span>
-                </label>
-
-                <div id="wrapDlBplace" class="dl-popup-wrapper">
-                    <label class="dl-label">
-                        <input type="checkbox" id="chkDlBplace"> <span data-i18n="dl_bplace">.bplace</span>
-                    </label>
-                    <div id="popupDlBplace" class="dl-popup dl-popup-bplace" style="display: none;">
-                        <div class="dl-grid-2">
-                            <label class="dl-grid-label">X <input type="number" id="bplaceX" class="dl-input-number" placeholder="0"></label>
-                            <label class="dl-grid-label">Y <input type="number" id="bplaceY" class="dl-input-number" placeholder="0"></label>
-                        </div>
-                        <div class="dl-popup-tail tail-right"></div>
-                    </div>
-                </div>
+                <button id="btnDownload" class="dl-btn" data-i18n="btn_download">💾 다운로드</button>
             </div>
 
-            <button id="btnDownload" class="dl-btn" data-i18n="btn_download">💾 다운로드</button>
+            <label class="v-resize-toggle-row" data-i18n-title="title_view_original_resized" title="원본 보기와 스포이드가 리사이징된 사이즈를 기준으로 원본 색상을 보여줍니다">
+                <input type="checkbox" id="chkViewOriginalResized" class="v-checkbox">
+                <span data-i18n="label_view_original_resized">리사이즈 크기로 원본 보기 (원본 보기 · 스포이드)</span>
+            </label>
         </div>
     </div>
 </section>

@@ -115,23 +115,31 @@
 /* ==========================================
    🌟 4. 플로팅 툴바 및 다운로드 팝업 공통
 ========================================== */
+/* 🌟 [수정] 아이콘 버튼 사이에 체크박스를 욱여넣던 방식 대신, 툴바를 2단으로 나눠서
+   위 칸은 기존 아이콘/다운로드 한 줄, 아래 칸은 짧은 설명이 붙은 리사이즈 토글 한 줄로 구성 */
 .viewer-bottom-toolbar {
     display: flex;
-    align-items: center;
-    flex-wrap: nowrap;
+    flex-direction: column;
+    gap: 4px;
     padding: 8px 16px;
-    gap: 8px;
     position: absolute;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     background: var(--bg-surface);
-    border-radius: 40px;
+    border-radius: 24px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.4);
     border: 1px solid var(--border-color);
     z-index: 1000;
     width: max-content;
     max-width: 95vw;
+}
+
+.v-toolbar-icons {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px;
 }
 
 .v-btn {
@@ -157,6 +165,36 @@
     width: 1px;
     height: 24px;
     background: var(--border-color);
+}
+
+/* 🌟 [수정] "리사이징된 사이즈로 원본 색 보기" - 아이콘 줄 밑에 짧은 설명과 함께 별도 줄로 배치
+   (원본 보기 버튼과 스포이드 둘 다에 적용됨을 라벨 텍스트로 바로 알 수 있게) */
+.v-resize-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 4px 4px 2px;
+    cursor: pointer;
+    font-size: 0.72em;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    border-top: 1px solid var(--border-color);
+    margin-top: 2px;
+    padding-top: 6px;
+}
+
+.v-resize-toggle-row:hover {
+    color: var(--text-primary);
+}
+
+.v-checkbox {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    accent-color: var(--accent-primary);
+    cursor: pointer;
 }
 
 /* ==========================================

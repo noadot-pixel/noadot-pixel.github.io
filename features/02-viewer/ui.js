@@ -39,6 +39,7 @@ export class ImageViewerUI {
         this.compareBtn = document.getElementById('btnViewOriginal');
         this.centerBtn = document.getElementById('btnRecenter');
         this.downloadBtn = document.getElementById('btnDownload');
+        this.chkViewOriginalResized = document.getElementById('chkViewOriginalResized');
     }
 
     createPixelInfoBox() {
@@ -183,13 +184,34 @@ export class ImageViewerUI {
         if (state.originalImageData) {
             this.canvas.width = state.originalImageData.width;
             this.canvas.height = state.originalImageData.height;
-            
+
             // [방어 코드] 원본 이미지를 보여줄 때도 Smoothing 설정을 적용하여 뭉개짐 방지
             if (this.chkSharpResizing) {
                 this.toggleImageSmoothing(this.chkSharpResizing.checked);
             }
 
             this.ctx.putImageData(state.originalImageData, 0, 0);
+            this.canvas.style.width = `${state.originalImageData.width}px`;
+            this.canvas.style.height = `${state.originalImageData.height}px`;
+        }
+    }
+
+    // 🌟 [신규] "리사이징된 사이즈를 기준으로 원본 색상으로 보기" - 팔레트 매칭/디더링 없이
+    // 리사이즈만 거친 원본 색상 그대로를, 변환 결과와 같은 화면 크기(원본 표시 크기)로 보여준다.
+    showOriginalResizedImage(resizedImageData) {
+        if (!resizedImageData) { this.showOriginalImage(); return; }
+
+        this.canvas.width = resizedImageData.width;
+        this.canvas.height = resizedImageData.height;
+
+        if (this.chkSharpResizing) {
+            this.toggleImageSmoothing(this.chkSharpResizing.checked);
+        }
+
+        this.ctx.putImageData(resizedImageData, 0, 0);
+        // 🌟 변환 결과 미리보기와 같은 방식: 캔버스 버퍼는 작아도, 표시 크기는 원본 크기 그대로 유지해서
+        // 같은 자리에서 비교할 수 있도록 함 (showConvertedImage와 동일한 관례)
+        if (state.originalImageData) {
             this.canvas.style.width = `${state.originalImageData.width}px`;
             this.canvas.style.height = `${state.originalImageData.height}px`;
         }

@@ -220,9 +220,10 @@ self.onmessage = (e) => {
             const original = imageData || cachedOriginal;
             if (!original) throw new Error("이미지 데이터가 없습니다.");
 
-            const { currentImage } = runConversionPipeline(original, options);
+            const { currentImage, stats } = runConversionPipeline(original, options);
 
-            self.postMessage({ type: 'previewConversionResult', imageData: currentImage }, [currentImage.data.buffer]);
+            // 🌟 [신규] 중복 색상 검사 팝업이 토글 결과에 따른 실시간 사용량(px)도 함께 보여줄 수 있도록 colorCounts 동봉
+            self.postMessage({ type: 'previewConversionResult', imageData: currentImage, colorCounts: stats.colorCounts }, [currentImage.data.buffer]);
         }
 
         if (type === 'extractKMeans') {

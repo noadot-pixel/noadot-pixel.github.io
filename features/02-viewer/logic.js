@@ -3,6 +3,7 @@ import { eventBus } from '../../core/EventBus.js';
 import { state, rgbToHex, t } from '../../core/state.js';
 import { ImageViewerUI } from './ui.js';
 import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors } from '../../data/palettes.js';
+import { smartResize } from '../../worker/smart-resizer.js';
 
 export class ImageViewerFeature {
     constructor() {
@@ -601,7 +602,15 @@ export class ImageViewerFeature {
                 if(e.cancelable) e.preventDefault();
                 e.stopPropagation();
                 if (!state.originalImageData) return;
-                this.ui.showOriginalImage();
+
+                // 🌟 [신규] "리사이징된 사이즈를 기준으로 원본 색상으로 보기" 체크 시,
+                // 팔레트 매칭/디더링 없이 리사이즈만 적용한 원본 색상을 보여준다.
+                if (this.ui.chkViewOriginalResized && this.ui.chkViewOriginalResized.checked && state.resizeWidth && state.resizeHeight) {
+                    const resized = smartResize(state.originalImageData, state.resizeWidth, state.resizeHeight, state.resizeMode || 'average');
+                    this.ui.showOriginalResizedImage(resized);
+                } else {
+                    this.ui.showOriginalImage();
+                }
             };
 
             const showConverted = (e) => {
@@ -663,8 +672,16 @@ export class ImageViewerFeature {
         
         if (active) {
             //모드 진입: 장바구니 비우기 & 원본 이미지 강제 출력
-            this.addedColorsInSession = 0; 
-            this.ui.showOriginalImage();
+            this.addedColorsInSession = 0;
+
+            // 🌟 [신규] 체크박스가 켜져 있으면 스포이드도 리사이징된 사이즈의 원본 색상에서 색을 추출한다.
+            // 캔버스에 실제로 그려진 픽셀에서 그대로 색을 뽑아오는 구조라 별도 좌표 보정 없이 그대로 동작한다.
+            if (this.ui.chkViewOriginalResized && this.ui.chkViewOriginalResized.checked && state.resizeWidth && state.resizeHeight) {
+                const resized = smartResize(state.originalImageData, state.resizeWidth, state.resizeHeight, state.resizeMode || 'average');
+                this.ui.showOriginalResizedImage(resized);
+            } else {
+                this.ui.showOriginalImage();
+            }
         } else {
             //모드 해제: 툴팁 끄기 & 변환된 이미지로 롤백
             this.ui.updatePixelInfo(false);

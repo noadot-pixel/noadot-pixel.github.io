@@ -117,20 +117,19 @@
     }
 
     /* 7. 뷰어 하단 툴바 모바일 최적화 (가로 스크롤 및 겹침 방지) */
+    /* 🌟 [수정] 툴바가 아이콘 줄 + 리사이즈 토글 줄, 2단으로 나뉘면서 가로 스크롤은
+       바깥 컨테이너가 아니라 안쪽 아이콘 줄(.v-toolbar-icons)에만 적용하도록 변경 */
     .viewer-bottom-toolbar {
         display: flex !important;
-        bottom: 75px; 
-        z-index: 990; 
-        
+        flex-direction: column !important;
+        bottom: 75px;
+        z-index: 990;
+
         width: 95vw;
         max-width: 100%;
         padding: 8px 10px;
-        gap: 6px;
-        overflow-x: auto; 
-        white-space: nowrap;
-        scrollbar-width: none; 
-        -ms-overflow-style: none; 
-        
+        gap: 4px;
+
         /* 🚨 [핵심 해결] 팝업창이 탈출할 수 있도록 transform 감옥을 해제합니다! */
         transform: none !important;
         left: 0 !important;
@@ -138,10 +137,17 @@
         margin: 0 auto !important; /* transform 대신 margin으로 가운데 정렬 */
     }
 
-    .viewer-bottom-toolbar::-webkit-scrollbar {
+    .viewer-bottom-toolbar .v-toolbar-icons {
+        overflow-x: auto;
+        white-space: nowrap;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .viewer-bottom-toolbar .v-toolbar-icons::-webkit-scrollbar {
         display: none;
     }
-    .viewer-bottom-toolbar > * {
+    .viewer-bottom-toolbar .v-toolbar-icons > * {
         flex-shrink: 0;
     }
     .viewer-bottom-toolbar .v-btn {
@@ -155,6 +161,11 @@
     .viewer-bottom-toolbar .dl-btn {
         padding: 8px 12px;
         font-size: 0.9em;
+    }
+    .viewer-bottom-toolbar .v-resize-toggle-row {
+        font-size: 0.68em;
+        white-space: normal;
+        text-align: center;
     }
 
     .dl-popup {

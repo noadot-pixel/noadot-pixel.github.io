@@ -10,6 +10,15 @@ export class DuplicateCheckModal {
     /** @param {() => void} onApplied 최종 결정 버튼을 눌러 disabledHexes가 실제로 바뀌었을 때 호출됨 */
     constructor(onApplied) {
         this.modal = document.getElementById('dupCheckModal');
+
+        // 🌟 [버그 수정] 모바일 바텀시트(#slot-sidebar)는 슬라이드 애니메이션에 CSS transform을 쓰는데,
+        // transform이 걸린 조상 안에 있으면 position:fixed 자식은 뷰포트가 아니라 그 조상 기준으로 배치되는
+        // 브라우저 표준 동작 때문에 팝업이 화면 밖으로 밀려나거나(첫 클릭 시 안 뜸) 자리가 안 맞아 보였음.
+        // (같은 문제를 pixel-info-box도 겪었었고, 그때도 document.body로 옮겨서 해결했던 것과 동일한 처방)
+        if (this.modal && this.modal.parentElement !== document.body) {
+            document.body.appendChild(this.modal);
+        }
+
         this.sidebar = document.getElementById('dupCheckSidebar');
         this.previewPane = document.querySelector('.dupcheck-preview-pane');
         this.canvas = document.getElementById('dupCheckPreviewCanvas');
@@ -21,6 +30,7 @@ export class DuplicateCheckModal {
         this.zones = [];
         this.pendingOff = new Set(); // 이번 팝업 세션 동안 임시로 꺼둔 hex들 (적용 전까지는 미리보기 전용)
         this.previewTimer = null;
+        this.liveCounts = null; // 🌟 토글할 때마다 워커가 돌려주는 실시간 사용량(px). null이면 팝업을 열 때 스냅샷한 count를 대신 씀.
 
         // 🌟 [신규] 메인 뷰어(02-viewer)와 동일한 방식의 확대/드래그 상태
         this.zoom = 100;
@@ -104,6 +114,64 @@ export class DuplicateCheckModal {
                 this.previewPane?.classList.remove('is-grabbing');
             }
         });
+
+        // 🌟 [신규] 모바일 터치 지원 - 메인 뷰어(02-viewer)의 핀치줌/한손가락 드래그 로직과 동일한 방식
+        this.lastTouchDistance = 0;
+
+        this.previewPane.addEventListener('touchstart', (e) => {
+            if (!this.isOpen() || e.target.closest('button')) return;
+
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                this.isDraggingPreview = false;
+                this.lastTouchDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                return;
+            }
+
+            if (e.touches.length === 1) {
+                this.isDraggingPreview = true;
+                const touch = e.touches[0];
+                this.dragStartX = touch.clientX - this.panX;
+                this.dragStartY = touch.clientY - this.panY;
+                this.previewPane.classList.add('is-grabbing');
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!this.isOpen()) return;
+
+            if (e.touches.length === 2 && this.lastTouchDistance > 0) {
+                e.preventDefault();
+                const currentDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const delta = currentDist - this.lastTouchDistance;
+                this.zoom = Math.max(10, Math.min(5000, this.zoom + delta * 1.5));
+                this.applyTransform();
+                this.lastTouchDistance = currentDist;
+                return;
+            }
+
+            if (this.isDraggingPreview && e.touches.length === 1) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                this.panX = touch.clientX - this.dragStartX;
+                this.panY = touch.clientY - this.dragStartY;
+                this.applyTransform();
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) this.lastTouchDistance = 0;
+            if (this.isDraggingPreview && e.touches.length === 0) {
+                this.isDraggingPreview = false;
+                this.previewPane?.classList.remove('is-grabbing');
+            }
+        });
     }
 
     applyTransform() {
@@ -112,14 +180,26 @@ export class DuplicateCheckModal {
     }
 
     initBusListeners() {
-        eventBus.on('PALETTE_PREVIEW_READY', ({ imageData }) => {
-            if (!this.isOpen() || !imageData) return;
-            this.drawPreview(imageData);
+        eventBus.on('PALETTE_PREVIEW_READY', ({ imageData, colorCounts }) => {
+            if (!this.isOpen()) return;
+            if (imageData) this.drawPreview(imageData);
+            // 🌟 [신규] 색을 껐다 켤 때마다 다른 색이 그 픽셀을 흡수하므로, 실제 사용량도 그때그때 다시 보여준다
+            if (colorCounts) {
+                this.liveCounts = colorCounts;
+                this.renderSidebar();
+            }
         });
     }
 
     isOpen() {
         return !!this.modal && this.modal.style.display !== 'none';
+    }
+
+    // 팝업을 처음 열었을 때 스냅샷한 count(zone.colors[i].count)를 기본값으로 쓰다가,
+    // 토글해서 미리보기가 한 번이라도 돌아오면 그 실시간 값(liveCounts)으로 대체한다.
+    getDisplayCount(hex, fallbackCount) {
+        if (this.liveCounts) return this.liveCounts[hex] || 0;
+        return fallbackCount || 0;
     }
 
     // 🌟 현재 모드/병합 설정 기준으로 "지금 실제로 매칭에 쓰이고 있는" 활성 색상만 모은다
@@ -164,6 +244,7 @@ export class DuplicateCheckModal {
         const entries = this.buildActiveEntries();
         this.zones = findDuplicateZones(entries);
         this.pendingOff.clear();
+        this.liveCounts = null; // 새로 열 때는 스냅샷 count부터 다시 보여줌
 
         if (this.zones.length === 0) {
             alert(t('msg_no_duplicate_colors'));
@@ -220,19 +301,47 @@ export class DuplicateCheckModal {
                 const isOff = this.pendingOff.has(c.hex);
                 btn.classList.toggle('is-off', isOff);
                 btn.textContent = isOff ? '✗' : '✔';
-                btn.title = `${c.hex} · ${c.count}px`;
+                btn.title = `${c.hex} · ${this.getDisplayCount(c.hex, c.count)}px`;
                 btn.addEventListener('click', () => {
                     if (this.pendingOff.has(c.hex)) this.pendingOff.delete(c.hex);
                     else this.pendingOff.add(c.hex);
                     this.renderSidebar();
                     this.schedulePreview();
                 });
+
+                // 🌟 [신규] PC는 마우스 호버, 모바일은 탭 유지(롱프레스) 시 그 색이 적용된 픽셀을 미리보기에서 강조
+                btn.addEventListener('mouseenter', () => this.showColorHighlight(c.rgb));
+                btn.addEventListener('mouseleave', () => this.clearColorHighlight());
+
+                let holdTimer = null;
+                let wasHold = false;
+                btn.addEventListener('touchstart', () => {
+                    wasHold = false;
+                    holdTimer = setTimeout(() => {
+                        wasHold = true;
+                        this.showColorHighlight(c.rgb);
+                    }, 350);
+                }, { passive: true });
+                btn.addEventListener('touchend', (e) => {
+                    clearTimeout(holdTimer);
+                    if (wasHold) {
+                        e.preventDefault(); // 롱프레스였으면 뒤이은 클릭(색 토글)으로 이어지지 않게 막음
+                        this.clearColorHighlight();
+                    }
+                    wasHold = false;
+                });
+                btn.addEventListener('touchcancel', () => {
+                    clearTimeout(holdTimer);
+                    wasHold = false;
+                    this.clearColorHighlight();
+                });
+
                 row.appendChild(btn);
             });
 
             const countLine = document.createElement('span');
             countLine.className = 'dupcheck-zone-count';
-            countLine.textContent = zone.colors.map(c => `${c.count}px`).join(' / ');
+            countLine.textContent = zone.colors.map(c => `${this.getDisplayCount(c.hex, c.count)}px`).join(' / ');
             row.appendChild(countLine);
 
             this.sidebar.appendChild(row);
@@ -260,6 +369,7 @@ export class DuplicateCheckModal {
     drawPreview(imageData, resetView = false) {
         if (!this.canvas || !this.ctx || !imageData) return;
         if (this.loadingEl) this.loadingEl.style.display = 'none';
+        this.currentPreviewImageData = imageData; // 🌟 색상 하이라이트 표시/복원의 기준이 되는 "현재" 미리보기
         this.canvas.width = imageData.width;
         this.canvas.height = imageData.height;
         this.ctx.imageSmoothingEnabled = false;
@@ -279,6 +389,32 @@ export class DuplicateCheckModal {
         }
 
         this.applyTransform();
+    }
+
+    // 🌟 [신규] 특정 색이 실제로 적용된 픽셀들을 미리보기 위에 붉은색(또는 그 색 자체가 붉은 계열이면 파란색)으로 강조
+    showColorHighlight(rgb) {
+        if (!this.currentPreviewImageData || !this.ctx) return;
+        const src = this.currentPreviewImageData;
+        const highlighted = new Uint8ClampedArray(src.data);
+        const [tr, tg, tb] = rgb;
+
+        // 색 자체가 이미 붉은 계열이면(R이 G,B보다 확연히 큼) 빨간 강조가 원래 색과 구분이 안 되므로 파란색을 대신 씀
+        const isReddish = (tr - Math.max(tg, tb)) > 30;
+        const [hr, hg, hb] = isReddish ? [0, 0, 255] : [255, 0, 0];
+
+        for (let i = 0; i < highlighted.length; i += 4) {
+            if (highlighted[i + 3] === 0) continue; // 투명 픽셀은 건드리지 않음
+            if (highlighted[i] === tr && highlighted[i + 1] === tg && highlighted[i + 2] === tb) {
+                highlighted[i] = hr; highlighted[i + 1] = hg; highlighted[i + 2] = hb;
+            }
+        }
+
+        this.ctx.putImageData(new ImageData(highlighted, src.width, src.height), 0, 0);
+    }
+
+    clearColorHighlight() {
+        if (!this.currentPreviewImageData || !this.ctx) return;
+        this.ctx.putImageData(this.currentPreviewImageData, 0, 0);
     }
 
     apply() {
