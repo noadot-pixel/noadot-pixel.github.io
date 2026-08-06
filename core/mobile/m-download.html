@@ -55,6 +55,27 @@
             </div>
         </div>
 
+        <div class="m-dl-group" style="margin-top: 10px;">
+            <label class="m-dl-item">
+                <input type="checkbox" id="m-chkDl3place"> <span data-i18n="dl_3place">🧊 3Place 블루프린트 (.3place-blueprint)</span>
+            </label>
+            <div id="m-popupDl3place" class="m-sub-options" style="display: none;">
+                <div class="dl-radio-row">
+                    <label>
+                        <input type="radio" name="m-place3Orientation" value="flat" checked> <span data-i18n="place3_flat">🟫 눕혀서</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="m-place3Orientation" value="standing"> <span data-i18n="place3_standing">🖼️ 세워서</span>
+                    </label>
+                </div>
+                <p style="font-size: 0.8em; color: var(--text-secondary); margin-bottom: 5px;">* 배치 좌표 (선택, 비워두면 0)</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <label style="font-size: 0.8em;">X <input type="number" id="m-place3X" class="ui-input" placeholder="0"></label>
+                    <label style="font-size: 0.8em;">Y <input type="number" id="m-place3Y" class="ui-input" placeholder="0"></label>
+                </div>
+            </div>
+        </div>
+
         <button id="m-btnDownload" class="m-primary-btn" data-i18n="btn_download">
             💾 이미지 다운로드
         </button>

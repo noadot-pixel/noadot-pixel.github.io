@@ -1,7 +1,7 @@
 // js/features/07-kmeans/logic.js
 import { eventBus } from '../../core/EventBus.js';
 import { state, t, rgbToHex } from '../../core/state.js';
-import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors } from '../../data/palettes.js';
+import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors, threeplaceColors } from '../../data/palettes.js';
 
 // 🌟 [신규] '커스텀 색상 자동 추출' 슬라이더(addSlider)를 절대 색상 수(1~256) 대신
 // "원본 이미지의 실질 색 다양성 대비 %"로 재정의.
@@ -203,6 +203,7 @@ export class KMeansFeature {
             if (mode === 'wplace') maxCount = wplaceFreeColors.length + wplacePaidColors.length;
             else if (mode === 'uplace') maxCount = uplaceColors.length;
             else if (mode === 'bplace') maxCount = bplaceColors.length;
+            else if (mode === '3place') maxCount = threeplaceColors.length;
             else if (mode === 'geopixels') {
                 const customCount = (state.addedColors || []).length;
                 // 🌟 geopixels에 다른 사이트 팔레트를 병합해서 쓰는 만큼 매칭 가능한 색상 수도 늘려줌
@@ -211,6 +212,7 @@ export class KMeansFeature {
                 if (state.useWplaceInGeopixels) baseCount += wplaceFreeColors.length + wplacePaidColors.length;
                 if (state.useUplaceInGeopixels) baseCount += uplaceColors.length;
                 if (state.useBplaceInGeopixels) baseCount += bplaceColors.length;
+                if (state.useThreeplaceInGeopixels) baseCount += threeplaceColors.length;
                 maxCount = baseCount + customCount;
             }
             maxCount = Math.max(2, maxCount);
@@ -281,6 +283,7 @@ export class KMeansFeature {
         if (mode === 'wplace') targetPalette = [...wplaceFreeColors, ...wplacePaidColors];
         else if (mode === 'uplace') targetPalette = uplaceColors;
         else if (mode === 'bplace') targetPalette = bplaceColors;
+        else if (mode === '3place') targetPalette = threeplaceColors;
         else if (mode === 'geopixels') targetPalette = [...geopixelsColors, ...(state.addedColors || [])];
 
         const matchedHexes = new Set();

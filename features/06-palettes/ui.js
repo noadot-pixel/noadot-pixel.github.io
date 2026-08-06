@@ -1,5 +1,5 @@
 import { state, t, rgbToHex, getTextColorForBg } from '../../core/state.js';
-import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors } from '../../data/palettes.js'; // bplaceColors 추가!
+import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors, threeplaceColors } from '../../data/palettes.js'; // bplaceColors, threeplaceColors 추가!
 
 export class PaletteSelectorUI {
     constructor() {
@@ -69,6 +69,11 @@ export class PaletteSelectorUI {
                 colorsToRender = [...colorsToRender, ...bplaceColors];
             }
 
+            if (state.useThreeplaceInGeopixels) {
+                groups.push({ label: t('palette_3place') || '3Place', colors: threeplaceColors });
+                colorsToRender = [...colorsToRender, ...threeplaceColors];
+            }
+
         } else if (mode === 'wplace') {
             // 🌟 t('번역 키값')을 사용해 언어 설정에 맞게 글자가 출력되게 합니다.
             groups.push({ label: t('palette_wplace_free') || 'Wplace 기본색', colors: wplaceFreeColors });
@@ -80,6 +85,9 @@ export class PaletteSelectorUI {
         } else if (mode === 'bplace') {
             groups.push({ label: t('palette_bplace') || 'Bplace', colors: bplaceColors });
             colorsToRender = [...bplaceColors];
+        } else if (mode === '3place') {
+            groups.push({ label: t('palette_3place') || '3Place', colors: threeplaceColors });
+            colorsToRender = [...threeplaceColors];
         }
 
         const globalCounts = state.latestColorCounts || {};

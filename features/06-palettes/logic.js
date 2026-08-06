@@ -2,12 +2,12 @@
 import { eventBus } from '../../core/EventBus.js';
 import { state, t } from '../../core/state.js'; // 🌟 번역 함수 수입!
 import { PaletteSelectorUI } from './ui.js';
-import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors } from '../../data/palettes.js';
+import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors, threeplaceColors } from '../../data/palettes.js';
 import { DuplicateCheckModal } from './duplicate-check-ui.js';
 
 // 🌟 마지막으로 쓰던 팔레트 모드를 언어 설정과 같은 방식(localStorage)으로 기억합니다.
 const PALETTE_MODE_STORAGE_KEY = 'noadot-palette-mode';
-const VALID_PALETTE_MODES = ['geopixels', 'wplace', 'uplace', 'bplace'];
+const VALID_PALETTE_MODES = ['geopixels', 'wplace', 'uplace', 'bplace', '3place'];
 
 export class PaletteSelectorFeature {
     constructor() {
@@ -238,7 +238,7 @@ export class PaletteSelectorFeature {
                 // 함께 재활성화되던 문제가 있었음. 남아있는 색(기본 팔레트 전체 + 남은 커스텀 색)이
                 // 실제로 그 HEX를 더 이상 하나도 안 쓸 때만 disabledHexes에서 지운다.
                 const stillExistingHexes = new Set([
-                    ...geopixelsColors, ...wplaceFreeColors, ...wplacePaidColors, ...uplaceColors, ...bplaceColors
+                    ...geopixelsColors, ...wplaceFreeColors, ...wplacePaidColors, ...uplaceColors, ...bplaceColors, ...threeplaceColors
                 ].map(c => this.ui.rgbToHex(...c.rgb)));
                 state.addedColors.forEach(c => stillExistingHexes.add(this.ui.rgbToHex(...c.rgb)));
 
@@ -337,6 +337,16 @@ export class PaletteSelectorFeature {
             useBplaceChk.checked = state.useBplaceInGeopixels || false;
             useBplaceChk.addEventListener('change', (e) => {
                 state.useBplaceInGeopixels = e.target.checked;
+                this.refresh();
+                eventBus.emit('PALETTE_UPDATED');
+            });
+        }
+
+        const useThreeplaceChk = document.getElementById('useThreeplaceInGeopixels');
+        if (useThreeplaceChk) {
+            useThreeplaceChk.checked = state.useThreeplaceInGeopixels || false;
+            useThreeplaceChk.addEventListener('change', (e) => {
+                state.useThreeplaceInGeopixels = e.target.checked;
                 this.refresh();
                 eventBus.emit('PALETTE_UPDATED');
             });

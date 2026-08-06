@@ -76,6 +76,23 @@
                             <div class="dl-popup-tail tail-right"></div>
                         </div>
                     </div>
+
+                    <div id="wrapDl3place" class="dl-popup-wrapper">
+                        <label class="dl-label">
+                            <input type="checkbox" id="chkDl3place"> <span data-i18n="dl_3place">.3place-blueprint</span>
+                        </label>
+                        <div id="popupDl3place" class="dl-popup dl-popup-3place" style="display: none;">
+                            <div class="dl-radio-row">
+                                <label><input type="radio" name="place3Orientation" value="flat" checked> <span data-i18n="place3_flat">🟫 눕혀서</span></label>
+                                <label><input type="radio" name="place3Orientation" value="standing"> <span data-i18n="place3_standing">🖼️ 세워서</span></label>
+                            </div>
+                            <div class="dl-grid-2">
+                                <label class="dl-grid-label">X <input type="number" id="place3X" class="dl-input-number" placeholder="0"></label>
+                                <label class="dl-grid-label">Y <input type="number" id="place3Y" class="dl-input-number" placeholder="0"></label>
+                            </div>
+                            <div class="dl-popup-tail tail-right"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <button id="btnDownload" class="dl-btn" data-i18n="btn_download">💾 다운로드</button>

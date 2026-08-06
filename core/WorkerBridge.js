@@ -249,6 +249,7 @@ export class WorkerBridge {
                 useWplaceInGeopixels: state.useWplaceInGeopixels || false,
                 useUplaceInGeopixels: state.useUplaceInGeopixels || false,
                 useBplaceInGeopixels: state.useBplaceInGeopixels || false,
+                useThreeplaceInGeopixels: state.useThreeplaceInGeopixels || false,
                 palette: state.currentMode === 'geopixels' ? (state.addedColors || []) : [],
                 disabledHexes: state.disabledHexes || [],
                 scaleWidth: state.resizeWidth,

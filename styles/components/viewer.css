@@ -290,6 +290,59 @@
     white-space: nowrap;
 }
 
+/* 🌟 [수정] 3Place 블루프린트 배치 방향(눕혀서/세워서) - 세로 나열된 일반 라디오 대신,
+   가로로 나란히 놓인 on/off 스위치(세그먼트 토글)처럼 보이도록 재구성 */
+.dl-radio-row {
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+    margin-bottom: 12px;
+    font-size: 0.8em;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 3px;
+}
+
+.dl-radio-row label {
+    position: relative; /* 아래 숨긴 input의 위치 기준점 */
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border-radius: 16px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+/* 🌟 [주의] display:none은 렌더 트리에서 완전히 빠져서 라벨 클릭 시 연결된 input을 활성화(체크)하지
+   못하는 브라우저가 있어 스위치가 눌러도 반응 없는 상태가 됐었음. 그래서 "보이지는 않지만 여전히
+   렌더링되는" 표준 시각적 숨김 기법(visually-hidden)으로 대체 - 네이티브 라디오 원형만 안 보이고
+   라벨 클릭에 의한 체크 동작은 정상 작동한다. */
+.dl-radio-row input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+.dl-radio-row label:has(input:checked) {
+    background: var(--accent-primary);
+    color: #fff;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
 .dl-popup-tail {
     position: absolute;
     bottom: -6px;

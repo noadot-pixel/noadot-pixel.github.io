@@ -82,3 +82,26 @@ export const bplaceColors = bplaceHexList.map(hex => ({
         parseInt(hex.slice(5, 7), 16)
     ]
 }));
+
+// 🌟 [신규] 3Place 블루프린트(.3place-blueprint) 파일 내부에서 색상을 가리키는 고정 순서의 전체 64색 팔레트.
+// 실제로 사이트에서 뽑은 blueprint 파일 두 개(용도가 다른 모델)를 비교해서 확인한 사실:
+//   - palette 배열은 항상 이 64색 전체를 "이 순서 그대로" 담고 있고, 실제로 몇 색만 쓰였는지는 상관없음
+//     (한 모델은 64색 중 12색만, 다른 모델은 23색만 실제로 썼는데도 둘 다 palette는 64개 전체였음)
+//   - 이 순서를 어기거나 일부 색만 넣으면 사이트가 "palette does not match the current world palette" 에러를 냄
+// 즉 voxel의 colorIndex는 항상 이 고정 배열을 기준으로 계산해야 하며, 절대 "실제로 쓰인 색만 골라 압축"하면 안 된다.
+export const threeplaceBlueprintPalette = [
+    "#000000","#2b2b31","#4a4a52","#6b6b73","#8f8f96","#b5b5ba","#dadade","#ffffff",
+    "#451317","#7c1a21","#b2242a","#e33d38","#f4735f","#ffab9a",
+    "#4a230d","#7d3c12","#b25b16","#e5821d","#f9a94b","#ffd0a0",
+    "#4d3b10","#806316","#b58f1c","#e2b829","#f6d94f","#fdf0a6",
+    "#14351b","#1f5a28","#2f8236","#4aab48","#7ccf67","#bceaa2",
+    "#0f3336","#16575c","#1f8288","#2fadb2","#5cd5d8","#abefed",
+    "#16204a","#21387d","#2f57b2","#4479de","#74a7f2","#b1d3fb",
+    "#2d1646","#4c2478","#7036ad","#9455d8","#b783f1","#dcbafb",
+    "#481230","#7c1c50","#b32b76","#e2489c","#f680bb","#ffb8d9",
+    "#342114","#5b3a22","#845731","#ab7a4b","#cfa478","#edcda6",
+    "#4f4d23","#8a8449"
+];
+
+// 🌟 [신규] 3Place 팔레트 (사이트 팔레트 패널 HTML에서 그대로 추출, 8색 램프 8묶음 순서 유지 - 팔레트 선택 UI 전용)
+export const threeplaceColors = [{rgb:[69,19,23],name:"Deep Red"},{rgb:[124,26,33],name:"Dark Red"},{rgb:[178,36,42],name:"Red"},{rgb:[227,61,56],name:"Bright Red"},{rgb:[244,115,95],name:"Light Red"},{rgb:[255,171,154],name:"Pale Red"},{rgb:[74,35,13],name:"Deep Orange"},{rgb:[125,60,18],name:"Dark Orange"},{rgb:[178,91,22],name:"Orange"},{rgb:[229,130,29],name:"Bright Orange"},{rgb:[249,169,75],name:"Light Orange"},{rgb:[255,208,160],name:"Pale Orange"},{rgb:[77,59,16],name:"Deep Yellow"},{rgb:[128,99,22],name:"Dark Yellow"},{rgb:[181,143,28],name:"Yellow"},{rgb:[226,184,41],name:"Bright Yellow"},{rgb:[246,217,79],name:"Light Yellow"},{rgb:[253,240,166],name:"Pale Yellow"},{rgb:[20,53,27],name:"Deep Green"},{rgb:[31,90,40],name:"Dark Green"},{rgb:[47,130,54],name:"Green"},{rgb:[74,171,72],name:"Bright Green"},{rgb:[124,207,103],name:"Light Green"},{rgb:[188,234,162],name:"Pale Green"},{rgb:[15,51,54],name:"Deep Teal"},{rgb:[22,87,92],name:"Dark Teal"},{rgb:[31,130,136],name:"Teal"},{rgb:[47,173,178],name:"Bright Teal"},{rgb:[92,213,216],name:"Light Teal"},{rgb:[171,239,237],name:"Pale Teal"},{rgb:[22,32,74],name:"Deep Blue"},{rgb:[33,56,125],name:"Dark Blue"},{rgb:[47,87,178],name:"Blue"},{rgb:[68,121,222],name:"Bright Blue"},{rgb:[116,167,242],name:"Light Blue"},{rgb:[177,211,251],name:"Pale Blue"},{rgb:[45,22,70],name:"Deep Purple"},{rgb:[76,36,120],name:"Dark Purple"},{rgb:[112,54,173],name:"Purple"},{rgb:[148,85,216],name:"Bright Purple"},{rgb:[183,131,241],name:"Light Purple"},{rgb:[220,186,251],name:"Pale Purple"},{rgb:[72,18,48],name:"Deep Pink"},{rgb:[124,28,80],name:"Dark Pink"},{rgb:[179,43,118],name:"Pink"},{rgb:[226,72,156],name:"Bright Pink"},{rgb:[246,128,187],name:"Light Pink"},{rgb:[255,184,217],name:"Pale Pink"},{rgb:[0,0,0],name:"Black"},{rgb:[43,43,49],name:"Charcoal"},{rgb:[74,74,82],name:"Dark Gray"},{rgb:[107,107,115],name:"Gray"},{rgb:[143,143,150],name:"Ash"},{rgb:[181,181,186],name:"Light Gray"},{rgb:[218,218,222],name:"Mist"},{rgb:[255,255,255],name:"White"},{rgb:[52,33,20],name:"Espresso"},{rgb:[91,58,34],name:"Chestnut"},{rgb:[132,87,49],name:"Umber"},{rgb:[171,122,75],name:"Caramel"},{rgb:[207,164,120],name:"Tan"},{rgb:[237,205,166],name:"Sand"},{rgb:[79,77,35],name:"Dark Olive"},{rgb:[138,132,73],name:"Olive"}];

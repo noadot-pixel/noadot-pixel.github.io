@@ -1,7 +1,7 @@
 import { smartResize } from './smart-resizer.js';
 import { PostProcessor } from './post-processing.js';
 import { preprocessImageData, matchColorAndDither } from './quantization.js';
-import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors } from '../data/palettes.js'; // 🌟 bplaceColors 추가!
+import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors, threeplaceColors } from '../data/palettes.js'; // 🌟 bplaceColors, threeplaceColors 추가!
 import { extractExactKMeansPalette } from './analysis.js';
 
 function flattenAlpha(imageData, threshold = 128) {
@@ -104,7 +104,10 @@ function buildActivePalette(options) {
         if (options.useBplaceInGeopixels) { // 🌟 Bplace 병합 추가
             if (typeof bplaceColors !== 'undefined') bplaceColors.forEach(addColor);
         }
-        
+        if (options.useThreeplaceInGeopixels) { // 🌟 3Place 병합 추가
+            if (typeof threeplaceColors !== 'undefined') threeplaceColors.forEach(addColor);
+        }
+
     } else if (options.mode === 'wplace') {
         if (typeof wplaceFreeColors !== 'undefined') wplaceFreeColors.forEach(addColor);
         if (typeof wplacePaidColors !== 'undefined') wplacePaidColors.forEach(addColor);
@@ -112,6 +115,8 @@ function buildActivePalette(options) {
         if (typeof uplaceColors !== 'undefined') uplaceColors.forEach(addColor);
     } else if (options.mode === 'bplace') { // 🌟 Bplace 단독 모드 추가!
         if (typeof bplaceColors !== 'undefined') bplaceColors.forEach(addColor);
+    } else if (options.mode === '3place') { // 🌟 3Place 단독 모드 추가!
+        if (typeof threeplaceColors !== 'undefined') threeplaceColors.forEach(addColor);
     }
 
     // (참고) 커스텀 팔레트는 사용자가 추가한 거니까 어떤 모드든 무조건 섞어줍니다.

@@ -3,7 +3,7 @@
 // "최종 결정"을 누르기 전까지는 실제 state.disabledHexes를 절대 건드리지 않는다.
 import { eventBus } from '../../core/EventBus.js';
 import { state, t, rgbToHex, getTextColorForBg } from '../../core/state.js';
-import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors } from '../../data/palettes.js';
+import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors, threeplaceColors } from '../../data/palettes.js';
 import { findDuplicateZones } from './duplicate-finder.js';
 
 export class DuplicateCheckModal {
@@ -223,6 +223,7 @@ export class DuplicateCheckModal {
             if (state.useWplaceInGeopixels) { addAll(wplaceFreeColors); addAll(wplacePaidColors); }
             if (state.useUplaceInGeopixels) addAll(uplaceColors);
             if (state.useBplaceInGeopixels) addAll(bplaceColors);
+            if (state.useThreeplaceInGeopixels) addAll(threeplaceColors);
             addAll(state.addedColors || []);
         } else if (mode === 'wplace') {
             addAll(wplaceFreeColors); addAll(wplacePaidColors);
@@ -230,6 +231,8 @@ export class DuplicateCheckModal {
             addAll(uplaceColors);
         } else if (mode === 'bplace') {
             addAll(bplaceColors);
+        } else if (mode === '3place') {
+            addAll(threeplaceColors);
         }
 
         return Array.from(seen.values());

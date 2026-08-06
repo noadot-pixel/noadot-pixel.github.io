@@ -210,10 +210,12 @@ export class ImageViewerFeature {
             const wrapWplace = document.getElementById('wrapDlWplace');
             const wrapUplace = document.getElementById('wrapDlUplace');
             const wrapBplace = document.getElementById('wrapDlBplace');
+            const wrap3place = document.getElementById('wrapDl3place');
 
             if (wrapWplace) wrapWplace.style.display = (state.currentMode === 'wplace') ? 'inline-flex' : 'none';
             if (wrapUplace) wrapUplace.style.display = (state.currentMode === 'uplace') ? 'inline-flex' : 'none';
             if (wrapBplace) wrapBplace.style.display = (state.currentMode === 'bplace') ? 'inline-flex' : 'none';
+            if (wrap3place) wrap3place.style.display = (state.currentMode === '3place') ? 'inline-flex' : 'none';
 
             // 🌟 모바일 버전의 .bplace 다운로드 항목도 bplace 팔레트를 쓰고 있을 때만 노출
             const mChkBplace = document.getElementById('m-chkDlBplace');
@@ -224,6 +226,17 @@ export class ImageViewerFeature {
                 mChkBplace.checked = false;
                 const mPopupBplace = document.getElementById('m-popupDlBplace');
                 if (mPopupBplace) mPopupBplace.style.display = 'none';
+            }
+
+            // 🌟 모바일 버전의 .3place-blueprint 다운로드 항목도 3place 팔레트를 쓰고 있을 때만 노출
+            const mChk3place = document.getElementById('m-chkDl3place');
+            const mWrap3place = mChk3place ? mChk3place.closest('.m-dl-group') : null;
+            const is3placeMode = state.currentMode === '3place';
+            if (mWrap3place) mWrap3place.style.display = is3placeMode ? 'block' : 'none';
+            if (mChk3place && !is3placeMode) {
+                mChk3place.checked = false;
+                const mPopup3place = document.getElementById('m-popupDl3place');
+                if (mPopup3place) mPopup3place.style.display = 'none';
             }
         };
 
@@ -282,6 +295,7 @@ export class ImageViewerFeature {
             const isWplace = (state.currentMode === 'wplace') && getChecked(['chkDlWplace', 'm-chkDlWplace']);
             const isUplace = (state.currentMode === 'uplace') && getChecked(['chkDlUplace', 'm-chkDlUplace']);
             const isBplace = (state.currentMode === 'bplace') && getChecked(['chkDlBplace', 'm-chkDlBplace']);
+            const is3place = (state.currentMode === '3place') && getChecked(['chkDl3place', 'm-chkDl3place']);
 
             // 입력칸이 비어있는지 확인하는 탐지기
             const isInputEmpty = (pcId, mobileId) => {
@@ -327,11 +341,24 @@ export class ImageViewerFeature {
                 wplacePY: getVal(['wplacePixelY', 'm-wplacePixelY'], 0),
                 
                 isUplace: isUplace,
-                
+
                 isBplace: isBplace,
                 bplaceX: getVal(['bplaceX', 'm-bplaceX'], 0),
                 bplaceY: getVal(['bplaceY', 'm-bplaceY'], 0),
-                
+
+                // 🌟 [신규] 3Place 블루프린트 - 좌표는 사이트에서 배치 후 조정 가능하므로 필수 입력은 아니고 기본값 0
+                // (PC/모바일 라디오는 같은 name을 공유하면 "기본 checked"가 서로 충돌해서 하나가 언체크되므로
+                // 그룹을 완전히 분리하고, 실제로 화면에 보이는 쪽의 선택값을 읽는다 - 다운로드 버튼과 같은 방식)
+                is3place: is3place,
+                place3Orientation: (() => {
+                    const mobileRadio = document.querySelector('input[name="m-place3Orientation"]:checked');
+                    if (mobileRadio && mobileRadio.offsetParent !== null) return mobileRadio.value;
+                    const pcRadio = document.querySelector('input[name="place3Orientation"]:checked');
+                    return pcRadio ? pcRadio.value : 'flat';
+                })(),
+                place3X: getVal(['place3X', 'm-place3X'], 0),
+                place3Y: getVal(['place3Y', 'm-place3Y'], 0),
+
                 exportScale: state.exportScale || 1
             };
 
@@ -390,9 +417,26 @@ export class ImageViewerFeature {
         // PC 팝업 연결
         setupToggle('chkDlSplit', 'popupDlSplit');
         setupToggle('chkDlWplace', 'popupDlWplace');
+        setupToggle('chkDl3place', 'popupDl3place');
         // 모바일 바텀시트 팝업 연결
         setupToggle('m-chkDlSplit', 'm-popupDlSplit');
         setupToggle('m-chkDlWplace', 'm-popupDlWplace');
+        setupToggle('m-chkDl3place', 'm-popupDl3place');
+
+        // 🌟 [버그 수정] 3Place 배치 방향 스위치(눕혀서/세워서) - 라디오를 커스텀 스위치처럼 꾸미면서
+        // 시각적으로만 숨긴(visually-hidden) input을 label로 감쌌는데, 환경에 따라 label 클릭이 감싸진
+        // input을 제대로 활성화(체크)하지 못하는 경우가 있어서 직접 체크 처리하도록 명시적으로 배선한다.
+        document.querySelectorAll('.dl-radio-row input[type="radio"][name$="place3Orientation"]').forEach(radio => {
+            const label = radio.closest('label');
+            if (!label) return;
+            label.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (!radio.checked) {
+                    radio.checked = true;
+                    radio.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+        });
 
         const container = this.ui.container;
         if (!container) return;
