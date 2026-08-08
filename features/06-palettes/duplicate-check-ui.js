@@ -56,6 +56,7 @@ export class DuplicateCheckModal {
         document.getElementById('btnCheckDuplicates')?.addEventListener('click', () => this.open());
         document.getElementById('btnCloseDupCheck')?.addEventListener('click', () => this.close());
         document.getElementById('btnApplyDupCheck')?.addEventListener('click', () => this.apply());
+        document.getElementById('btnKeepHighestUsage')?.addEventListener('click', () => this.keepHighestUsageOnly());
 
         // 팝업 바깥(반투명 배경) 클릭 시 취소하고 닫기
         this.modal?.addEventListener('click', (e) => {
@@ -267,6 +268,25 @@ export class DuplicateCheckModal {
         if (this.loadingEl) this.loadingEl.style.display = 'none';
         if (this.previewTimer) { clearTimeout(this.previewTimer); this.previewTimer = null; }
         this.pendingOff.clear();
+    }
+
+    // 🌟 [신규] 모든 구역에서 사용량(px)이 가장 많은 색 하나만 남기고 나머지를 전부 pendingOff에 넣는다.
+    // "최종 결정"을 누르기 전까지는 미리보기 전용이라, 눌러본 뒤 마음에 안 들면 개별 버튼으로 얼마든지 되돌릴 수 있다.
+    keepHighestUsageOnly() {
+        this.zones.forEach(zone => {
+            let best = zone.colors[0];
+            let bestCount = this.getDisplayCount(best.hex, best.count);
+            for (const c of zone.colors) {
+                const count = this.getDisplayCount(c.hex, c.count);
+                if (count > bestCount) { best = c; bestCount = count; }
+            }
+            zone.colors.forEach(c => {
+                if (c.hex === best.hex) this.pendingOff.delete(c.hex);
+                else this.pendingOff.add(c.hex);
+            });
+        });
+        this.renderSidebar();
+        this.schedulePreview();
     }
 
     renderSidebar() {

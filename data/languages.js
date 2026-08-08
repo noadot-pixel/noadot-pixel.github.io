@@ -180,6 +180,8 @@ export const translations = {
         // 중복 색상 검사 팝업
         "title_check_duplicates": "현재 활성화된 팔레트에서 거의 구분되지 않는 중복 색상을 찾아줍니다",
         "title_dup_check_modal": "🔍 중복 색상 검사",
+        "btn_keep_highest_usage": "🏆 최다 사용 색만 남기기",
+        "title_keep_highest_usage": "각 구역에서 사용량(px)이 가장 많은 색 하나만 남기고 나머지를 전부 비활성화합니다",
         "btn_apply_dup_check": "✅ 최종 결정",
         "title_dup_zone_toggle_all": "이 구역의 색상을 한꺼번에 켜고 끕니다",
         "msg_dup_zone_summary": "{zones}개 구역 발견 · {removed}개 색상 제외 예정",
@@ -412,6 +414,8 @@ export const translations = {
         // Duplicate color check popup
         "title_check_duplicates": "Find near-duplicate colors in the currently active palette",
         "title_dup_check_modal": "🔍 Duplicate Color Check",
+        "btn_keep_highest_usage": "🏆 Keep Highest-Usage Only",
+        "title_keep_highest_usage": "In every zone, keeps only the color with the highest usage (px) and disables the rest",
         "btn_apply_dup_check": "✅ Confirm",
         "title_dup_zone_toggle_all": "Toggle all colors in this group at once",
         "msg_dup_zone_summary": "{zones} group(s) found · {removed} color(s) will be excluded",
