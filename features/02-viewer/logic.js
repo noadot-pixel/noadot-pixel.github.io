@@ -18,6 +18,11 @@ export class ImageViewerFeature {
         this.startDragX = 0;
         this.startDragY = 0;
         this.hasDragged = false;
+
+        // 🌟 [신규] 스포이드 모드가 아니어도, 화면을 꾹 누르고 있으면(드래그와 구분) 그 자리 픽셀의 색을 보여주는 상태
+        this.isHoldInspecting = false;
+        this.holdTimer = null;
+        this.holdTimerTouch = null;
         
         this.lastTouchDistance = 0;
 
@@ -26,6 +31,7 @@ export class ImageViewerFeature {
         this.addedColorsInSession = 0;
 
         this.eyedropperTooltip = document.createElement('div');
+        this.eyedropperTooltip.id = 'pixelHoverTooltip';
         this.eyedropperTooltip.style.position = 'absolute';
         this.eyedropperTooltip.style.pointerEvents = 'none';
         this.eyedropperTooltip.style.display = 'none';
@@ -179,6 +185,10 @@ export class ImageViewerFeature {
         eventBus.on('MODE_CHANGED', () => this.checkEyedropperStatus());
         eventBus.on('OPTION_CHANGED', () => this.checkEyedropperStatus());
         eventBus.on('PALETTE_UPDATED', () => this.checkEyedropperStatus());
+
+        // 🌟 [신규] 팔레트 스와치에 마우스를 올리거나(PC)/길게 누르면(모바일) 그 색이 실제로 쓰인 자리를 뷰어에서 강조
+        eventBus.on('HIGHLIGHT_COLOR_REQUEST', (rgb) => this.showColorHighlight(rgb));
+        eventBus.on('HIGHLIGHT_COLOR_CLEAR', () => this.clearColorHighlight());
 
         eventBus.on('PALETTE_MODE_CHANGED', () => {
             const wrapW = document.getElementById('wrapDlWplace');
@@ -523,10 +533,19 @@ export class ImageViewerFeature {
             this.startDragX = e.clientX - state.panX;
             this.startDragY = e.clientY - state.panY;
             this.ui.setGrabbing(true);
+
+            // 🌟 [신규] 드래그(패닝)로 이어지지 않고 그 자리에서 꾹 누르고 있으면 픽셀 색을 보여준다
+            clearTimeout(this.holdTimer);
+            this.holdTimer = setTimeout(() => {
+                if (!this.hasDragged) {
+                    this.isHoldInspecting = true;
+                    this.handlePixelHover(e);
+                }
+            }, 350);
         });
 
         window.addEventListener('mousemove', (e) => {
-            if (this.isEyedropperActive) {
+            if (this.isEyedropperActive || this.isHoldInspecting) {
                 // 🌟 [성능] mousemove는 초당 수십~백 회 발생하므로 rAF로 프레임당 1회만 처리
                 this.lastHoverEvent = e;
                 if (!this.hoverRafPending) {
@@ -553,9 +572,14 @@ export class ImageViewerFeature {
         });
 
         window.addEventListener('mouseup', () => {
+            clearTimeout(this.holdTimer);
             if (state.isDragging) {
                 state.isDragging = false;
                 this.ui.setGrabbing(false);
+            }
+            if (this.isHoldInspecting) {
+                this.isHoldInspecting = false;
+                this.handlePixelHover(null);
             }
         });
 
@@ -566,6 +590,8 @@ export class ImageViewerFeature {
             if (e.touches.length === 2) {
                 e.preventDefault();
                 state.isDragging = false;
+                clearTimeout(this.holdTimerTouch); // 두 번째 손가락이 닿으면(핀치 줌) 홀드 인스펙트는 취소
+                this.isHoldInspecting = false;
                 this.lastTouchDistance = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY
@@ -588,6 +614,15 @@ export class ImageViewerFeature {
                 this.startDragX = touch.clientX - state.panX;
                 this.startDragY = touch.clientY - state.panY;
                 this.ui.setGrabbing(true);
+
+                // 🌟 [신규] 모바일에서 화면을 드래그 없이 꾹 누르고 있으면 그 자리 픽셀의 색을 보여준다
+                clearTimeout(this.holdTimerTouch);
+                this.holdTimerTouch = setTimeout(() => {
+                    if (!this.hasDragged) {
+                        this.isHoldInspecting = true;
+                        this.handlePixelHover({ clientX: touch.clientX, clientY: touch.clientY });
+                    }
+                }, 350);
             }
         }, { passive: false });
 
@@ -608,6 +643,13 @@ export class ImageViewerFeature {
                 return;
             }
 
+            if (this.isHoldInspecting && e.touches.length === 1) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                this.handlePixelHover({ clientX: touch.clientX, clientY: touch.clientY });
+                return;
+            }
+
             if (state.isDragging && e.touches.length === 1) {
                 e.preventDefault();
                 const touch = e.touches[0];
@@ -618,10 +660,15 @@ export class ImageViewerFeature {
         }, { passive: false });
 
         window.addEventListener('touchend', (e) => {
-            if (e.touches.length < 2) this.lastTouchDistance = 0; 
+            if (e.touches.length < 2) this.lastTouchDistance = 0;
+            clearTimeout(this.holdTimerTouch);
             if (state.isDragging && e.touches.length === 0) {
                 state.isDragging = false;
                 this.ui.setGrabbing(false);
+            }
+            if (this.isHoldInspecting && e.touches.length === 0) {
+                this.isHoldInspecting = false;
+                this.handlePixelHover(null);
             }
         });
         
@@ -783,8 +830,41 @@ export class ImageViewerFeature {
         // 이제 사용자가 버튼을 다시 누르기 전까지 절대 모드가 풀리지 않습니다!
     }
 
+    // 🌟 [신규] 특정 색이 실제로 적용된 픽셀들을 뷰어 캔버스 위에 붉은색(또는 그 색 자체가 붉은 계열이면 파란색)으로 강조
+    // (중복 색상 검사 팝업의 showColorHighlight와 동일한 로직) - 캔버스에 지금 실제로 그려진 내용을 그대로 스냅샷해서 쓰므로
+    // 원본/변환 뷰가 전환된 상태여도 항상 "지금 화면에 보이는 것" 기준으로 정확하게 동작한다.
+    showColorHighlight(rgb) {
+        if (!this.ui.canvas || !state.originalImageData) return;
+        const ctx = this.ui.canvas.getContext('2d');
+        const w = this.ui.canvas.width, h = this.ui.canvas.height;
+        if (w === 0 || h === 0) return;
+
+        this._highlightBaseImageData = ctx.getImageData(0, 0, w, h);
+        const src = this._highlightBaseImageData;
+        const highlighted = new Uint8ClampedArray(src.data);
+        const [tr, tg, tb] = rgb;
+
+        const isReddish = (tr - Math.max(tg, tb)) > 30;
+        const [hr, hg, hb] = isReddish ? [0, 0, 255] : [255, 0, 0];
+
+        for (let i = 0; i < highlighted.length; i += 4) {
+            if (highlighted[i + 3] === 0) continue;
+            if (highlighted[i] === tr && highlighted[i + 1] === tg && highlighted[i + 2] === tb) {
+                highlighted[i] = hr; highlighted[i + 1] = hg; highlighted[i + 2] = hb;
+            }
+        }
+
+        ctx.putImageData(new ImageData(highlighted, w, h), 0, 0);
+    }
+
+    clearColorHighlight() {
+        if (!this._highlightBaseImageData || !this.ui.canvas) return;
+        this.ui.canvas.getContext('2d').putImageData(this._highlightBaseImageData, 0, 0);
+        this._highlightBaseImageData = null;
+    }
+
     handlePixelHover(e) {
-        if (!e || !state.originalImageData || !this.isEyedropperActive) {
+        if (!e || !state.originalImageData) {
             if (this.eyedropperTooltip) this.eyedropperTooltip.style.display = 'none';
             this.lastHoverPixel = null;
             return;

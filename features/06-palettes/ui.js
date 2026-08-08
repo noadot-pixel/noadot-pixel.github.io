@@ -1,3 +1,4 @@
+import { eventBus } from '../../core/EventBus.js';
 import { state, t, rgbToHex, getTextColorForBg } from '../../core/state.js';
 import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors, threeplaceColors } from '../../data/palettes.js'; // bplaceColors, threeplaceColors 추가!
 
@@ -6,6 +7,36 @@ export class PaletteSelectorUI {
         this.paletteContainer = document.getElementById('palette-container');
         this.modeSelect = document.getElementById('paletteModeSelect');
         this.customPaletteContainer = document.getElementById('custom-palette-container');
+    }
+
+    // 🌟 [신규] 중복 색상 검사 팝업에 있던 "호버/길게 누르면 뷰어에서 그 색이 쓰인 자리를 강조"를
+    // 일반 팔레트 스와치에도 동일하게 적용. 뷰어(02-viewer)로의 직접 참조 없이 EventBus로만 통신.
+    attachHoverHighlight(el, rgb) {
+        el.addEventListener('mouseenter', () => eventBus.emit('HIGHLIGHT_COLOR_REQUEST', rgb));
+        el.addEventListener('mouseleave', () => eventBus.emit('HIGHLIGHT_COLOR_CLEAR'));
+
+        let holdTimer = null;
+        let wasHold = false;
+        el.addEventListener('touchstart', () => {
+            wasHold = false;
+            holdTimer = setTimeout(() => {
+                wasHold = true;
+                eventBus.emit('HIGHLIGHT_COLOR_REQUEST', rgb);
+            }, 350);
+        }, { passive: true });
+        el.addEventListener('touchend', (e) => {
+            clearTimeout(holdTimer);
+            if (wasHold) {
+                e.preventDefault(); // 롱프레스였으면 뒤이은 클릭(색 토글)으로 이어지지 않게 막음
+                eventBus.emit('HIGHLIGHT_COLOR_CLEAR');
+            }
+            wasHold = false;
+        });
+        el.addEventListener('touchcancel', () => {
+            clearTimeout(holdTimer);
+            wasHold = false;
+            eventBus.emit('HIGHLIGHT_COLOR_CLEAR');
+        });
     }
 
     updateDisplay(mode) {
@@ -161,6 +192,7 @@ export class PaletteSelectorUI {
                 btn.addEventListener('click', () => {
                     this.paletteContainer.dispatchEvent(new CustomEvent('toggleSingleColor', { detail: hex }));
                 });
+                this.attachHoverHighlight(btn, colorObj.rgb);
                 this.paletteContainer.appendChild(btn);
             });
         });
@@ -244,6 +276,7 @@ export class PaletteSelectorUI {
                     el.addEventListener('click', () => {
                         this.paletteContainer.dispatchEvent(new CustomEvent('toggleSingleColor', { detail: hex }));
                     });
+                    this.attachHoverHighlight(el, colorObj.rgb);
                 });
 
                 row.querySelector('.remove-btn').addEventListener('click', () => {
@@ -280,9 +313,11 @@ export class PaletteSelectorUI {
                     <span style="width: 100%; font-size: 0.55em; color: var(--text-secondary); letter-spacing: -0.5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${rgbText}</span>
                 `;
 
-                card.querySelector('.toggle-click').addEventListener('click', () => {
+                const cardSwatch = card.querySelector('.toggle-click');
+                cardSwatch.addEventListener('click', () => {
                     this.paletteContainer.dispatchEvent(new CustomEvent('toggleSingleColor', { detail: hex }));
                 });
+                this.attachHoverHighlight(cardSwatch, colorObj.rgb);
                 card.addEventListener('contextmenu', (e) => {
                     e.preventDefault(); 
                     this.customPaletteContainer.dispatchEvent(new CustomEvent('removeCustomColor', { detail: hex }));
