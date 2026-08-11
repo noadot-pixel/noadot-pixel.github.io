@@ -32,8 +32,10 @@ export const translations = {
         // 이미지 업로드
         "sec_upload": "이미지 업로드",
         "btn_upload": "📁 이미지 불러오기",
-        "alert_image_only": "이미지 파일(PNG, JPG, GIF) 또는 Youplace(.you) 파일만 업로드할 수 있습니다.",
+        "alert_image_only": "이미지 파일(PNG, JPG, GIF) 또는 Youplace(.you), Wplace(.wplace), 3place(.3place-blueprint) 파일만 업로드할 수 있습니다.",
         "alert_invalid_you_file": "올바르지 않은 .you 파일입니다. 파일이 손상되었거나 형식이 맞지 않습니다.",
+        "alert_invalid_wplace_file": "올바르지 않은 .wplace 파일입니다. 파일이 손상되었거나 형식이 맞지 않습니다.",
+        "alert_invalid_3place_file": "올바르지 않은 .3place-blueprint 파일입니다. 파일이 손상되었거나 형식이 맞지 않습니다.",
 
         // 리사이저
         "sec_resizer": "크기 조절",
@@ -266,8 +268,10 @@ export const translations = {
         // 이미지 업로드(Uploader)
         "sec_upload": "Image Upload",
         "btn_upload": "📁 Image Confirm",
-        "alert_image_only": "Only image files (PNG, JPG, GIF) or Youplace (.you) files can be uploaded.",
+        "alert_image_only": "Only image files (PNG, JPG, GIF) or Youplace (.you), Wplace (.wplace), 3place (.3place-blueprint) files can be uploaded.",
         "alert_invalid_you_file": "This .you file is invalid. It may be corrupted or in the wrong format.",
+        "alert_invalid_wplace_file": "This .wplace file is invalid. It may be corrupted or in the wrong format.",
+        "alert_invalid_3place_file": "This .3place-blueprint file is invalid. It may be corrupted or in the wrong format.",
 
         //리사이저(Resizer)
         "sec_resizer": "Resize Image",
