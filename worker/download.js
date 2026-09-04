@@ -81,6 +81,81 @@ function generateUplaceBlob(width, height, data, timestamp, nameSuffix = "") {
     return new Blob([JSON.stringify(payload, null, 2)], { type: 'application/octet-stream' });
 }
 
+// 🌟 [공용화] 원래 is3place 블록 안에 인라인으로만 있던 로직을 분할(split) 조각에도 재사용할 수 있도록
+// generateUplaceBlob/generateWplaceBlob와 같은 스타일의 독립 함수로 뺐다.
+function generateThreeplaceBlueprintBlob(width, height, data, options, timestamp, originX, originY, nameSuffix = "") {
+    // 🌟 실제로 사이트에서 뽑은 blueprint 파일 두 개(용도가 다른 모델)를 직접 비교해서 알아낸 사실:
+    // palette 배열은 "실제로 쓰인 색만 골라 압축"하면 안 되고, 항상 이 고정 64색 전체를 이 순서 그대로
+    // 담아야 함 (한쪽은 64색 중 12색만, 다른쪽은 23색만 실제로 썼는데도 palette는 둘 다 64개 전체였음).
+    // 이걸 어기면 사이트가 "palette does not match the current world palette" 에러로 거부함.
+    const colorIndexMap = new Map(threeplaceBlueprintPalette.map((hex, idx) => [hex, idx]));
+
+    // 팔레트에 정확히 없는 색(예: 다른 모드에서 섞여 들어온 색)을 위한 방어적 최근접 매칭
+    const findNearestIndex = (r, g, b) => {
+        let bestIdx = 0, bestDist = Infinity;
+        for (let idx = 0; idx < threeplaceBlueprintPalette.length; idx++) {
+            const hex = threeplaceBlueprintPalette[idx];
+            const pr = parseInt(hex.slice(1, 3), 16), pg = parseInt(hex.slice(3, 5), 16), pb = parseInt(hex.slice(5, 7), 16);
+            const d = (pr - r) ** 2 + (pg - g) ** 2 + (pb - b) ** 2;
+            if (d < bestDist) { bestDist = d; bestIdx = idx; }
+        }
+        return bestIdx;
+    };
+    const nearestCache = new Map();
+
+    // 🌟 "눕혀서(바닥 모자이크)" vs "세워서(벽면)" - 어느 축이 두께(항상 0)이고
+    // 어느 축이 이미지의 세로(row)를 받는지만 다르고, 그 외 로직은 동일하다.
+    const isStanding = options.place3Orientation === 'standing';
+
+    const voxels = [];
+    for (let py = 0; py < height; py++) {
+        for (let px = 0; px < width; px++) {
+            const i = (py * width + px) * 4;
+            if (data[i + 3] === 0) continue; // 투명 픽셀은 voxel로 만들지 않음 (희소 배열 유지)
+
+            const r = data[i], g = data[i + 1], b = data[i + 2];
+            const hexLower = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+            let colorIndex = colorIndexMap.get(hexLower);
+            if (colorIndex === undefined) {
+                if (nearestCache.has(hexLower)) colorIndex = nearestCache.get(hexLower);
+                else { colorIndex = findNearestIndex(r, g, b); nearestCache.set(hexLower, colorIndex); }
+            }
+
+            // 이미지의 맨 위(row 0)가 "위쪽"이 되도록 뒤집는다 (세워서: Z가 위쪽 / 눕혀서: Y가 발자국 안쪽)
+            const flipped = height - 1 - py;
+
+            if (isStanding) {
+                // 🖼️ 세워서(벽면): Z축이 높이. Y(깊이)는 항상 0 (벽처럼 얇게 서있음).
+                voxels.push([px, 0, flipped, colorIndex]);
+            } else {
+                // 🟫 눕혀서(바닥 모자이크): Y축이 발자국의 나머지 한 변. Z(두께)는 항상 0 (바닥에 딱 붙음).
+                voxels.push([px, flipped, 0, colorIndex]);
+            }
+        }
+    }
+
+    const blueprintJson = {
+        format: "3place-blueprint",
+        version: 1,
+        name: `NOADOT_${timestamp}${nameSuffix}`,
+        palette: threeplaceBlueprintPalette,
+        // 눕혀서: [가로, 세로, 두께=1] / 세워서: [가로, 두께=1, 높이]
+        size: isStanding ? [width, 1, height] : [width, height, 1],
+        placement: {
+            // 사이트 업로드 후 "Place template" 창에서 좌표를 다시 지정할 수 있으므로, 입력 안 하면 원점(0,0,0)
+            origin: [originX, originY, 0],
+            basis: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+            // 참조 파일들의 "세워진(두께) 축은 0, 나머지 두 축은 중앙" 패턴을 그대로 따름
+            pivot: isStanding
+                ? [Math.floor((width - 1) / 2), 0, 0]
+                : [Math.floor((width - 1) / 2), Math.floor((height - 1) / 2), 0]
+        },
+        voxels: voxels
+    };
+
+    return new Blob([JSON.stringify(blueprintJson)], { type: 'application/octet-stream' });
+}
+
 function generateWplaceBlob(width, height, dataUrl, gStartX, gStartY, timestamp, nameSuffix = "") {
     const globalEndX = gStartX + width;
     const globalEndY = gStartY + height;
@@ -209,10 +284,10 @@ self.onmessage = async (e) => {
                     zip.file(`splits/split_${r + 1}x${c + 1}.png`, blob);
 
                     // 🌟 [추가] 분할된 각 조각들도 특수 포맷으로 변환!
-                    if (options.isUplace || options.isWplace) {
+                    if (options.isUplace || options.isWplace || options.is3place) {
                         const tileImageData = tileCanvas.getContext('2d').getImageData(0, 0, exportW, exportH);
                         const suffix = `_split_${r + 1}x${c + 1}`;
-                        
+
                         if (options.isUplace) {
                             const uBlob = generateUplaceBlob(exportW, exportH, tileImageData.data, timestamp, suffix);
                             zip.file(`splits/split_${r + 1}x${c + 1}.you`, uBlob);
@@ -225,6 +300,14 @@ self.onmessage = async (e) => {
                             const trueGY = (options.wplaceTY * 1000) + options.wplacePY + sy;
                             const wBlob = generateWplaceBlob(exportW, exportH, dataUrl, trueGX, trueGY, timestamp, suffix);
                             zip.file(`splits/split_${r + 1}x${c + 1}.wplace`, wBlob);
+                        }
+                        if (options.is3place) {
+                            // 조각의 origin도 원본 이미지 기준 픽셀 오프셋(sx, sy)만큼 더해서, 나중에 조각들을
+                            // 그대로 이어붙이면 원본 배치가 재현되도록 한다 (wplace의 trueGX/trueGY와 동일한 발상).
+                            const originX = (options.place3X || 0) + sx;
+                            const originY = (options.place3Y || 0) + sy;
+                            const bpBlob = generateThreeplaceBlueprintBlob(exportW, exportH, tileImageData.data, options, timestamp, originX, originY, suffix);
+                            zip.file(`splits/split_${r + 1}x${c + 1}.3place-blueprint`, bpBlob);
                         }
                     }
                 }
@@ -404,76 +487,7 @@ self.onmessage = async (e) => {
         }
 
         if (options.is3place) {
-            // 🌟 실제로 사이트에서 뽑은 blueprint 파일 두 개(용도가 다른 모델)를 직접 비교해서 알아낸 사실:
-            // palette 배열은 "실제로 쓰인 색만 골라 압축"하면 안 되고, 항상 이 고정 64색 전체를 이 순서 그대로
-            // 담아야 함 (한쪽은 64색 중 12색만, 다른쪽은 23색만 실제로 썼는데도 palette는 둘 다 64개 전체였음).
-            // 이걸 어기면 사이트가 "palette does not match the current world palette" 에러로 거부함.
-            const colorIndexMap = new Map(threeplaceBlueprintPalette.map((hex, idx) => [hex, idx]));
-
-            // 팔레트에 정확히 없는 색(예: 다른 모드에서 섞여 들어온 색)을 위한 방어적 최근접 매칭
-            const findNearestIndex = (r, g, b) => {
-                let bestIdx = 0, bestDist = Infinity;
-                for (let idx = 0; idx < threeplaceBlueprintPalette.length; idx++) {
-                    const hex = threeplaceBlueprintPalette[idx];
-                    const pr = parseInt(hex.slice(1, 3), 16), pg = parseInt(hex.slice(3, 5), 16), pb = parseInt(hex.slice(5, 7), 16);
-                    const d = (pr - r) ** 2 + (pg - g) ** 2 + (pb - b) ** 2;
-                    if (d < bestDist) { bestDist = d; bestIdx = idx; }
-                }
-                return bestIdx;
-            };
-            const nearestCache = new Map();
-
-            // 🌟 [신규] "눕혀서(바닥 모자이크)" vs "세워서(벽면)" - 어느 축이 두께(항상 0)이고
-            // 어느 축이 이미지의 세로(row)를 받는지만 다르고, 그 외 로직은 동일하다.
-            const isStanding = options.place3Orientation === 'standing';
-
-            const voxels = [];
-            for (let py = 0; py < height; py++) {
-                for (let px = 0; px < width; px++) {
-                    const i = (py * width + px) * 4;
-                    if (data[i + 3] === 0) continue; // 투명 픽셀은 voxel로 만들지 않음 (희소 배열 유지)
-
-                    const r = data[i], g = data[i + 1], b = data[i + 2];
-                    const hexLower = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
-                    let colorIndex = colorIndexMap.get(hexLower);
-                    if (colorIndex === undefined) {
-                        if (nearestCache.has(hexLower)) colorIndex = nearestCache.get(hexLower);
-                        else { colorIndex = findNearestIndex(r, g, b); nearestCache.set(hexLower, colorIndex); }
-                    }
-
-                    // 이미지의 맨 위(row 0)가 "위쪽"이 되도록 뒤집는다 (세워서: Z가 위쪽 / 눕혀서: Y가 발자국 안쪽)
-                    const flipped = height - 1 - py;
-
-                    if (isStanding) {
-                        // 🖼️ 세워서(벽면): Z축이 높이. Y(깊이)는 항상 0 (벽처럼 얇게 서있음).
-                        voxels.push([px, 0, flipped, colorIndex]);
-                    } else {
-                        // 🟫 눕혀서(바닥 모자이크): Y축이 발자국의 나머지 한 변. Z(두께)는 항상 0 (바닥에 딱 붙음).
-                        voxels.push([px, flipped, 0, colorIndex]);
-                    }
-                }
-            }
-
-            const blueprintJson = {
-                format: "3place-blueprint",
-                version: 1,
-                name: `NOADOT_${timestamp}`,
-                palette: threeplaceBlueprintPalette,
-                // 눕혀서: [가로, 세로, 두께=1] / 세워서: [가로, 두께=1, 높이]
-                size: isStanding ? [width, 1, height] : [width, height, 1],
-                placement: {
-                    // 사이트 업로드 후 "Place template" 창에서 좌표를 다시 지정할 수 있으므로, 입력 안 하면 원점(0,0,0)
-                    origin: [options.place3X || 0, options.place3Y || 0, 0],
-                    basis: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-                    // 참조 파일들의 "세워진(두께) 축은 0, 나머지 두 축은 중앙" 패턴을 그대로 따름
-                    pivot: isStanding
-                        ? [Math.floor((width - 1) / 2), 0, 0]
-                        : [Math.floor((width - 1) / 2), Math.floor((height - 1) / 2), 0]
-                },
-                voxels: voxels
-            };
-
-            const bpBlob = new Blob([JSON.stringify(blueprintJson)], { type: 'application/octet-stream' });
+            const bpBlob = generateThreeplaceBlueprintBlob(width, height, data, options, timestamp, options.place3X || 0, options.place3Y || 0);
 
             if (useZip) {
                 zip.file(`NOADOT_${timestamp}.3place-blueprint`, bpBlob);
