@@ -1,6 +1,6 @@
 // js/features/image-viewer/logic.js
 import { eventBus } from '../../core/EventBus.js';
-import { state, rgbToHex, t } from '../../core/state.js';
+import { state, rgbToHex, t, supportsCustomColors } from '../../core/state.js';
 import { ImageViewerUI } from './ui.js';
 import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors } from '../../data/palettes.js';
 import { smartResize } from '../../worker/smart-resizer.js';
@@ -50,7 +50,7 @@ export class ImageViewerFeature {
     }
 
     checkEyedropperStatus() {
-        const isFixedPalette = state.currentMode === 'wplace' || state.currentMode === 'uplace' || (state.currentMode === 'geopixels' && state.useWplaceInGeoMode);
+        const isFixedPalette = state.currentMode === 'wplace' || (state.currentMode === 'geopixels' && state.useWplaceInGeoMode);
         
         if (this.ui.eyedropperBtn) {
             this.ui.eyedropperBtn.style.display = isFixedPalette ? 'none' : 'flex';
@@ -793,7 +793,7 @@ export class ImageViewerFeature {
     handleEyedropperPick(e) {
         if (!state.originalImageData) return;
         
-        if (state.currentMode !== 'geopixels') {
+        if (!supportsCustomColors(state.currentMode)) {
             alert(t('msg_eyedropper_only_geo'));
             return;
         }
@@ -817,7 +817,8 @@ export class ImageViewerFeature {
         //중복 검사 (커스텀 & 기본 팔레트)
         if (!state.addedColors) state.addedColors = [];
         const existsInCustom = state.addedColors.some(c => rgbToHex(...c.rgb) === hex);
-        const existsInBase = geopixelsColors.some(c => rgbToHex(...c.rgb) === hex);
+        const baseColors = state.currentMode === 'uplace' ? uplaceColors : geopixelsColors;
+        const existsInBase = baseColors.some(c => rgbToHex(...c.rgb) === hex);
 
         if (existsInCustom || existsInBase) {
             return;

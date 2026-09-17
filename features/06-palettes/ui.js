@@ -1,5 +1,5 @@
 import { eventBus } from '../../core/EventBus.js';
-import { state, t, rgbToHex, getTextColorForBg } from '../../core/state.js';
+import { state, t, rgbToHex, getTextColorForBg, supportsCustomColors } from '../../core/state.js';
 import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors, threeplaceColors } from '../../data/palettes.js'; // bplaceColors, threeplaceColors 추가!
 
 export class PaletteSelectorUI {
@@ -51,10 +51,10 @@ export class PaletteSelectorUI {
             wplaceSection.style.display = (mode === 'geopixels') ? 'flex' : 'none';
         }
 
-        // 🌟 3. [신규 추가] 커스텀 팔레트 영역 노출 제어 (GeoPixels 모드에서만 켜짐!)
+        // 🌟 3. 커스텀 팔레트 영역 노출 제어 (커스텀 색상을 지원하는 모드에서만 켜짐)
         const customSection = document.getElementById('custom-section');
         if (customSection) {
-            customSection.style.display = (mode === 'geopixels') ? 'block' : 'none';
+            customSection.style.display = supportsCustomColors(mode) ? 'block' : 'none';
         }
     }
 
@@ -203,10 +203,10 @@ export class PaletteSelectorUI {
         const customSection = document.getElementById('custom-section'); 
         
         if (customSection) {
-            customSection.style.display = (state.currentMode === 'geopixels') ? 'block' : 'none';
+            customSection.style.display = supportsCustomColors(state.currentMode) ? 'block' : 'none';
         }
-        
-        if (!this.customPaletteContainer || state.currentMode !== 'geopixels') return;
+
+        if (!this.customPaletteContainer || !supportsCustomColors(state.currentMode)) return;
         
         if (!this.customPaletteContainer) return;
         

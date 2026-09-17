@@ -171,6 +171,12 @@ export const state = {
     timeoutId: null
 };
 
+// 🌟 [2026-09] Youplace가 고정 팔레트를 없애고 전체 RGB를 지원하게 되어, GeoPixels처럼 임의의
+// 커스텀 색상을 자유롭게 추가할 수 있는 모드를 여기 한 곳에서 정의. (커스텀 색상 추가/스포이드/
+// K-means 추출 등 여러 곳에서 "이 모드가 커스텀 색상을 지원하는가"를 매번 mode==='geopixels'로만
+// 체크하던 걸 공용화 - 나중에 다른 사이트도 팔레트 제한이 풀리면 여기만 고치면 됨)
+export const supportsCustomColors = (mode) => mode === 'geopixels' || mode === 'uplace';
+
 export const hexToRgb = (hex) => {
     let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     if (!result) {

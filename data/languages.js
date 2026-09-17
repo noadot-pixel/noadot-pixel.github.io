@@ -162,7 +162,7 @@ export const translations = {
         "ph_hex": "HEX 코드 입력 (예: #FFFFFF)",
         "msg_confirm_reset_custom": "추가한 커스텀 색상을 모두 지우시겠습니까?",
         "msg_invalid_palette_json": "잘못된 팔레트 파일입니다. JSON 형식을 확인해주세요.",
-        "msg_custom_only_geo": "커스텀 색상 추가는 GeoPixels 모드에서만 가능합니다.",
+        "msg_custom_only_geo": "커스텀 색상 추가는 GeoPixels/Youplace 모드에서만 가능합니다.",
         "label_use_wplace": "Wplace 팔레트 사용하기",
         "palette_wplace_free":"무료 팔레트",
         "palette_wplace_paid":"유료 팔레트",
@@ -217,7 +217,7 @@ export const translations = {
         // 자바스크립트 알림 메시지
         "msg_no_image": "다운로드할 이미지가 없습니다!",
         "msg_processing": "⌛ 처리 중...",
-        "msg_eyedropper_only_geo": "⚠️ 스포이드 색상 추가는 GeoPixels 모드에서만 가능합니다.",
+        "msg_eyedropper_only_geo": "⚠️ 스포이드 색상 추가는 GeoPixels/Youplace 모드에서만 가능합니다.",
         "msg_color_exists": "⚠️ 이미 존재하는 색상입니다.",
 
         // 모바일 번역 변경
@@ -398,7 +398,7 @@ export const translations = {
         "ph_hex": "Enter HEX (e.g. #FFFFFF)",
         "msg_confirm_reset_custom": "Are you sure you want to clear all custom colors?",
         "msg_invalid_palette_json": "Invalid palette file. Please check the JSON format.",
-        "msg_custom_only_geo": "Custom colors can only be added in GeoPixels mode.",
+        "msg_custom_only_geo": "Custom colors can only be added in GeoPixels/Youplace mode.",
         "label_use_wplace": "Used Wplace palettes",
         "palette_wplace_free":"free Palette",
         "palette_wplace_paid":"Paid Palette",
@@ -453,7 +453,7 @@ export const translations = {
         // 자바스크립트 알림 메시지(JavaScript Alert Messages)
         "msg_no_image": "No image to download!",
         "msg_processing": "⌛ Processing...",
-        "msg_eyedropper_only_geo": "⚠️ Eyedropper is only available in GeoPixels mode.",
+        "msg_eyedropper_only_geo": "⚠️ Eyedropper is only available in GeoPixels/Youplace mode.",
         "msg_color_exists": "⚠️ Color already exists.",
 
         // 모바일 번역 변경

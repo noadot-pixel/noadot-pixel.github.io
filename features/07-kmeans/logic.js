@@ -1,6 +1,6 @@
 // js/features/07-kmeans/logic.js
 import { eventBus } from '../../core/EventBus.js';
-import { state, t, rgbToHex } from '../../core/state.js';
+import { state, t, rgbToHex, supportsCustomColors } from '../../core/state.js';
 import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors, threeplaceColors } from '../../data/palettes.js';
 
 // 🌟 [신규] '커스텀 색상 자동 추출' 슬라이더(addSlider)를 절대 색상 수(1~256) 대신
@@ -196,12 +196,13 @@ export class KMeansFeature {
         const mode = state.currentMode || 'geopixels';
         const extractTrack = document.getElementById('kmeans-track-extract');
         
-        if (extractTrack) extractTrack.style.display = (mode === 'geopixels') ? 'block' : 'none';
+        if (extractTrack) extractTrack.style.display = supportsCustomColors(mode) ? 'block' : 'none';
 
         if (this.matchSlider) {
             let maxCount = 16;
             if (mode === 'wplace') maxCount = wplaceFreeColors.length + wplacePaidColors.length;
-            else if (mode === 'uplace') maxCount = uplaceColors.length;
+            // 🌟 [2026-09] Youplace도 GeoPixels처럼 커스텀 색상을 추가할 수 있어져서, 매칭 가능한 색상 수도 그만큼 늘어남
+            else if (mode === 'uplace') maxCount = uplaceColors.length + (state.addedColors || []).length;
             else if (mode === 'bplace') maxCount = bplaceColors.length;
             else if (mode === '3place') maxCount = threeplaceColors.length;
             else if (mode === 'geopixels') {
@@ -281,7 +282,7 @@ export class KMeansFeature {
         let targetPalette = [];
         
         if (mode === 'wplace') targetPalette = [...wplaceFreeColors, ...wplacePaidColors];
-        else if (mode === 'uplace') targetPalette = uplaceColors;
+        else if (mode === 'uplace') targetPalette = [...uplaceColors, ...(state.addedColors || [])];
         else if (mode === 'bplace') targetPalette = bplaceColors;
         else if (mode === '3place') targetPalette = threeplaceColors;
         else if (mode === 'geopixels') targetPalette = [...geopixelsColors, ...(state.addedColors || [])];
@@ -309,14 +310,15 @@ export class KMeansFeature {
     }
 
     processExtraction(extractedColors) {
-        if (state.currentMode !== 'geopixels') return;
+        if (!supportsCustomColors(state.currentMode)) return;
         if (!state.addedColors) state.addedColors = [];
-        
+
+        const baseColors = state.currentMode === 'uplace' ? uplaceColors : geopixelsColors;
         let addedCount = 0;
         extractedColors.forEach(rgb => {
             const hex = this.rgbToHex(rgb);
             const existsInCustom = state.addedColors.some(c => this.rgbToHex(c.rgb) === hex);
-            const existsInBase = geopixelsColors.some(c => this.rgbToHex(c.rgb) === hex);
+            const existsInBase = baseColors.some(c => this.rgbToHex(c.rgb) === hex);
 
             if (!existsInCustom && !existsInBase) {
                 state.addedColors.push({ id: Date.now() + Math.random(), rgb: rgb, count: 0 });

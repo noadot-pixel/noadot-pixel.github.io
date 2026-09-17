@@ -1,6 +1,6 @@
 // js/core/WorkerBridge.js
 import { eventBus } from './EventBus.js';
-import { state, hexToRgb } from './state.js';
+import { state, hexToRgb, supportsCustomColors } from './state.js';
 
 export class WorkerBridge {
     constructor() {
@@ -250,7 +250,7 @@ export class WorkerBridge {
                 useUplaceInGeopixels: state.useUplaceInGeopixels || false,
                 useBplaceInGeopixels: state.useBplaceInGeopixels || false,
                 useThreeplaceInGeopixels: state.useThreeplaceInGeopixels || false,
-                palette: state.currentMode === 'geopixels' ? (state.addedColors || []) : [],
+                palette: supportsCustomColors(state.currentMode) ? (state.addedColors || []) : [],
                 disabledHexes: state.disabledHexes || [],
                 scaleWidth: state.resizeWidth,
                 scaleHeight: state.resizeHeight,
