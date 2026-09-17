@@ -1,7 +1,9 @@
 // js/worker/download.js
 import JSZip from 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
-// 🌟 [정리] Youplace(.you) 색상<->ID 매핑을 공용 모듈로 분리 (업로드 쪽 디코딩과 매핑을 공유)
-import { uplaceFileFormatPalette as uplacePaletteOrder, uplaceFileFormatIds as uplaceIds } from '../data/uplace-file-format.js';
+// 🌟 [정리] Youplace(.you) 인코딩 로직을 공용 모듈로 분리 (업로드 쪽 디코딩과 공유)
+// 🌟 [2026-09] Youplace 1.1.0 업데이트로 .you 포맷이 버전 2.1(픽셀당 RGB 3바이트, 고정 팔레트 없음)로
+// 바뀌어서 더 이상 여기서 팔레트 최근접 매칭을 할 필요가 없어졌다. encodeYouPixelsV2 하나로 대체.
+import { encodeYouPixelsV2 } from '../data/uplace-file-format.js';
 import { threeplaceBlueprintPalette } from '../data/palettes.js';
 
 const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
@@ -26,49 +28,10 @@ function scaleImageData(imgData, scale) {
 }
 
 function generateUplaceBlob(width, height, data, timestamp, nameSuffix = "") {
-    const pixels = new Uint8Array(width * height);
-    const colorMap = new Map();
-    uplacePaletteOrder.forEach((rgb, idx) => colorMap.set(rgbToHex(rgb[0], rgb[1], rgb[2]), uplaceIds[idx]));
-
-    const getNearestId = (r, g, b) => {
-        let minDist = Infinity; let bestId = 0;
-        for (let i = 0; i < uplacePaletteOrder.length; i++) {
-            const c = uplacePaletteOrder[i];
-            const d = (c[0]-r)**2 + (c[1]-g)**2 + (c[2]-b)**2;
-            if (d < minDist) { minDist = d; bestId = uplaceIds[i]; }
-        }
-        return bestId;
-    };
-    // 🌟 [성능] 같은 비-팔레트 색이 반복될 때마다 선형 탐색을 다시 하지 않도록 캐싱
-    const nearestCache = new Map();
-
-    let pIdx = 0;
-    for (let i = 0; i < data.length; i += 4) {
-        const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
-        if (a === 0) { pixels[pIdx++] = 0; continue; }
-
-        const hex = rgbToHex(r, g, b);
-        if (colorMap.has(hex)) {
-            pixels[pIdx++] = colorMap.get(hex);
-        } else if (nearestCache.has(hex)) {
-            pixels[pIdx++] = nearestCache.get(hex);
-        } else {
-            const id = getNearestId(r, g, b);
-            nearestCache.set(hex, id);
-            pixels[pIdx++] = id;
-        }
-    }
-
-    let base64Pixels = '';
-    const CHUNK_SIZE = 0x8000;
-    for (let i = 0; i < pixels.length; i += CHUNK_SIZE) {
-        const chunk = pixels.subarray(i, Math.min(i + CHUNK_SIZE, pixels.length));
-        base64Pixels += String.fromCharCode.apply(null, chunk);
-    }
-    base64Pixels = btoa(base64Pixels);
+    const base64Pixels = encodeYouPixelsV2(width, height, data);
 
     const payload = {
-        "version": "2.0",
+        "version": "2.1",
         "guide": {
             "id": `id-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             "name": `NOADOT_${timestamp}${nameSuffix}`,
@@ -365,52 +328,10 @@ self.onmessage = async (e) => {
         // 4. Uplace (.you) 완벽 인코딩 (색상 매핑 알고리즘 탑재)
         // ==========================================
         if (options.isUplace) {
-            const pixels = new Uint8Array(width * height);
-            
-            // 🌟 RGB 값을 Uplace 고유 ID로 초고속 매핑
-            const colorMap = new Map();
-            uplacePaletteOrder.forEach((rgb, idx) => colorMap.set(rgbToHex(rgb[0], rgb[1], rgb[2]), uplaceIds[idx]));
-
-            const getNearestId = (r, g, b) => {
-                let minDist = Infinity; let bestId = 0;
-                for (let i = 0; i < uplacePaletteOrder.length; i++) {
-                    const c = uplacePaletteOrder[i];
-                    const d = (c[0]-r)**2 + (c[1]-g)**2 + (c[2]-b)**2;
-                    if (d < minDist) { minDist = d; bestId = uplaceIds[i]; }
-                }
-                return bestId;
-            };
-            // 🌟 [성능] 같은 비-팔레트 색이 반복될 때마다 선형 탐색을 다시 하지 않도록 캐싱
-            const nearestCache = new Map();
-
-            let pIdx = 0;
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
-                if (a === 0) { pixels[pIdx++] = 0; continue; } // 투명
-
-                const hex = rgbToHex(r, g, b);
-                if (colorMap.has(hex)) {
-                    pixels[pIdx++] = colorMap.get(hex);
-                } else if (nearestCache.has(hex)) {
-                    pixels[pIdx++] = nearestCache.get(hex);
-                } else {
-                    const id = getNearestId(r, g, b);
-                    nearestCache.set(hex, id);
-                    pixels[pIdx++] = id;
-                }
-            }
-
-            // 🌟 Base64 인코딩 시 메모리 초과를 막기 위한 청크(Chunk) 분할 로직
-            let base64Pixels = '';
-            const CHUNK_SIZE = 0x8000; // 32768
-            for (let i = 0; i < pixels.length; i += CHUNK_SIZE) {
-                const chunk = pixels.subarray(i, Math.min(i + CHUNK_SIZE, pixels.length));
-                base64Pixels += String.fromCharCode.apply(null, chunk);
-            }
-            base64Pixels = btoa(base64Pixels);
+            const base64Pixels = encodeYouPixelsV2(width, height, data);
 
             const payload = {
-                "version": "2.0",
+                "version": "2.1",
                 "guide": {
                     "id": Date.now().toString(),
                     "name": `NOADOT_Uplace_${timestamp}`,

@@ -2,7 +2,7 @@
 import { eventBus } from '../../core/EventBus.js';
 import { state } from '../../core/state.js';
 import { ImageUploaderUI } from './ui.js';
-import { decodeYouPixels } from '../../data/uplace-file-format.js';
+import { decodeYouPixels, decodeYouPixelsV2 } from '../../data/uplace-file-format.js';
 
 export class ImageUploaderFeature {
     constructor() {
@@ -157,7 +157,10 @@ export class ImageUploaderFeature {
                 const { width, height, pixels: base64Pixels } = guide;
                 if (!width || !height || !base64Pixels) throw new Error('invalid .you structure');
 
-                const rgba = decodeYouPixels(base64Pixels, width, height);
+                // 🌟 [2026-09] Youplace 1.1.0부터 .you가 버전 2.1(픽셀당 RGB 3바이트, 팔레트 없음)로 바뀌어서,
+                // 구버전(2.0 이하, ID 1바이트) 파일도 여전히 열 수 있도록 버전에 따라 디코더를 분기한다.
+                const isV2 = parseFloat(payload.version) >= 2.1;
+                const rgba = isV2 ? decodeYouPixelsV2(base64Pixels, width, height) : decodeYouPixels(base64Pixels, width, height);
                 const imageData = new ImageData(rgba, width, height);
 
                 // 다른 기능들과의 일관성을 위해 표시/재사용 가능한 Image 오브젝트도 함께 준비

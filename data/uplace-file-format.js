@@ -40,7 +40,66 @@ export const uplaceFileFormatIds = [
     180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191
 ];
 
-// 🌟 [업로드용] .you 파일의 base64 픽셀 ID 배열을 실제 RGBA 픽셀 버퍼로 복원
+// 🌟 [2026-09] Youplace 1.1.0 업데이트로 .you 포맷이 "고정 팔레트 + ID 1바이트"(버전 2.0)에서
+// "픽셀당 RGB 3바이트 그대로"(버전 2.1, 전체 16,777,216색 지원)로 바뀌었다. 팔레트가 사라졌으니
+// ID 룩업이 필요 없어진 대신, 투명을 표시할 별도의 알파 바이트가 없어서 (0,0,0)을
+// "투명/미채색" 전용 예약값으로 쓴다. 그래서 진짜 순수 검정(0,0,0)은 (1,1,1)로 살짝 밀어서 저장해야
+// 투명과 구분된다 - 이 규칙은 실제 사이트 배포 번들의 구버전(2.0) 파일 마이그레이션 로직을
+// 브레이크포인트로 직접 읽어서 확인한 것이다(추측 아님).
+const TRANSPARENT_MARKER = [0, 0, 0];
+const REAL_BLACK_MARKER = [1, 1, 1];
+
+// 🌟 [업로드용] .you 파일(버전 2.1)의 base64 픽셀 RGB 배열을 실제 RGBA 픽셀 버퍼로 복원
+export function decodeYouPixelsV2(base64Pixels, width, height) {
+    const binary = atob(base64Pixels);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+    const pixelCount = width * height;
+    const rgba = new Uint8ClampedArray(pixelCount * 4);
+    for (let i = 0; i < pixelCount; i++) {
+        const bi = i * 3;
+        const r = bytes[bi], g = bytes[bi + 1], b = bytes[bi + 2];
+        if (r === TRANSPARENT_MARKER[0] && g === TRANSPARENT_MARKER[1] && b === TRANSPARENT_MARKER[2]) continue; // 투명 그대로 둠
+
+        const p = i * 4;
+        if (r === REAL_BLACK_MARKER[0] && g === REAL_BLACK_MARKER[1] && b === REAL_BLACK_MARKER[2]) {
+            rgba[p] = 0; rgba[p + 1] = 0; rgba[p + 2] = 0; // (1,1,1)은 진짜 검정을 되돌린 것
+        } else {
+            rgba[p] = r; rgba[p + 1] = g; rgba[p + 2] = b;
+        }
+        rgba[p + 3] = 255;
+    }
+    return rgba;
+}
+
+// 🌟 [다운로드용] RGBA 픽셀 버퍼를 .you 파일(버전 2.1)의 base64 픽셀 RGB 배열로 인코딩
+export function encodeYouPixelsV2(width, height, data) {
+    const pixelCount = width * height;
+    const bytes = new Uint8Array(pixelCount * 3); // 이미 0으로 초기화되어 있어 투명 픽셀은 손 안 대도 (0,0,0) 그대로 유지됨
+
+    for (let i = 0; i < pixelCount; i++) {
+        const p = i * 4;
+        if (data[p + 3] === 0) continue; // 투명 픽셀 -> (0,0,0) 유지
+
+        const r = data[p], g = data[p + 1], b = data[p + 2];
+        const bi = i * 3;
+        if (r === 0 && g === 0 && b === 0) {
+            bytes[bi] = 1; bytes[bi + 1] = 1; bytes[bi + 2] = 1; // 투명 예약값과 겹치지 않게 살짝 밀기
+        } else {
+            bytes[bi] = r; bytes[bi + 1] = g; bytes[bi + 2] = b;
+        }
+    }
+
+    let binary = '';
+    const CHUNK_SIZE = 0x8000;
+    for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + CHUNK_SIZE, bytes.length)));
+    }
+    return btoa(binary);
+}
+
+// 🌟 [업로드용] .you 파일(버전 2.0 이하, 구형)의 base64 픽셀 ID 배열을 실제 RGBA 픽셀 버퍼로 복원
 export function decodeYouPixels(base64Pixels, width, height) {
     const binary = atob(base64Pixels);
     const bytes = new Uint8Array(binary.length);
