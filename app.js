@@ -12,6 +12,7 @@ import { ConversionOptionsFeature } from './features/05-color-engine/logic.js';
 import { PaletteSelectorFeature } from './features/06-palettes/logic.js';
 import { KMeansFeature } from './features/07-kmeans/logic.js';
 import { CommentFeature } from './features/09-comments/logic.js';
+import { LayersFeature } from './features/11-layers/logic.js';
 
 class NoaDotApp {
     constructor() {
@@ -28,7 +29,8 @@ class NoaDotApp {
                 <div id="sub-slot-uploader"></div>
                 <div id="sub-slot-resizer"></div>
                 <div id="sub-slot-engine"></div>
-                <div id="sub-slot-kmeans"></div> 
+                <div id="sub-slot-layers"></div>
+                <div id="sub-slot-kmeans"></div>
                 <div id="sub-slot-palettes"></div>
                 <div id="sub-slot-comments"></div>
 
@@ -41,9 +43,10 @@ class NoaDotApp {
         await ComponentLoader.load('sub-slot-uploader', 'features/03-uploader/uploader.html');
         await ComponentLoader.load('sub-slot-resizer', 'features/04-resizer/resizer.html');
         
-        await ComponentLoader.load('sub-slot-kmeans', 'features/07-kmeans/kmeans.html'); 
-        
+        await ComponentLoader.load('sub-slot-kmeans', 'features/07-kmeans/kmeans.html');
+
         await ComponentLoader.load('sub-slot-engine', 'features/05-color-engine/engine.html');
+        await ComponentLoader.load('sub-slot-layers', 'features/11-layers/layers.html');
         await ComponentLoader.load('sub-slot-palettes', 'features/06-palettes/palettes.html');
         await ComponentLoader.load('sub-slot-comments', 'features/09-comments/comments.html');
         await ComponentLoader.load('sub-slot-download', 'core/mobile/m-download.html');
@@ -61,6 +64,7 @@ class NoaDotApp {
             this.workerBridge = new WorkerBridge();
 
             this.viewer = new ImageViewerFeature();
+            this.layers = new LayersFeature();
             this.uploader = new ImageUploaderFeature();
             this.resizer = new ImageResizerFeature();
             

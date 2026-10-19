@@ -1,8 +1,8 @@
 import { smartResize } from './smart-resizer.js';
 import { PostProcessor } from './post-processing.js';
-import { preprocessImageData, matchColorAndDither } from './quantization.js';
-import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors, bplaceColors, threeplaceColors } from '../data/palettes.js'; // 🌟 bplaceColors, threeplaceColors 추가!
+import { preprocessImageData, matchColorAndDither, extractOutlineLayer } from './quantization.js';
 import { extractExactKMeansPalette } from './analysis.js';
+import { buildActivePalette } from './palette-utils.js';
 
 function flattenAlpha(imageData, threshold = 128) {
     const data = imageData.data;
@@ -78,56 +78,8 @@ function applyDitherDenoise(imageData, strength) {
     return new ImageData(dst, width, height);
 }
 
-function buildActivePalette(options) {
-    const active = [];
-    const disabled = new Set(options.disabledHexes || []);
-    
-    const addColor = (c) => {
-        const rgb = c.rgb || c;
-        if (!rgb || rgb.length < 3) return;
-        const hex = '#' + rgb.map(x => x.toString(16).padStart(2, '0').toUpperCase()).join('');
-        if (!disabled.has(hex)) active.push(rgb);
-    };
-
-    // 🌟 2. 각 탭에 맞는 팔레트만 엄격하게 분리해서 담습니다!
-    if (options.mode === 'geopixels') {
-        if (typeof geopixelsColors !== 'undefined') geopixelsColors.forEach(addColor);
-        
-        // 🌟 타 플랫폼 병합 체크 여부 확인
-        if (options.useWplaceInGeopixels) {
-            if (typeof wplaceFreeColors !== 'undefined') wplaceFreeColors.forEach(addColor);
-            if (typeof wplacePaidColors !== 'undefined') wplacePaidColors.forEach(addColor);
-        }
-        if (options.useUplaceInGeopixels) { // 🌟 Uplace 병합 추가
-            if (typeof uplaceColors !== 'undefined') uplaceColors.forEach(addColor);
-        }
-        if (options.useBplaceInGeopixels) { // 🌟 Bplace 병합 추가
-            if (typeof bplaceColors !== 'undefined') bplaceColors.forEach(addColor);
-        }
-        if (options.useThreeplaceInGeopixels) { // 🌟 3Place 병합 추가
-            if (typeof threeplaceColors !== 'undefined') threeplaceColors.forEach(addColor);
-        }
-
-    } else if (options.mode === 'wplace') {
-        if (typeof wplaceFreeColors !== 'undefined') wplaceFreeColors.forEach(addColor);
-        if (typeof wplacePaidColors !== 'undefined') wplacePaidColors.forEach(addColor);
-    } else if (options.mode === 'uplace') {
-        if (typeof uplaceColors !== 'undefined') uplaceColors.forEach(addColor);
-    } else if (options.mode === 'bplace') { // 🌟 Bplace 단독 모드 추가!
-        if (typeof bplaceColors !== 'undefined') bplaceColors.forEach(addColor);
-    } else if (options.mode === '3place') { // 🌟 3Place 단독 모드 추가!
-        if (typeof threeplaceColors !== 'undefined') threeplaceColors.forEach(addColor);
-    }
-
-    // (참고) 커스텀 팔레트는 사용자가 추가한 거니까 어떤 모드든 무조건 섞어줍니다.
-    if (options.palette && Array.isArray(options.palette)) {
-        options.palette.forEach(addColor);
-    }
-
-    // 최후의 방어선 (비상용 흑백 물감)
-    if (active.length === 0) active.push([0, 0, 0]);
-    return active;
-}
+// 🌟 [레이어 기능] buildActivePalette는 이제 worker/palette-utils.js로 옮겨짐
+// (메인 스레드의 레이어 합성 "팔레트 스냅" 단계에서도 똑같은 함수가 필요해서 공용화)
 
 // 🌟 [성능] 원본 이미지를 워커 안에 캐싱해서, 슬라이더를 움직일 때마다
 // 전체 픽셀 버퍼를 메인 스레드->워커로 매번 구조적 복제하지 않도록 함.
@@ -231,6 +183,35 @@ self.onmessage = (e) => {
             self.postMessage({ type: 'previewConversionResult', imageData: currentImage, colorCounts: stats.colorCounts }, [currentImage.data.buffer]);
         }
 
+        // 🌟 [레이어 기능] 외곽선(라인아트) 레이어 추출 - 기존 변환 파이프라인(runConversionPipeline)과는
+        // 완전히 분리된 요청/응답이다. 팔레트/디더링과 무관해서(합성 시 팔레트 스냅 단계에서 처리) 슬라이더를
+        // 움직일 때마다 돌 필요가 없고, "이 레이어 전용 설정을 바꿨을 때"나 "원본 이미지/리사이즈 크기가
+        // 바뀌었을 때"만 K-means 추출 요청과 같은 방식(fire-and-forget, isWorkerBusy 안 건드림)으로 호출된다.
+        if (type === 'extractOutline') {
+            if (imageData && cacheOriginal !== false) {
+                cachedOriginal = imageData;
+            }
+            const original = imageData || cachedOriginal;
+            if (!original) throw new Error("이미지 데이터가 없습니다.");
+
+            // 🚨 리사이즈를 먼저 하면 가는 선이 평균화(블러)되어 문턱값 아래로 사라질 수 있다.
+            // 그래서 "원본 해상도에서 먼저 문턱값 판정 -> 그 다음 커버리지 비율로 다운샘플" 순서를 지킨다
+            // (extractOutlineLayer 내부에서 처리). 여기서는 알파만 정리해서 넘긴다.
+            let sourceImage = new ImageData(new Uint8ClampedArray(original.data), original.width, original.height);
+            sourceImage = flattenAlpha(sourceImage, 128);
+
+            const targetW = options.scaleWidth || sourceImage.width;
+            const targetH = options.scaleHeight || sourceImage.height;
+            const outlineImage = extractOutlineLayer(sourceImage, options.outlineParams || {}, targetW, targetH);
+
+            self.postMessage({
+                type: 'outlineResult',
+                requestId: e.data.requestId,
+                layerId: e.data.layerId,
+                imageData: outlineImage
+            }, [outlineImage.data.buffer]);
+        }
+
         if (type === 'extractKMeans') {
             if (!imageData) throw new Error("이미지 데이터가 없습니다.");
             
@@ -254,6 +235,14 @@ self.onmessage = (e) => {
 
     } catch (err) {
         console.error("🚨 [Worker 내부 에러]:", err);
-        self.postMessage({ status: 'error', message: err.message || "알 수 없는 워커 오류" });
+        // 🌟 [레이어 기능] 어떤 요청이 실패했는지 표시해둬야 WorkerBridge가 "외곽선 추출 실패"를
+        // "메인 변환 실패"로 오인해서 화면을 원본으로 되돌려버리는 사고를 막을 수 있다.
+        self.postMessage({
+            status: 'error',
+            message: err.message || "알 수 없는 워커 오류",
+            requestType: e.data?.type,
+            requestId: e.data?.requestId,
+            layerId: e.data?.layerId
+        });
     }
 };

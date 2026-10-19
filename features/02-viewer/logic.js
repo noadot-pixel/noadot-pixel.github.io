@@ -4,6 +4,8 @@ import { state, rgbToHex, t, supportsCustomColors } from '../../core/state.js';
 import { ImageViewerUI } from './ui.js';
 import { geopixelsColors, wplaceFreeColors, wplacePaidColors, uplaceColors } from '../../data/palettes.js';
 import { smartResize } from '../../worker/smart-resizer.js';
+import { compositeLayers, isLayerStackReady } from '../../core/LayerCompositor.js';
+import { getPaletteOptionsFromState, buildActivePalette, createPaletteSnapper } from '../../worker/palette-utils.js';
 
 export class ImageViewerFeature {
     constructor() {
@@ -15,6 +17,7 @@ export class ImageViewerFeature {
         state.isDragging = false;
         
         this.isEyedropperActive = false;
+        this.isComparing = false; // 🌟 [레이어 기능] 비교 버튼을 누르고 있는 동안 LAYERS_CHANGED 재렌더링이 끼어들지 못하게
         this.startDragX = 0;
         this.startDragY = 0;
         this.hasDragged = false;
@@ -68,7 +71,7 @@ export class ImageViewerFeature {
             if (data && data.imageData) {
                 state.latestConversionData = data.imageData;
                 if (!this.isEyedropperActive) {
-                    this.ui.updateCanvas(data.imageData);
+                    this.renderConverted();
                     this.updateTransform();
                 }
             } else if (data && data.imageData === null) {
@@ -78,6 +81,17 @@ export class ImageViewerFeature {
                 this.resetView();          // 화면 줌/위치 초기화
             }
             this.ui.toggleLoading(false);
+        });
+
+        // 🌟 [레이어 기능] 레이어 스택이 바뀔 때마다(추가/삭제/순서/투명도/블렌드/외곽선 설정 등)
+        // 다음 프레임에 한 번만 다시 합성한다 - 스포이드/비교 버튼이 캔버스를 다른 용도로 쓰는 중이면 건너뜀.
+        eventBus.on('LAYERS_CHANGED', () => {
+            if (this.isEyedropperActive || this.isComparing) return;
+            if (this._layersRaf) return;
+            this._layersRaf = requestAnimationFrame(() => {
+                this._layersRaf = null;
+                this.renderConverted();
+            });
         });
 
         eventBus.on('PALETTE_MODE_CHANGED', () => {
@@ -266,9 +280,10 @@ export class ImageViewerFeature {
         }
 
         const handleDownloadClick = () => {
-            const targetData = state.latestConversionData || state.originalImageData;
+            const targetData = this.getExportImageData();
             if (!targetData) {
-                alert("다운로드할 이미지가 없습니다!");
+                // 레이어가 아직 준비 중이면 getExportImageData가 이미 전용 알림을 띄웠으므로 중복 알림 생략
+                if (!state.latestConversionData) alert("다운로드할 이미지가 없습니다!");
                 return;
             }
 
@@ -700,6 +715,8 @@ export class ImageViewerFeature {
                 e.stopPropagation();
                 if (!state.originalImageData) return;
 
+                this.isComparing = true; // 🌟 비교 중엔 LAYERS_CHANGED 재렌더링이 끼어들지 않게
+
                 // 🌟 [신규] "리사이징된 사이즈를 기준으로 원본 색상으로 보기" 체크 시,
                 // 팔레트 매칭/디더링 없이 리사이즈만 적용한 원본 색상을 보여준다.
                 if (this.ui.chkViewOriginalResized && this.ui.chkViewOriginalResized.checked && state.resizeWidth && state.resizeHeight) {
@@ -713,7 +730,8 @@ export class ImageViewerFeature {
             const showConverted = (e) => {
                 if(e.cancelable) e.preventDefault();
                 e.stopPropagation();
-                if (state.latestConversionData) this.ui.showConvertedImage();
+                this.isComparing = false;
+                if (state.latestConversionData) this.renderConverted();
                 else this.ui.showOriginalImage();
             };
 
@@ -807,6 +825,61 @@ export class ImageViewerFeature {
         wire('m-wplaceLinkInput', 'm-btnWplaceLinkApply');
     }
 
+    // 🌟 [레이어 기능] 팔레트 스냅용 함수를 매번 새로 만들지 않고, 팔레트에 영향을 주는 설정이
+    // 실제로 바뀌었을 때만 다시 만든다 (worker/image-worker.js가 요청마다 팔레트를 준비하는 것과
+    // 달리, 이쪽은 매 프레임 호출될 수 있어서 메모이즈가 필요함).
+    getOrBuildSnapper() {
+        const paletteOptions = getPaletteOptionsFromState(state);
+        const key = JSON.stringify(paletteOptions);
+        if (this._snapperKey !== key) {
+            const activePalette = buildActivePalette(paletteOptions);
+            this._snapper = createPaletteSnapper(activePalette, paletteOptions.fusionParams);
+            this._snapperKey = key;
+        }
+        return this._snapper;
+    }
+
+    // 🌟 [레이어 기능] #main-canvas에 "변환된 이미지"를 그리는 유일한 통로. 레이어가 하나도 없으면
+    // (베이스만 있으면) compositeLayers가 베이스를 그대로 돌려주므로 오늘까지의 동작과 완전히 동일하다.
+    // 합성 중 에러가 나도(EventBus는 에러를 격리하지 않으므로) 베이스 이미지로 안전하게 대체한다.
+    renderConverted() {
+        if (!state.latestConversionData) return;
+        let result;
+        try {
+            const snapper = this.getOrBuildSnapper();
+            result = compositeLayers(state.latestConversionData, state.layers, {
+                snapToPalette: state.layerSnapToPalette,
+                snapper
+            });
+        } catch (err) {
+            console.error('[레이어] 합성 실패, 베이스 이미지로 대체합니다:', err);
+            result = { imageData: state.latestConversionData };
+        }
+        this._highlightBaseImageData = null; // 스포이드 하이라이트가 새 프레임 위에 덧씌워지는 걸 방지
+        this.ui.updateCanvas(result.imageData);
+    }
+
+    // 🌟 [레이어 기능] 다운로드가 내보낼 최종 이미지. 외곽선 레이어가 아직 생성 중/stale이면
+    // null을 돌려주고(호출부가 즉시 중단) 알림만 띄운다 - 다운로드 워커(worker/download.js)는
+    // 그대로 두고 "무엇을 보낼지"만 여기서 결정한다.
+    getExportImageData() {
+        if (!state.latestConversionData) return state.originalImageData;
+        if (!isLayerStackReady(state.layers, state.latestConversionData, state.imageVersion)) {
+            alert(t('alert_layers_updating'));
+            return null;
+        }
+        try {
+            const snapper = this.getOrBuildSnapper();
+            return compositeLayers(state.latestConversionData, state.layers, {
+                snapToPalette: state.layerSnapToPalette,
+                snapper
+            }).imageData;
+        } catch (err) {
+            console.error('[레이어] 내보내기용 합성 실패, 베이스 이미지로 대체합니다:', err);
+            return state.latestConversionData;
+        }
+    }
+
     adjustZoom(amount) {
         if (!state.originalImageData) return;
         let newZoom = state.currentZoom + amount;
@@ -846,9 +919,9 @@ export class ImageViewerFeature {
             //모드 해제: 툴팁 끄기 & 변환된 이미지로 롤백
             this.ui.updatePixelInfo(false);
             if (this.eyedropperTooltip) this.eyedropperTooltip.style.display = 'none';
-            
+
             if (state.latestConversionData) {
-                this.ui.updateCanvas(state.latestConversionData);
+                this.renderConverted();
             } else {
                 this.ui.showConvertedImage();
             }

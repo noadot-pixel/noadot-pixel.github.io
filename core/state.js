@@ -168,7 +168,16 @@ export const state = {
         strokeWidth: 0
     },
     recommendedColors: [],
-    timeoutId: null
+    timeoutId: null,
+
+    // 🌟 [레이어 기능] 레이어 스택. index 0은 항상 "베이스" 레이어(오늘까지의 단일 변환 파이프라인
+    // 결과, state.latestConversionData)를 가리키는 고정 항목이고, 실제 픽셀을 따로 들고 있지 않음
+    // (합성 시 compositeLayers가 latestConversionData를 직접 읽음 - 동기화 어긋날 일이 없게).
+    layers: [
+        { id: 'base', type: 'base', nameKey: 'layer_base', visible: true, locked: true }
+    ],
+    layerSnapToPalette: true, // 블렌드/반투명으로 생긴 팔레트 밖 색을 다시 스냅할지 (기본 켬 - 안전)
+    imageVersion: 0 // 새 원본이 로드될 때마다 1씩 증가 - 외곽선 레이어가 "원본이 바뀌었나" 판정하는 키
 };
 
 // 🌟 [2026-09] Youplace가 고정 팔레트를 없애고 전체 RGB를 지원하게 되어, GeoPixels처럼 임의의

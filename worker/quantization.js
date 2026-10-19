@@ -16,6 +16,70 @@ export function preprocessImageData(sourceImageData, options) {
     return new ImageData(data, sourceImageData.width, sourceImageData.height);
 }
 
+// 🌟 [레이어 기능] "외곽선(라인아트) 레이어" 추출. ibisPaint의 라인 드로잉 내보내기 필터에서
+// 착안: 채도를 0으로 만들고 대비/밝기를 올리면 어두운 경계선만 남는다는 아이디어를, 색 매칭에
+// 섞는 대신 완전히 별도의 "레이어"로 분리해서 적용한다 (색 매칭 자체는 안 건드림).
+//
+// 🚨 순서가 중요하다: 리사이즈를 먼저 하면 1~2px짜리 가는 선이 평균화(블러)되면서 문턱값
+// 아래로 사라져버린다. 그래서 "원본(source) 해상도에서 먼저 문턱값으로 잉크/비잉크를 판정
+// -> 그 다음 목표 해상도로 축소하되, 각 블록 안의 '잉크 비율'이 lineWeight 이상이면 그 칸을
+// 잉크로 남긴다"는 순서(문턱값 먼저, 다운샘플 나중)를 지킨다.
+export function extractOutlineLayer(source, params, targetW, targetH) {
+    const {
+        threshold = 96,     // 이 밝기(0~255)보다 어두우면 "잉크" 후보
+        contrast = 30,      // preprocessImageData와 동일한 범위(-100~100)
+        brightness = 0,     // preprocessImageData와 동일한 범위(-100~100)
+        lineWeight = 0.25,  // 다운샘플 블록 안에서 잉크로 판정되려면 필요한 최소 잉크 비율(0~1)
+        inkHex = '#000000'
+    } = params || {};
+
+    // preprocessImageData는 항상 새 ImageData를 반환하므로 source(캐시된 원본일 수 있음)는 절대 안 건드림
+    const pre = preprocessImageData(source, { saturation: 0, brightness, contrast });
+    const srcW = pre.width, srcH = pre.height;
+    const preData = pre.data;
+    const srcAlpha = source.data;
+
+    // 1. 원본 해상도에서 잉크 마스크 산출
+    const inkMask = new Uint8Array(srcW * srcH);
+    for (let i = 0; i < srcW * srcH; i++) {
+        const p = i * 4;
+        if (srcAlpha[p + 3] < 128) continue; // 투명 픽셀은 잉크가 될 수 없음
+        const luma = preData[p] * 0.299 + preData[p + 1] * 0.587 + preData[p + 2] * 0.114;
+        if (luma < threshold) inkMask[i] = 1;
+    }
+
+    // 2. 커버리지 비율로 목표 해상도까지 다운샘플
+    const inkR = parseInt(inkHex.slice(1, 3), 16) || 0;
+    const inkG = parseInt(inkHex.slice(3, 5), 16) || 0;
+    const inkB = parseInt(inkHex.slice(5, 7), 16) || 0;
+    // 새로 할당한 버퍼는 이미 전부 0 -> 코드베이스 공통 투명 규약(alpha=0 & rgb=0)과 자동으로 일치
+    const outData = new Uint8ClampedArray(targetW * targetH * 4);
+
+    for (let ty = 0; ty < targetH; ty++) {
+        const sy0 = Math.floor(ty * srcH / targetH);
+        const sy1 = Math.max(sy0 + 1, Math.floor((ty + 1) * srcH / targetH));
+        for (let tx = 0; tx < targetW; tx++) {
+            const sx0 = Math.floor(tx * srcW / targetW);
+            const sx1 = Math.max(sx0 + 1, Math.floor((tx + 1) * srcW / targetW));
+
+            let inkCount = 0, total = 0;
+            for (let sy = sy0; sy < sy1; sy++) {
+                for (let sx = sx0; sx < sx1; sx++) {
+                    total++;
+                    if (inkMask[sy * srcW + sx]) inkCount++;
+                }
+            }
+
+            if (total > 0 && (inkCount / total) >= lineWeight) {
+                const o = (ty * targetW + tx) * 4;
+                outData[o] = inkR; outData[o + 1] = inkG; outData[o + 2] = inkB; outData[o + 3] = 255;
+            }
+        }
+    }
+
+    return new ImageData(outData, targetW, targetH);
+}
+
 function applyPaletteToImage(imageData, palette, options) {
     const { width, height, data } = imageData;
     const posterizedData = new ImageData(width, height);

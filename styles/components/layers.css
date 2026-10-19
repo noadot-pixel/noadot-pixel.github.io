@@ -1,0 +1,237 @@
+/* =========================================
+   🧩 4. 레이어 스타일
+========================================= */
+
+.lyr-panel {
+    background: var(--bg-surface);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.lyr-add-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.lyr-btn-add {
+    flex: 1;
+    padding: 10px;
+    font-size: 0.85em;
+    font-weight: 800;
+    border-radius: 8px;
+    border: none;
+    color: white;
+    background: linear-gradient(145deg, #3498db, #2980b9);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(52, 152, 219, 0.3);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.lyr-btn-add:hover {
+    background: linear-gradient(145deg, #4aa8e0, #3498db);
+}
+
+.lyr-btn-add:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+.lyr-list {
+    list-style: none;
+    margin: 0 0 12px 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    /* 레이어가 많아져도 사이드바가 무한정 길어지지 않도록 */
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.lyr-row {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+
+.lyr-row-base {
+    opacity: 0.85;
+}
+
+.lyr-row-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lyr-vis-toggle input {
+    cursor: pointer;
+}
+
+.lyr-name {
+    flex: 1;
+    font-weight: bold;
+    font-size: 0.9em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lyr-status {
+    font-size: 0.7em;
+    font-weight: 900;
+    padding: 2px 6px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.lyr-status-pending {
+    color: #fff;
+    background: #e67e22;
+}
+
+.lyr-status-error {
+    color: #fff;
+    background: #e74c3c;
+}
+
+.lyr-row-btns {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.lyr-row-btns button {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75em;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.lyr-row-btns button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.lyr-btn-remove {
+    color: #e74c3c !important;
+    border-color: #e74c3c !important;
+}
+
+.lyr-row-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.lyr-opacity-row,
+.lyr-blend-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8em;
+    flex: 1;
+    min-width: 120px;
+}
+
+.lyr-opacity-row span:first-child,
+.lyr-blend-row span:first-child {
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.lyr-opacity-row input[type="range"] {
+    flex: 1;
+    width: auto;
+}
+
+.lyr-opacity-val {
+    font-weight: bold;
+    font-size: 0.85em;
+    min-width: 32px;
+    text-align: right;
+}
+
+.lyr-blend-row select {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.85em;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 2px 4px;
+}
+
+.lyr-outline-settings {
+    margin-top: 8px;
+    border-top: 1px dashed var(--border-color);
+    padding-top: 8px;
+}
+
+.lyr-outline-settings summary {
+    cursor: pointer;
+    font-size: 0.8em;
+    font-weight: bold;
+    color: var(--text-secondary);
+}
+
+.lyr-outline-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78em;
+    margin-top: 6px;
+}
+
+.lyr-outline-field span:first-child {
+    width: 60px;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+}
+
+.lyr-outline-field input[type="range"] {
+    flex: 1;
+    width: auto;
+}
+
+.lyr-val {
+    min-width: 32px;
+    text-align: right;
+    font-weight: bold;
+}
+
+.lyr-outline-field-color input[type="color"] {
+    width: 32px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.lyr-snap-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.lyr-snap-toggle input {
+    margin-top: 2px;
+    cursor: pointer;
+}

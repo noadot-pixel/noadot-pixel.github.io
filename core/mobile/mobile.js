@@ -6,6 +6,7 @@ const MOBILE_TAB_SLOTS = [
     'sub-slot-uploader',
     'sub-slot-resizer',
     'sub-slot-engine',
+    'sub-slot-layers',
     'sub-slot-palettes',
     'sub-slot-kmeans',
     'sub-slot-comments',
@@ -111,6 +112,10 @@ export class MobileManager {
         // 팔레트 탭을 누르면 K-Means 같이 켜기
         if (targetId === 'sub-slot-palettes') {
             slotsToShow.push('sub-slot-kmeans');
+        }
+        // 변환(engine) 탭을 누르면 레이어 패널도 같이 켜기 (4번째 네비 버튼을 새로 만들지 않고 짝꿍으로 추가)
+        if (targetId === 'sub-slot-engine') {
+            slotsToShow.push('sub-slot-layers');
         }
 
         if (targetId === 'sub-slot-download') {

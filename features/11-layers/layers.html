@@ -1,0 +1,22 @@
+<section class="sidebar-section" id="lyr-section-group">
+    <h2 data-i18n="sec_layers">4. 레이어</h2>
+
+    <div class="lyr-panel">
+        <div class="lyr-add-row">
+            <button id="lyr-btn-add-outline" type="button" class="action-btn lyr-btn-add" data-i18n="btn_layer_add_outline">
+                ✏️ 외곽선 레이어 추가
+            </button>
+            <button id="lyr-btn-add-image" type="button" class="action-btn lyr-btn-add" data-i18n="btn_layer_add_image">
+                🖼️ 이미지 레이어 추가
+            </button>
+        </div>
+        <input type="file" id="lyr-file-input" accept="image/*" style="display:none">
+
+        <ul id="lyr-list" class="lyr-list"></ul>
+
+        <label class="lyr-snap-toggle">
+            <input type="checkbox" id="lyr-chk-allow-offpalette">
+            <span data-i18n="chk_layer_allow_offpalette">팔레트 밖 색상 허용 (끄면 합성 후 가장 가까운 팔레트 색으로 스냅)</span>
+        </label>
+    </div>
+</section>

@@ -1,6 +1,7 @@
 // js/core/WorkerBridge.js
 import { eventBus } from './EventBus.js';
-import { state, hexToRgb, supportsCustomColors } from './state.js';
+import { state, hexToRgb } from './state.js';
+import { getPaletteOptionsFromState } from '../worker/palette-utils.js';
 
 export class WorkerBridge {
     constructor() {
@@ -50,11 +51,19 @@ export class WorkerBridge {
             const { type, status, message } = payload;
 
             if (status === 'error') {
+                // 🌟 [레이어 기능] 외곽선 레이어 추출 실패는 메인 변환 실패와 다르게 처리한다.
+                // REQUEST_OUTLINE_LAYER는 애초에 isWorkerBusy를 안 쓰는 별도 요청이라, 여기서
+                // isWorkerBusy를 풀거나 화면을 원본으로 되돌리면 메인 변환 상태를 망가뜨린다.
+                if (payload.requestType === 'extractOutline') {
+                    eventBus.emit('OUTLINE_LAYER_FAILED', { layerId: payload.layerId, requestId: payload.requestId, message });
+                    return;
+                }
+
                 console.error(`[Worker Error] ${message}`);
-                this.isWorkerBusy = false; 
+                this.isWorkerBusy = false;
                 state.isConverting = false;
                 eventBus.emit('WORKER_ERROR', message);
-                eventBus.emit('CONVERSION_COMPLETE', { imageData: state.originalImageData }); 
+                eventBus.emit('CONVERSION_COMPLETE', { imageData: state.originalImageData });
                 return;
             }
 
@@ -97,6 +106,11 @@ export class WorkerBridge {
                 // 절대 건드리지 않고 팝업에게만 결과를 전달한다.
                 case 'previewConversionResult':
                     eventBus.emit('PALETTE_PREVIEW_READY', { imageData: payload.imageData, colorCounts: payload.colorCounts });
+                    break;
+
+                // 🌟 [레이어 기능] 외곽선 레이어 추출 결과 - 메인 변환 상태(isWorkerBusy 등)는 안 건드림
+                case 'outlineResult':
+                    eventBus.emit('OUTLINE_LAYER_READY', { layerId: payload.layerId, requestId: payload.requestId, imageData: payload.imageData });
                     break;
             }
         };
@@ -169,6 +183,26 @@ export class WorkerBridge {
             message.type = 'previewConvert';
             message.options.disabledHexes = payload.disabledHexes || [];
             this.worker.postMessage(message);
+        });
+
+        // 🌟 [레이어 기능] 외곽선 레이어 추출 - REQUEST_PALETTE_PREVIEW와 같은 패턴으로
+        // isWorkerBusy/hasPendingRequest를 전혀 건드리지 않는 fire-and-forget 요청.
+        // 이 요청이 가능한 시점엔(레이어 기능 쪽에서 latestConversionData 없으면 요청 자체를 안 보냄)
+        // 이미 최소 한 번은 메인 변환이 끝난 뒤라, 워커의 cachedOriginal이 항상 준비돼 있어서
+        // 원본 픽셀 버퍼를 다시 전송하지 않아도 된다.
+        eventBus.on('REQUEST_OUTLINE_LAYER', ({ layerId, requestId, params, width, height }) => {
+            if (!state.originalImageData) return;
+            this.worker.postMessage({
+                type: 'extractOutline',
+                cacheOriginal: false,
+                requestId,
+                layerId,
+                options: {
+                    outlineParams: params,
+                    scaleWidth: width,
+                    scaleHeight: height
+                }
+            });
         });
     }
 
@@ -244,30 +278,11 @@ export class WorkerBridge {
                 useOrganicNoise: state.useOrganicNoise ?? false, //노이징 파트
                 organicNoiseStrength: state.organicNoiseStrength ?? 50,
 
-                // 기타 시스템 설정
-                mode: state.currentMode || 'geopixels',
-                useWplaceInGeopixels: state.useWplaceInGeopixels || false,
-                useUplaceInGeopixels: state.useUplaceInGeopixels || false,
-                useBplaceInGeopixels: state.useBplaceInGeopixels || false,
-                useThreeplaceInGeopixels: state.useThreeplaceInGeopixels || false,
-                palette: supportsCustomColors(state.currentMode) ? (state.addedColors || []) : [],
-                disabledHexes: state.disabledHexes || [],
+                // 기타 시스템 설정 + 팔레트 관련 필드 (레이어 합성 스냅 단계와 반드시 같은 구성이어야 해서 공용 함수로 뽑음)
                 scaleWidth: state.resizeWidth,
                 scaleHeight: state.resizeHeight,
                 resizeMode: state.resizeMode || 'average',
-                
-                // 퓨전 엔진 파라미터
-                fusionParams: (() => {
-                    const isSimple = state.algoTrack !== 'advanced'; 
-
-                    const params = {
-                        modelA: state.algoModelA || 'oklab',
-                        modelB: isSimple ? 'none' : (state.algoModelB || 'none'),
-                        weightM: isSimple ? 0 : (state.algoWeightM !== undefined ? state.algoWeightM : 0), 
-                        chromaBoost: state.algoChromaBoost !== undefined ? state.algoChromaBoost : 10
-                    };
-                    return params;
-                })()
+                ...getPaletteOptionsFromState(state)
             }
         };
 
