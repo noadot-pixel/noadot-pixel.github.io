@@ -50,6 +50,10 @@
                             <input type="checkbox" id="chkDlWplace"> <span data-i18n="dl_wplace">.wplace</span>
                         </label>
                         <div id="popupDlWplace" class="dl-popup dl-popup-wplace">
+                            <div class="dl-wplace-link-row" data-i18n-title="title_wplace_link_paste" title="wplace.live에서 핀을 찍고 '공유(Share)' 버튼을 눌러 나오는 링크를 붙여넣으면 좌표가 자동으로 채워집니다">
+                                <input type="text" id="wplaceLinkInput" placeholder="wplace.live 공유 링크 붙여넣기">
+                                <button type="button" id="btnWplaceLinkApply" class="mini-btn" data-i18n="btn_wplace_link_apply">🔗 적용</button>
+                            </div>
                             <div class="dl-grid-2">
                                 <label class="dl-grid-label">TX <input type="number" id="wplaceTileX" class="dl-input-number"></label>
                                 <label class="dl-grid-label">TY <input type="number" id="wplaceTileY" class="dl-input-number"></label>

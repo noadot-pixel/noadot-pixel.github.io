@@ -33,6 +33,10 @@
             </label>
             <div id="m-popupDlWplace" class="m-sub-options" style="display: none;">
                 <p style="font-size: 0.8em; color: var(--text-secondary); margin-bottom: 5px;">* 좌표 복사 후 붙여넣기 (Ctrl+V)</p>
+                <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                    <input type="text" id="m-wplaceLinkInput" class="ui-input" style="flex:1; min-width:0; font-size:0.8em;" placeholder="wplace.live 공유 링크 붙여넣기">
+                    <button type="button" id="m-btnWplaceLinkApply" class="mini-btn" style="white-space:nowrap; font-size:0.8em;" data-i18n="btn_wplace_link_apply">🔗 적용</button>
+                </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <label style="font-size: 0.8em;">TX <input type="number" id="m-wplaceTileX" class="ui-input" placeholder="0"></label>
                     <label style="font-size: 0.8em;">TY <input type="number" id="m-wplaceTileY" class="ui-input" placeholder="0"></label>

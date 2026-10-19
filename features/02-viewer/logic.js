@@ -433,6 +433,12 @@ export class ImageViewerFeature {
         setupToggle('m-chkDlWplace', 'm-popupDlWplace');
         setupToggle('m-chkDl3place', 'm-popupDl3place');
 
+        // 🌟 [신규] wplace.live "공유(Share)" 링크(https://wplace.live/?lat=...&lng=...)를 붙여넣으면
+        // TX/TY/PX/PY를 자동으로 채워준다. 확장 스크립트(블루마블 등) 없이는 좌표가 화면에 안 보이는
+        // 유저도 핀 찍고 공유 버튼만 누르면 되도록. worker/download.js의 pixelToLat/pixelToLng(지구
+        // 좌표 변환 공식)를 정확히 역산한 것으로, 왕복 변환 오차 0인 걸 직접 확인했다.
+        this.setupWplaceLinkPaste();
+
         // 🌟 [버그 수정] 3Place 배치 방향 스위치(눕혀서/세워서) - 라디오를 커스텀 스위치처럼 꾸미면서
         // 시각적으로만 숨긴(visually-hidden) input을 label로 감쌌는데, 환경에 따라 label 클릭이 감싸진
         // input을 제대로 활성화(체크)하지 못하는 경우가 있어서 직접 체크 처리하도록 명시적으로 배선한다.
@@ -736,6 +742,69 @@ export class ImageViewerFeature {
                 mPopupDlBplace.style.display = e.target.checked ? 'block' : 'none';
             });
         }
+    }
+
+    // lat/lng -> wplace 글로벌 픽셀 좌표 역산 (worker/download.js의 pixelToLat/pixelToLng과 정확히 쌍을 이룸.
+    // 왕복 변환 오차 0인 걸 직접 테스트로 확인했음)
+    parseWplaceLink(text) {
+        if (!text || !text.trim()) return null;
+        let url;
+        try {
+            // 사용자가 "https://" 없이 붙여넣었을 수도 있으니 보정
+            const raw = text.trim();
+            url = new URL(raw.includes('://') ? raw : `https://${raw}`);
+        } catch {
+            return null;
+        }
+
+        const lat = parseFloat(url.searchParams.get('lat'));
+        const lng = parseFloat(url.searchParams.get('lng'));
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+        const MAP_SIZE = 2048000;
+        const x = (lng + 180) / 360 * MAP_SIZE;
+        const latRad = lat * Math.PI / 180;
+        const gdInv = Math.log(Math.tan(Math.PI / 4 + latRad / 2)); // 역 구데르만 함수
+        const y = (MAP_SIZE / 2) * (1 - gdInv / Math.PI);
+
+        const px = Math.floor(x), py = Math.floor(y);
+        return {
+            tx: Math.floor(px / 1000), px: ((px % 1000) + 1000) % 1000,
+            ty: Math.floor(py / 1000), py: ((py % 1000) + 1000) % 1000
+        };
+    }
+
+    // 🌟 [신규] wplace.live "공유(Share)" 링크(https://wplace.live/?lat=...&lng=...)를 붙여넣으면
+    // TX/TY/PX/PY를 자동으로 채워준다. 확장 스크립트(블루마블 등) 없이는 좌표가 화면에 안 보이는
+    // 유저도 핀 찍고 공유 버튼만 누르면 되도록.
+    setupWplaceLinkPaste() {
+        const wire = (inputId, btnId) => {
+            const input = document.getElementById(inputId);
+            const btn = document.getElementById(btnId);
+            if (!input || !btn) return;
+
+            const apply = () => {
+                const coords = this.parseWplaceLink(input.value);
+                if (!coords) { alert(t('alert_invalid_wplace_link')); return; }
+
+                // PC/모바일 양쪽 입력칸을 전부 채워서 화면을 전환해도 값이 유지되게 한다
+                [['wplaceTileX', 'm-wplaceTileX'], ['wplaceTileY', 'm-wplaceTileY'], ['wplacePixelX', 'm-wplacePixelX'], ['wplacePixelY', 'm-wplacePixelY']]
+                    .forEach(([pcId, mId], i) => {
+                        const val = [coords.tx, coords.ty, coords.px, coords.py][i];
+                        const pcEl = document.getElementById(pcId);
+                        const mEl = document.getElementById(mId);
+                        if (pcEl) pcEl.value = val;
+                        if (mEl) mEl.value = val;
+                    });
+            };
+
+            btn.addEventListener('click', apply);
+            // 붙여넣기(Ctrl+V) 직후 Enter 없이도 바로 반영되도록
+            input.addEventListener('paste', () => setTimeout(apply, 0));
+        };
+
+        wire('wplaceLinkInput', 'btnWplaceLinkApply');
+        wire('m-wplaceLinkInput', 'm-btnWplaceLinkApply');
     }
 
     adjustZoom(amount) {

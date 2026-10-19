@@ -266,6 +266,27 @@
 }
 .dl-popup-wplace .dl-input-number { width: 100%; }
 
+.dl-wplace-link-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.dl-wplace-link-row input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.75em;
+    padding: 6px 8px;
+    background: var(--bg-color);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+}
+.dl-wplace-link-row .mini-btn {
+    white-space: nowrap;
+    font-size: 0.75em;
+    padding: 0 8px;
+}
+
 .dl-label-small {
     font-size: 0.85em;
     display: flex;
