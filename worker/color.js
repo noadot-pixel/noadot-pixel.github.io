@@ -320,7 +320,15 @@ export function findClosestColorFusion(r, g, b, activePalette, fusionParams) {
                 const lumaDiff = Math.abs(target.oklab[0] - pal.oklab[0]);
                 // 밝기 차이가 적을 때만 채도 페널티를 강하게 줌
                 if (lumaDiff < 0.2) {
-                    finalDistance += (target.chroma - palChroma) * (fusionParams.chromaBoost / 10.0);
+                    // 🌟 [버그 수정] 사람 눈은 아주 어둡거나(그림자) 아주 밝은(하이라이트) 영역에서는
+                    // 미세한 채도 차이를 거의 구분 못 함. 그런데 이 보호막을 명도와 상관없이 똑같이 세게
+                    // 걸다 보니, 거의 무채색에 가까운 어두운 그림자가 "채도가 너무 낮다"는 이유로
+                    // deep red처럼 명도는 비슷하지만 채도가 높은 엉뚱한 색으로 끌려가는 부작용이 있었음
+                    // (실측: 기본값 chromaBoost=10일 때 어두운 그림자색의 98%가 deep red로 매칭됨).
+                    // 중간 명도(L≈0.5)에서 가장 강하게 걸고, 명도 0/1 양 끝으로 갈수록 0에 수렴하도록
+                    // 완화한다 (포물선 형태: 4*L*(1-L)).
+                    const lightnessFactor = Math.max(0, Math.min(1, (target.oklab[0] - 0.2) / 0.25));
+                    finalDistance += (target.chroma - palChroma) * (fusionParams.chromaBoost / 10.0) * lightnessFactor;
                 }
             }
         }
