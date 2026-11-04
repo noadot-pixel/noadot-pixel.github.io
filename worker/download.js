@@ -197,20 +197,24 @@ self.onmessage = async (e) => {
                 const blob = await canvas.convertToBlob({ type: 'image/png' });
                 const layerName = (options.colorNameMap && options.colorNameMap[hex]) ? options.colorNameMap[hex] : hex;
                 const safeLayerName = layerName.replace(/[\/\\?%*:|"<>]/g, '_'); // 특수문자가 폴더를 망가뜨리지 않게 치환
+                // 🌟 [신규] 파일명 뒤에 해당 색이 실제로 몇 픽셀 쓰였는지 붙여서, 압축 전에도
+                // 어떤 색을 얼마나 찍어야 하는지 한눈에 보이게 한다 (indices가 그 색의 픽셀 좌표 목록이라 길이 = 사용량).
+                const count = indices.length;
+                const layerFileName = `${safeLayerName}_${count}`;
 
-                zip.file(`layers/layer_${safeLayerName}.png`, blob);
+                zip.file(`layers/layer_${layerFileName}.png`, blob);
 
                 if (options.isUplace) {
-                    const uBlob = generateUplaceBlob(width, height, layerData.data, timestamp, `_layer_${safeLayerName}`);
-                    zip.file(`layers/layer_${safeLayerName}.you`, uBlob);
+                    const uBlob = generateUplaceBlob(width, height, layerData.data, timestamp, `_layer_${layerFileName}`);
+                    zip.file(`layers/layer_${layerFileName}.you`, uBlob);
                 }
                 if (options.isWplace) {
                     const reader = new FileReaderSync();
                     const dataUrl = reader.readAsDataURL(blob);
                     const gX = (options.wplaceTX * 1000) + options.wplacePX;
                     const gY = (options.wplaceTY * 1000) + options.wplacePY;
-                    const wBlob = generateWplaceBlob(width, height, dataUrl, gX, gY, timestamp, `_layer_${safeLayerName}`);
-                    zip.file(`layers/layer_${safeLayerName}.wplace`, wBlob);
+                    const wBlob = generateWplaceBlob(width, height, dataUrl, gX, gY, timestamp, `_layer_${layerFileName}`);
+                    zip.file(`layers/layer_${layerFileName}.wplace`, wBlob);
                 }
             }
         }
