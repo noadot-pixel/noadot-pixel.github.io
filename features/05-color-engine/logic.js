@@ -553,6 +553,15 @@ export class ConversionOptionsFeature {
             });
         }
 
+        // 🌟 채도 보호막 보정 방식: classic(원래 방식, 명도 무관) / cbd(어두운 영역 보정)
+        const chromaBoostModeSelect = document.getElementById('chromaBoostModeSelect');
+        if (chromaBoostModeSelect) {
+            chromaBoostModeSelect.addEventListener('change', (e) => {
+                state.chromaBoostMode = e.target.value;
+                eventBus.emit('OPTION_CHANGED');
+            });
+        }
+
         document.querySelectorAll('input[name="paletteMode"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
                 state.addedColors = [];

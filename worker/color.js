@@ -320,14 +320,19 @@ export function findClosestColorFusion(r, g, b, activePalette, fusionParams) {
                 const lumaDiff = Math.abs(target.oklab[0] - pal.oklab[0]);
                 // 밝기 차이가 적을 때만 채도 페널티를 강하게 줌
                 if (lumaDiff < 0.2) {
-                    // 🌟 [버그 수정] 사람 눈은 아주 어둡거나(그림자) 아주 밝은(하이라이트) 영역에서는
-                    // 미세한 채도 차이를 거의 구분 못 함. 그런데 이 보호막을 명도와 상관없이 똑같이 세게
-                    // 걸다 보니, 거의 무채색에 가까운 어두운 그림자가 "채도가 너무 낮다"는 이유로
-                    // deep red처럼 명도는 비슷하지만 채도가 높은 엉뚱한 색으로 끌려가는 부작용이 있었음
+                    // 🌟 [classic] 원래 방식: 명도와 무관하게 페널티를 똑같이 세게 건다.
+                    // 단점: 거의 무채색에 가까운 어두운 그림자도 "채도가 너무 낮다"는 이유로 deep red처럼
+                    // 명도는 비슷하지만 채도가 높은 엉뚱한 색으로 끌려가는 부작용이 있다
                     // (실측: 기본값 chromaBoost=10일 때 어두운 그림자색의 98%가 deep red로 매칭됨).
-                    // 중간 명도(L≈0.5)에서 가장 강하게 걸고, 명도 0/1 양 끝으로 갈수록 0에 수렴하도록
-                    // 완화한다 (포물선 형태: 4*L*(1-L)).
-                    const lightnessFactor = Math.max(0, Math.min(1, (target.oklab[0] - 0.2) / 0.25));
+                    //
+                    // 🌟 [cbd] Chroma Boost - Darkness-aware: 사람 눈은 아주 어둡거나(그림자) 아주 밝은
+                    // (하이라이트) 영역에서는 미세한 채도 차이를 거의 구분 못 한다는 점을 반영해, 어두운
+                    // 영역(L<0.2)에서는 페널티를 0에 가깝게 완화하고 L>=0.45부터는 classic과 동일하게
+                    // 유지하는 선형 램프를 곱한다. 피부톤 보호 목적(중간~밝은 명도)은 그대로 살리면서
+                    // 그림자 영역의 오염만 없앤 개선판 - classic을 대체하지 않고 별도 선택지로 둔다.
+                    const lightnessFactor = fusionParams.chromaBoostMode === 'cbd'
+                        ? Math.max(0, Math.min(1, (target.oklab[0] - 0.2) / 0.25))
+                        : 1;
                     finalDistance += (target.chroma - palChroma) * (fusionParams.chromaBoost / 10.0) * lightnessFactor;
                 }
             }

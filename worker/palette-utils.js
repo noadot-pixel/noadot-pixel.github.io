@@ -78,7 +78,8 @@ export function getPaletteOptionsFromState(state) {
                 modelA: state.algoModelA || 'oklab',
                 modelB: isSimple ? 'none' : (state.algoModelB || 'none'),
                 weightM: isSimple ? 0 : (state.algoWeightM !== undefined ? state.algoWeightM : 0),
-                chromaBoost: state.algoChromaBoost !== undefined ? state.algoChromaBoost : 10
+                chromaBoost: state.algoChromaBoost !== undefined ? state.algoChromaBoost : 10,
+                chromaBoostMode: state.chromaBoostMode || 'classic'
             };
         })()
     };

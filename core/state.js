@@ -79,6 +79,7 @@ export const CONFIG = {
         algoModelB: 'none',
         algoWeightM: 0,
         algoChromaBoost: 10,
+        chromaBoostMode: 'classic', // 'classic'(명도 무관, 원래 방식) | 'cbd'(어두운 영역 보정)
 
         applyOutlineExpansion: false,
         applySmartSampling: false,
