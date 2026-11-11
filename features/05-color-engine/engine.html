@@ -21,7 +21,8 @@
                     </select>
                 </div>
 
-                <div id="advancedAlgoPanel" class="engine-advanced-panel" style="display: none;">
+                <details id="advancedAlgoPanel" class="engine-advanced-panel" style="display: none;">
+                    <summary class="engine-advanced-summary" data-i18n="label_advanced_details">⚙️ 전문가 세부 설정 (펼치기/접기)</summary>
                     <div class="control-group engine-sub-group">
                         <label class="engine-label-sm" data-i18n="label_model_a">모델 A (기본 베이스)</label>
                         <select id="advancedModelA" class="ui-select">
@@ -67,7 +68,7 @@
                         </select>
                         <small class="engine-desc-sm" data-i18n="desc_chroma_boost_mode">CBD를 선택하면 어두운 그림자 영역에서는 이 보정을 약하게 걸어, 그림자가 엉뚱한 선명한 색(예: 진한 빨강)으로 끌리는 현상을 줄입니다.</small>
                     </div>
-                </div>
+                </details>
             </div>
 
             <hr class="engine-divider">

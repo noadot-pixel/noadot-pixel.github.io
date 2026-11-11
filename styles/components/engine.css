@@ -104,6 +104,27 @@
     margin-bottom: 10px;
 }
 
+/* 🌟 [UI 개선] 전문가(퓨전) 세부 설정은 기본값으로 접혀 있어서, 채도/밝기/대비처럼 자주 쓰는
+   기본 옵션이 화면 아래로 밀려나지 않고 스크롤 없이 바로 보이게 한다. 펼치고 싶을 때만 눌러서 연다. */
+.engine-advanced-panel summary.engine-advanced-summary {
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.9em;
+    font-weight: bold;
+    color: var(--text-secondary);
+    padding: 2px 0;
+}
+
+.engine-advanced-panel summary.engine-advanced-summary:hover {
+    color: var(--text-primary);
+}
+
+.engine-advanced-panel[open] summary.engine-advanced-summary {
+    margin-bottom: 10px;
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 8px;
+}
+
 .engine-sub-group {
     margin-bottom: 8px;
 }
