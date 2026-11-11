@@ -220,6 +220,73 @@
     font-size: 0.9em;
 }
 
+/* 🌟 [UI 개선] 체크박스 하나 + 그 색상 그리드(접이식)를 한 묶음으로 세로로 쌓는 행.
+   병합 팔레트 색상 그리드가 더 이상 위쪽 #palette-container에 통째로 쌓이지 않고,
+   각 체크박스 "자기 자리 바로 아래"에만 머물러서 다른 체크박스를 밀어내리지 않는다. */
+.palette-inclusion-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* 체크박스를 켰을 때만 내용이 생기는 접이식 영역의 바깥 여백. 비어 있을 땐(미체크 상태)
+   자식이 없어 높이 0이라 레이아웃에 영향을 주지 않는다. */
+.palette-inclusion-swatches:not(:empty) {
+    margin-left: 4px;
+}
+
+/* 카테고리(무료/유료 등)별 접이식 박스 - 기본값 접힘. engine.css의 전문가 세부 설정과
+   같은 "작고 조용한 토글" 언어를 재사용해서 전체 디자인 톤을 맞춘다. */
+.palette-inclusion-details {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px dashed var(--border-color);
+    border-radius: 6px;
+    padding: 6px 8px;
+    margin-bottom: 6px;
+}
+
+.palette-inclusion-details:last-child {
+    margin-bottom: 0;
+}
+
+.palette-inclusion-details summary {
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.8em;
+    font-weight: bold;
+    color: var(--text-secondary);
+    list-style: none; /* 기본 삼각형 마커 대신 아래 커스텀 화살표만 보이게 */
+}
+
+.palette-inclusion-details summary::-webkit-details-marker {
+    display: none;
+}
+
+.palette-inclusion-details summary::after {
+    content: '▽';
+    margin-left: 4px;
+    font-size: 0.85em;
+}
+
+.palette-inclusion-details[open] summary::after {
+    content: '△';
+}
+
+.palette-inclusion-details summary:hover {
+    color: var(--text-primary);
+}
+
+.palette-inclusion-details[open] summary {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.palette-inclusion-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 5px;
+}
+
 /* 3. 커스텀 팔레트 수량 명세 */
 .custom-palette-count {
     color: var(--accent-primary);

@@ -67,7 +67,7 @@ export class PaletteSelectorUI {
     renderBasePalettes() {
         if (!this.paletteContainer) return;
         const mode = state.currentMode;
-        
+
         this.paletteContainer.innerHTML = '';
         this.paletteContainer.style.display = 'grid';
         this.paletteContainer.style.gridTemplateColumns = 'repeat(6, 1fr)';
@@ -75,53 +75,27 @@ export class PaletteSelectorUI {
 
         // ==========================================
         // 🌟 [그룹화 설계] 플랫폼 및 상품 등급별 분리 배정
+        // 🚨 [UI 개선] geopixels 모드에서 "다른 플랫폼 팔레트 함께 사용하기" 병합 그룹은
+        // 더 이상 여기(#palette-container)에 쌓지 않는다. 체크박스를 켤 때마다 그 색상 그리드가
+        // 전부 이 위쪽 컨테이너에 통째로 삽입되면서, 바로 아래에 있는 다른 체크박스들이 화면
+        // 밖으로 밀려나 "체크 -> 스크롤 -> 체크 -> 스크롤"을 반복해야 했던 피드백이 있었음
+        // (renderInclusionSwatches()가 각 체크박스 자기 자리 바로 아래, 접힌 상태로 따로 그려줌).
         // ==========================================
         let groups = [];
-        let colorsToRender = [];
 
         if (mode === 'geopixels') {
             groups.push({ label: 'GeoPixels', colors: geopixelsColors });
-            colorsToRender = [...geopixelsColors];
-            if (state.useWplaceInGeopixels) {
-                groups.push({ label: t('palette_wplace_free') || 'Wplace 기본색', colors: wplaceFreeColors });
-                groups.push({ label: t('palette_wplace_paid') || 'Wplace 유료색', colors: wplacePaidColors });
-                colorsToRender = [...colorsToRender, ...wplaceFreeColors, ...wplacePaidColors];
-            }
-
-            if (state.useUplaceInGeopixels) {
-                groups.push({ label: 'Uplace', colors: uplaceColors });
-                colorsToRender = [...colorsToRender, ...uplaceColors];
-            }
-
-            // 🌟 [버그 수정] 이 분기가 아래쪽에 중복된 mode==='geopixels' 블록에만 있어서
-            // 실제로는 절대 실행되지 않던 죽은 코드였음 -> 여기로 옮겨서 실제로 동작하게 함
-            if (state.useBplaceInGeopixels) {
-                groups.push({ label: t('palette_bplace') || 'Bplace', colors: bplaceColors });
-                colorsToRender = [...colorsToRender, ...bplaceColors];
-            }
-
-            if (state.useThreeplaceInGeopixels) {
-                groups.push({ label: t('palette_3place') || '3Place', colors: threeplaceColors });
-                colorsToRender = [...colorsToRender, ...threeplaceColors];
-            }
-
         } else if (mode === 'wplace') {
             // 🌟 t('번역 키값')을 사용해 언어 설정에 맞게 글자가 출력되게 합니다.
             groups.push({ label: t('palette_wplace_free') || 'Wplace 기본색', colors: wplaceFreeColors });
             groups.push({ label: t('palette_wplace_paid') || 'Wplace 유료색', colors: wplacePaidColors });
-            colorsToRender = [...wplaceFreeColors, ...wplacePaidColors];
         } else if (mode === 'uplace') {
             groups.push({ label: t('palette_uplace') || 'Uplace', colors: uplaceColors });
-            colorsToRender = [...uplaceColors];
         } else if (mode === 'bplace') {
             groups.push({ label: t('palette_bplace') || 'Bplace', colors: bplaceColors });
-            colorsToRender = [...bplaceColors];
         } else if (mode === '3place') {
             groups.push({ label: t('palette_3place') || '3Place', colors: threeplaceColors });
-            colorsToRender = [...threeplaceColors];
         }
-
-        const globalCounts = state.latestColorCounts || {};
 
         groups.forEach(group => {
             // 섹션이 쪼개져 있거나 Wplace 모드 단독일 때 서브 타이틀 증명 바 삽입
@@ -131,71 +105,160 @@ export class PaletteSelectorUI {
                 titleEl.textContent = group.label;
                 this.paletteContainer.appendChild(titleEl);
             }
+            this.renderGroupSwatches(this.paletteContainer, group);
+        });
 
-            // ==========================================
-            // 🌟 [신규] 각 그룹별 전용 'A (전체 선택/해제)' 버튼 생성!
-            // ==========================================
-            const groupAllBtn = document.createElement('button');
-            groupAllBtn.className = 'color-btn'; // 기존 네모난 버튼 스타일 상속
-            groupAllBtn.textContent = 'A';
-            
-            // 해당 그룹 내에 하나라도 꺼져있는 색이 있는지 확인
-            const groupHexes = group.colors.map(c => this.rgbToHex(...c.rgb).toUpperCase());
-            const hasDisabled = groupHexes.some(hex => state.disabledHexes?.includes(hex));
-            
-            Object.assign(groupAllBtn.style, {
-                backgroundColor: hasDisabled ? '#444' : '#fff',
-                color: hasDisabled ? '#fff' : '#111',
-                fontWeight: '900',
-                border: '2px solid var(--accent-primary)',
+        // 🌟 geopixels 모드에서만 "다른 플랫폼 팔레트 함께 사용하기" 체크박스가 보이므로,
+        // 그 병합 팔레트 접이식 영역도 geopixels 모드에서만 채우고 그 외 모드에서는 비운다.
+        if (mode === 'geopixels') {
+            this.renderInclusionSwatches();
+        } else {
+            this.clearInclusionSwatches();
+        }
+    }
+
+    // 🌟 [공용 추출] 그룹 하나(예: "GeoPixels", "Wplace 기본색", "Youplace")의 'A(전체 선택/해제)'
+    // 버튼 + 개별 색상 스와치들을 targetEl 안에 그려 넣는다. renderBasePalettes와
+    // renderInclusionSwatches가 완전히 동일한 스와치 생성 로직을 공유하기 위해 분리함.
+    renderGroupSwatches(targetEl, group) {
+        const globalCounts = state.latestColorCounts || {};
+
+        // ==========================================
+        // 🌟 각 그룹별 전용 'A (전체 선택/해제)' 버튼 생성!
+        // ==========================================
+        const groupAllBtn = document.createElement('button');
+        groupAllBtn.className = 'color-btn'; // 기존 네모난 버튼 스타일 상속
+        groupAllBtn.textContent = 'A';
+
+        // 해당 그룹 내에 하나라도 꺼져있는 색이 있는지 확인
+        const groupHexes = group.colors.map(c => this.rgbToHex(...c.rgb).toUpperCase());
+        const hasDisabled = groupHexes.some(hex => state.disabledHexes?.includes(hex));
+
+        Object.assign(groupAllBtn.style, {
+            backgroundColor: hasDisabled ? '#444' : '#fff',
+            color: hasDisabled ? '#fff' : '#111',
+            fontWeight: '900',
+            border: '2px solid var(--accent-primary)',
+        });
+
+        groupAllBtn.addEventListener('click', () => {
+            // 클릭 시 전체 색상이 아니라 '해당 그룹의 색상들(group.colors)'만 전달하여 토글!
+            this.paletteContainer.dispatchEvent(new CustomEvent('toggleAllColors', { detail: group.colors }));
+        });
+        targetEl.appendChild(groupAllBtn);
+
+        // ==========================================
+        // 개별 색상 버튼 생성
+        // ==========================================
+        group.colors.forEach(colorObj => {
+            const btn = document.createElement('button');
+            const hex = this.rgbToHex(...colorObj.rgb);
+            const isDisabled = state.disabledHexes?.includes(hex);
+            const textColor = this.getContrastYIQ(...colorObj.rgb);
+
+            const count = globalCounts[hex] || 0;
+            const countText = count > 0 ? (count >= 1000 ? (count / 1000).toFixed(1) + 'k' : count) : '';
+
+            btn.className = 'color-btn';
+            btn.style.backgroundColor = hex;
+            btn.style.color = textColor;
+            btn.style.position = 'relative';
+            btn.style.display = 'flex';
+            btn.style.alignItems = 'center';
+            btn.style.justifyContent = 'center';
+
+            if (isDisabled) {
+                btn.style.opacity = '0.2';
+                btn.style.filter = 'grayscale(80%)';
+                btn.innerHTML = '';
+            } else {
+                btn.style.opacity = '1';
+                btn.style.filter = 'none';
+                const checkMark = `<span style="font-size: 1.0em; font-weight: bold;">✓</span>`;
+                const countBadge = count > 0 ? `<span style="position:absolute; bottom:1px; right:2px; color:${textColor}; font-size:0.65em; font-weight:900; letter-spacing:-0.5px; text-shadow: 0px 0px 2px rgba(255,255,255,0.8), 0px 0px 2px rgba(0,0,0,0.8);">${countText}</span>` : '';
+
+                btn.innerHTML = checkMark + countBadge;
+            }
+
+            btn.addEventListener('click', () => {
+                this.paletteContainer.dispatchEvent(new CustomEvent('toggleSingleColor', { detail: hex }));
             });
+            this.attachHoverHighlight(btn, colorObj.rgb);
+            targetEl.appendChild(btn);
+        });
+    }
 
-            groupAllBtn.addEventListener('click', () => {
-                // 클릭 시 전체 색상이 아니라 '해당 그룹의 색상들(group.colors)'만 전달하여 토글!
-                this.paletteContainer.dispatchEvent(new CustomEvent('toggleAllColors', { detail: group.colors }));
-            });
-            this.paletteContainer.appendChild(groupAllBtn);
+    // 🌟 [UI 개선] "다른 플랫폼 팔레트 함께 사용하기" 체크박스가 켜진 플랫폼만, 그 체크박스
+    // 바로 아래의 전용 컨테이너에 카테고리별(무료/유료 등) 접이식(<details>) 영역으로 그린다.
+    // 기본값은 "접힌 상태"라 체크박스를 켜도 색상 더미가 통째로 펼쳐지며 다른 체크박스를
+    // 밀어내리지 않는다 - 보고 싶을 때만 펼쳐서 보면 됨.
+    renderInclusionSwatches() {
+        const specs = [
+            {
+                enabled: state.useWplaceInGeopixels, containerId: 'wplace-inclusion-swatches',
+                groups: [
+                    { key: 'free', label: t('palette_wplace_free') || 'Wplace 기본색', colors: wplaceFreeColors },
+                    { key: 'paid', label: t('palette_wplace_paid') || 'Wplace 유료색', colors: wplacePaidColors }
+                ]
+            },
+            {
+                enabled: state.useUplaceInGeopixels, containerId: 'uplace-inclusion-swatches',
+                groups: [{ key: 'all', label: t('palette_uplace') || 'Uplace', colors: uplaceColors }]
+            },
+            {
+                enabled: state.useBplaceInGeopixels, containerId: 'bplace-inclusion-swatches',
+                groups: [{ key: 'all', label: t('palette_bplace') || 'Bplace', colors: bplaceColors }]
+            },
+            {
+                enabled: state.useThreeplaceInGeopixels, containerId: 'threeplace-inclusion-swatches',
+                groups: [{ key: 'all', label: t('palette_3place') || '3Place', colors: threeplaceColors }]
+            }
+        ];
 
-            // ==========================================
-            // 개별 색상 버튼 생성
-            // ==========================================
-            group.colors.forEach(colorObj => {
-                const btn = document.createElement('button');
-                const hex = this.rgbToHex(...colorObj.rgb);
-                const isDisabled = state.disabledHexes?.includes(hex);
-                const textColor = this.getContrastYIQ(...colorObj.rgb);
+        specs.forEach(spec => {
+            const container = document.getElementById(spec.containerId);
+            if (!container) return;
 
-                const count = globalCounts[hex] || 0;
-                const countText = count > 0 ? (count >= 1000 ? (count / 1000).toFixed(1) + 'k' : count) : '';
+            if (!spec.enabled) {
+                container.innerHTML = '';
+                return;
+            }
 
-                btn.className = 'color-btn';
-                btn.style.backgroundColor = hex;
-                btn.style.color = textColor;
-                btn.style.position = 'relative';
-                btn.style.display = 'flex';
-                btn.style.alignItems = 'center';
-                btn.style.justifyContent = 'center';
-                
-                if (isDisabled) {
-                    btn.style.opacity = '0.2';
-                    btn.style.filter = 'grayscale(80%)';
-                    btn.innerHTML = '';
-                } else {
-                    btn.style.opacity = '1';
-                    btn.style.filter = 'none';
-                    const checkMark = `<span style="font-size: 1.0em; font-weight: bold;">✓</span>`;
-                    const countBadge = count > 0 ? `<span style="position:absolute; bottom:1px; right:2px; color:${textColor}; font-size:0.65em; font-weight:900; letter-spacing:-0.5px; text-shadow: 0px 0px 2px rgba(255,255,255,0.8), 0px 0px 2px rgba(0,0,0,0.8);">${countText}</span>` : '';
-                    
-                    btn.innerHTML = checkMark + countBadge;
-                }
+            // 다시 그리기 직전, 펼쳐져 있던 카테고리를 기억해뒀다가 그대로 복원 - 색상 하나 토글할
+            // 때마다 renderBasePalettes() 전체가 다시 호출되므로, 이게 없으면 펼친 걸 매번 또 펼쳐야 함.
+            const openKeys = new Set(
+                Array.from(container.querySelectorAll('details[data-group-key]'))
+                    .filter(d => d.open)
+                    .map(d => d.dataset.groupKey)
+            );
 
-                btn.addEventListener('click', () => {
-                    this.paletteContainer.dispatchEvent(new CustomEvent('toggleSingleColor', { detail: hex }));
-                });
-                this.attachHoverHighlight(btn, colorObj.rgb);
-                this.paletteContainer.appendChild(btn);
+            container.innerHTML = '';
+            spec.groups.forEach(group => {
+                const details = document.createElement('details');
+                details.className = 'palette-inclusion-details';
+                details.dataset.groupKey = group.key;
+                if (openKeys.has(group.key)) details.open = true;
+
+                const summary = document.createElement('summary');
+                summary.textContent = `${group.label} (${group.colors.length})`;
+                details.appendChild(summary);
+
+                const grid = document.createElement('div');
+                grid.className = 'palette-inclusion-grid';
+                this.renderGroupSwatches(grid, group);
+                details.appendChild(grid);
+
+                container.appendChild(details);
             });
         });
+    }
+
+    clearInclusionSwatches() {
+        ['wplace-inclusion-swatches', 'uplace-inclusion-swatches', 'bplace-inclusion-swatches', 'threeplace-inclusion-swatches']
+            .forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = '';
+            });
     }
 
     // 2. 커스텀 팔레트 렌더링
